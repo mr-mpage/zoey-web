@@ -1,4 +1,6 @@
+import asyncio
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -6,11 +8,26 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .db import init_db
-from .routers import auth, dashboard, diapers, feeds, pumps, settings, weight
+from .routers import auth, dashboard, diapers, feeds, pumps, push, settings, weight
+from .scheduler import reminder_loop
 
 logging.basicConfig(level=logging.INFO)
 
-app = FastAPI(title="Zoey Tracker", docs_url=None, redoc_url=None)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(reminder_loop())
+    try:
+        yield
+    finally:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
+
+app = FastAPI(title="Zoey Tracker", docs_url=None, redoc_url=None, lifespan=lifespan)
 
 init_db()
 
@@ -21,6 +38,7 @@ app.include_router(pumps.router)
 app.include_router(weight.router)
 app.include_router(settings.router)
 app.include_router(diapers.router)
+app.include_router(push.router)
 
 
 @app.get("/api/health")

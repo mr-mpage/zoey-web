@@ -191,6 +191,48 @@ def list_diapers_between(start_iso: str, end_iso: str) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def insert_push_subscription(endpoint: str, p256dh: str, auth: str, label: Optional[str], created_at: datetime) -> int:
+    with get_conn() as c:
+        cur = c.execute(
+            "INSERT INTO push_subscriptions (endpoint, p256dh, auth, label, created_at) "
+            "VALUES (?, ?, ?, ?, ?) "
+            "ON CONFLICT(endpoint) DO UPDATE SET p256dh=excluded.p256dh, auth=excluded.auth, label=excluded.label",
+            (endpoint, p256dh, auth, label, created_at.isoformat()),
+        )
+        if cur.lastrowid:
+            return cur.lastrowid
+        row = c.execute("SELECT id FROM push_subscriptions WHERE endpoint = ?", (endpoint,)).fetchone()
+        return row["id"]
+
+
+def list_push_subscriptions() -> list[dict]:
+    with get_conn() as c:
+        rows = c.execute(
+            "SELECT id, endpoint, p256dh, auth, label, created_at, last_notified_for FROM push_subscriptions ORDER BY created_at DESC"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def delete_push_subscription(sub_id: int) -> bool:
+    with get_conn() as c:
+        cur = c.execute("DELETE FROM push_subscriptions WHERE id = ?", (sub_id,))
+        return cur.rowcount > 0
+
+
+def delete_push_subscription_by_endpoint(endpoint: str) -> bool:
+    with get_conn() as c:
+        cur = c.execute("DELETE FROM push_subscriptions WHERE endpoint = ?", (endpoint,))
+        return cur.rowcount > 0
+
+
+def update_push_last_notified(sub_id: int, expected_iso: str) -> None:
+    with get_conn() as c:
+        c.execute(
+            "UPDATE push_subscriptions SET last_notified_for = ? WHERE id = ?",
+            (expected_iso, sub_id),
+        )
+
+
 def get_settings() -> dict[str, str]:
     with get_conn() as c:
         rows = c.execute("SELECT key, value FROM app_settings").fetchall()

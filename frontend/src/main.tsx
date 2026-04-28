@@ -14,6 +14,15 @@ const queryClient = new QueryClient({
   },
 })
 
+// Register the service worker early so push subscriptions can attach later.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      /* SW registration is best-effort; absence just means no push. */
+    })
+  })
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>

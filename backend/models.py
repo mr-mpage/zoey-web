@@ -139,6 +139,28 @@ class LoginIn(BaseModel):
     passcode: str
 
 
+class PushSubscriptionKeys(BaseModel):
+    p256dh: str
+    auth: str
+
+
+class PushSubscriptionIn(BaseModel):
+    endpoint: str
+    keys: PushSubscriptionKeys
+    label: Optional[str] = None
+
+
+class PushSubscriptionOut(BaseModel):
+    id: int
+    label: Optional[str]
+    created_at: datetime
+    last_notified_for: Optional[datetime]
+
+
+class VapidKeyOut(BaseModel):
+    vapid_public_key: str
+
+
 class AppSettings(BaseModel):
     day_start_hour: int = Field(ge=0, le=23)
     day_start_minute: int = Field(ge=0, le=59)

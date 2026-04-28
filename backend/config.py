@@ -14,6 +14,11 @@ class Settings(BaseSettings):
     session_max_age_days: int = 90
     rate_limit_window_min: int = 15
     rate_limit_max_attempts: int = 5
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_contact_email: str = "m.page@vendure.io"
+    push_lead_minutes: int = 15
+    push_check_interval_s: int = 60
 
 
 settings = Settings()

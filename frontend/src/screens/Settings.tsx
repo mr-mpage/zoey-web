@@ -8,8 +8,10 @@ import {
   useUpdateAppSettings,
   useWeight,
 } from '../api/hooks'
+import { api, ApiError } from '../api/client'
 import { fmtDate, localDatetimeInput } from '../lib/format'
 import { gainTone, gainsBetweenEntries } from '../lib/growth'
+import { disablePush, enablePush, getState as getPushState, isStandalone } from '../lib/push'
 import type { Weight } from '../api/types'
 
 function WeightEditModal({
@@ -94,6 +96,131 @@ function WeightEditModal({
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+function PushSection() {
+  const [state, setState] = useState<'unsupported' | 'denied' | 'available' | 'enabled' | 'loading'>('loading')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState<string | null>(null)
+
+  const refresh = async () => {
+    setState(await getPushState())
+  }
+
+  useEffect(() => {
+    refresh()
+  }, [])
+
+  const enable = async () => {
+    setBusy(true)
+    setMsg(null)
+    try {
+      const { vapid_public_key } = await api.get<{ vapid_public_key: string }>('/api/push/vapid-key')
+      const sub = await enablePush(vapid_public_key)
+      const j = sub.toJSON() as { endpoint?: string; keys?: { p256dh: string; auth: string } }
+      if (!j.endpoint || !j.keys) throw new Error('Subscription missing endpoint/keys')
+      await api.post('/api/push/subscribe', {
+        endpoint: j.endpoint,
+        keys: { p256dh: j.keys.p256dh, auth: j.keys.auth },
+        label: navigator.userAgent.slice(0, 60),
+      })
+      setMsg('Reminders enabled on this device.')
+    } catch (e) {
+      const detail = e instanceof ApiError ? e.message : e instanceof Error ? e.message : 'Failed'
+      setMsg(detail)
+    } finally {
+      setBusy(false)
+      refresh()
+    }
+  }
+
+  const disable = async () => {
+    setBusy(true)
+    setMsg(null)
+    try {
+      const { endpoint } = await disablePush()
+      if (endpoint) {
+        await api.post('/api/push/unsubscribe', { endpoint })
+      }
+      setMsg('Reminders disabled on this device.')
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : 'Failed'
+      setMsg(detail)
+    } finally {
+      setBusy(false)
+      refresh()
+    }
+  }
+
+  const sendTest = async () => {
+    setBusy(true)
+    setMsg(null)
+    try {
+      const r = await api.post<{ sent: number; total: number }>('/api/push/test')
+      setMsg(`Test sent to ${r.sent}/${r.total} device(s).`)
+    } catch (e) {
+      setMsg(e instanceof ApiError ? e.message : 'Failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const standalone = isStandalone()
+
+  return (
+    <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">
+      <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Reminders</div>
+      <p className="text-xs text-zinc-500 mb-3">
+        Push notification 15 min before each scheduled feed, adapted to her actual rhythm.
+        Supplemental — keep your phone alarms as the primary safety net.
+      </p>
+      {!standalone && state !== 'unsupported' && (
+        <div className="text-[11px] text-amber-300 mb-3">
+          On iOS, reminders only work after adding this app to your Home Screen and opening it from there.
+        </div>
+      )}
+      {state === 'loading' && <div className="text-zinc-500 text-sm">Checking…</div>}
+      {state === 'unsupported' && (
+        <div className="text-zinc-500 text-sm">Push not supported on this browser.</div>
+      )}
+      {state === 'denied' && (
+        <div className="text-zinc-500 text-sm">
+          Permission denied. Enable in iOS Settings → Notifications → Zoey.
+        </div>
+      )}
+      {state === 'available' && (
+        <button
+          onClick={enable}
+          disabled={busy}
+          className="w-full py-3 rounded-xl bg-pink-300 text-zinc-900 font-medium disabled:opacity-40"
+        >
+          {busy ? 'Enabling…' : 'Enable reminders on this device'}
+        </button>
+      )}
+      {state === 'enabled' && (
+        <div className="space-y-2">
+          <div className="text-emerald-300 text-sm">Reminders enabled on this device.</div>
+          <div className="flex gap-2">
+            <button
+              onClick={sendTest}
+              disabled={busy}
+              className="flex-1 py-2.5 rounded-lg bg-zinc-800 text-zinc-200 text-sm"
+            >
+              Send test
+            </button>
+            <button
+              onClick={disable}
+              disabled={busy}
+              className="flex-1 py-2.5 rounded-lg bg-rose-950 text-rose-300 text-sm"
+            >
+              Disable
+            </button>
+          </div>
+        </div>
+      )}
+      {msg && <div className="text-[11px] text-zinc-400 mt-3">{msg}</div>}
     </div>
   )
 }
@@ -394,6 +521,8 @@ export function SettingsScreen() {
           saving={patchWeight.isPending || deleteWeight.isPending}
         />
       )}
+
+      <PushSection />
 
       <button
         onClick={() => logout.mutate()}
