@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
-import type { AppSettings, Dashboard, Feed, Pump, Weight, WeightStatus } from './types'
+import type { AppSettings, Dashboard, Diaper, Feed, Pump, Weight, WeightStatus } from './types'
 
 export function useAuthStatus() {
   return useQuery({
@@ -63,6 +63,7 @@ function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ['feeds'] })
   qc.invalidateQueries({ queryKey: ['pumps'] })
   qc.invalidateQueries({ queryKey: ['weight'] })
+  qc.invalidateQueries({ queryKey: ['diapers'] })
 }
 
 export function useCreateFeed() {
@@ -122,6 +123,48 @@ export function useSetWeight() {
   return useMutation({
     mutationFn: (input: { weight_grams: number; ml_per_kg_per_day: number; notes?: string }) =>
       api.post<Weight>('/api/weight', input),
+    onSuccess: () => invalidateAll(qc),
+  })
+}
+
+export function usePatchWeight() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...rest }: { id: number; weight_grams?: number; ml_per_kg_per_day?: number; recorded_at?: string; notes?: string }) =>
+      api.patch(`/api/weight/${id}`, rest),
+    onSuccess: () => invalidateAll(qc),
+  })
+}
+
+export function useDeleteWeight() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.del(`/api/weight/${id}`),
+    onSuccess: () => invalidateAll(qc),
+  })
+}
+
+export function useDiapers(days = 7) {
+  return useQuery({
+    queryKey: ['diapers', days],
+    queryFn: () => api.get<Diaper[]>(`/api/diapers?days=${days}`),
+    refetchInterval: 30_000,
+  })
+}
+
+export function useCreateDiaper() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { kind: 'wet' | 'dirty'; recorded_at?: string; notes?: string }) =>
+      api.post<Diaper>('/api/diapers', input),
+    onSuccess: () => invalidateAll(qc),
+  })
+}
+
+export function useDeleteDiaper() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.del(`/api/diapers/${id}`),
     onSuccess: () => invalidateAll(qc),
   })
 }

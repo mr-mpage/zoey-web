@@ -85,6 +85,30 @@ class NextFeedHint(BaseModel):
     historical_avg_ml: Optional[float]
 
 
+class DiaperIn(BaseModel):
+    kind: str = Field(pattern="^(wet|dirty)$")
+    recorded_at: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+class DiaperPatch(BaseModel):
+    kind: Optional[str] = Field(default=None, pattern="^(wet|dirty)$")
+    recorded_at: Optional[datetime] = None
+    notes: Optional[str] = None
+
+
+class Diaper(BaseModel):
+    id: int
+    recorded_at: datetime
+    kind: str
+    notes: Optional[str] = None
+
+
+class DiaperSummary(BaseModel):
+    wet: int = 0
+    dirty: int = 0
+
+
 class Dashboard(BaseModel):
     today_date: str
     feeding_day_start: datetime
@@ -99,6 +123,7 @@ class Dashboard(BaseModel):
     gap_ml: float  # positive = ahead, negative = behind, vs expected at this feed count
     pumps_today_ml: float
     pumps_today_count: int
+    diapers_today: DiaperSummary
     next_feed: Optional[NextFeedHint]
     weight: WeightStatus
 

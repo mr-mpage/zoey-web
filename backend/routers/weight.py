@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 
 from .. import repo
 from ..auth import require_auth
@@ -8,6 +9,13 @@ from ..comparisons import TZ, now_local
 from ..models import Weight, WeightIn, WeightStatus
 
 router = APIRouter(prefix="/api/weight", tags=["weight"], dependencies=[Depends(require_auth)])
+
+
+class WeightPatch(BaseModel):
+    recorded_at: datetime | None = None
+    weight_grams: int | None = Field(default=None, gt=500, lt=20000)
+    ml_per_kg_per_day: int | None = Field(default=None, gt=50, lt=300)
+    notes: str | None = None
 
 
 def _row_to_weight(row: dict) -> Weight:
@@ -50,3 +58,22 @@ def post_weight(payload: WeightIn) -> Weight:
         ml_per_kg_per_day=payload.ml_per_kg_per_day,
         notes=payload.notes,
     )
+
+
+@router.patch("/{weight_id}")
+def patch_weight(weight_id: int, payload: WeightPatch) -> dict:
+    recorded_at = payload.recorded_at
+    if recorded_at is not None and recorded_at.tzinfo is None:
+        recorded_at = recorded_at.replace(tzinfo=TZ)
+    ok = repo.update_weight(weight_id, recorded_at, payload.weight_grams, payload.ml_per_kg_per_day, payload.notes)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Weight not found")
+    return {"ok": True}
+
+
+@router.delete("/{weight_id}")
+def delete_weight(weight_id: int) -> dict:
+    ok = repo.delete_weight(weight_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Weight not found")
+    return {"ok": True}

@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 import { localDatetimeInput } from '../lib/format'
 
+function splitDatetimeLocal(s: string): { date: string; time: string } {
+  const [date, time] = s.split('T')
+  return { date, time: time?.slice(0, 5) ?? '' }
+}
+
 export type AmountModalProps = {
   open: boolean
   title: string
@@ -22,20 +27,26 @@ export function AmountModal({
   initialTime,
   initialNotes,
   hint,
-  step = 5,
+  step = 1,
   onClose,
   onSave,
   onDelete,
   saving,
 }: AmountModalProps) {
+  const initial = initialTime ?? localDatetimeInput(new Date())
+  const initSplit = splitDatetimeLocal(initial)
   const [amount, setAmount] = useState<number>(initialAmount ?? 50)
-  const [time, setTime] = useState<string>(initialTime ?? localDatetimeInput(new Date()))
+  const [timeStr, setTimeStr] = useState<string>(initSplit.time)
+  const [dateStr, setDateStr] = useState<string>(initSplit.date)
   const [notes, setNotes] = useState<string>(initialNotes ?? '')
 
   useEffect(() => {
     if (open) {
+      const seed = initialTime ?? localDatetimeInput(new Date())
+      const s = splitDatetimeLocal(seed)
       setAmount(initialAmount ?? 50)
-      setTime(initialTime ?? localDatetimeInput(new Date()))
+      setTimeStr(s.time)
+      setDateStr(s.date)
       setNotes(initialNotes ?? '')
     }
   }, [open, initialAmount, initialTime, initialNotes])
@@ -78,13 +89,26 @@ export function AmountModal({
           >+</button>
         </div>
 
-        <label className="block text-xs text-zinc-500 mb-1">Time</label>
-        <input
-          type="datetime-local"
-          value={time}
-          onChange={(e) => setTime(e.target.value)}
-          className="w-full bg-zinc-800 rounded-lg px-3 py-2.5 mb-4 text-zinc-100"
-        />
+        <div className="flex gap-2 mb-4">
+          <div className="flex-1">
+            <label className="block text-xs text-zinc-500 mb-1">Time</label>
+            <input
+              type="time"
+              value={timeStr}
+              onChange={(e) => setTimeStr(e.target.value)}
+              className="w-full bg-zinc-800 rounded-lg px-3 py-3 text-zinc-100 text-2xl font-light tabular-nums text-center"
+            />
+          </div>
+          <div className="w-32">
+            <label className="block text-xs text-zinc-500 mb-1">Date</label>
+            <input
+              type="date"
+              value={dateStr}
+              onChange={(e) => setDateStr(e.target.value)}
+              className="w-full bg-zinc-800 rounded-lg px-2 py-3 text-zinc-300 text-sm tabular-nums text-center"
+            />
+          </div>
+        </div>
 
         <label className="block text-xs text-zinc-500 mb-1">Notes (optional)</label>
         <input
@@ -105,8 +129,11 @@ export function AmountModal({
             </button>
           )}
           <button
-            onClick={() => onSave({ amount_ml: amount, at: new Date(time).toISOString(), notes })}
-            disabled={saving || amount <= 0}
+            onClick={() => {
+              const at = new Date(`${dateStr}T${timeStr}:00`).toISOString()
+              onSave({ amount_ml: amount, at, notes })
+            }}
+            disabled={saving || amount <= 0 || !timeStr || !dateStr}
             className="flex-1 py-3 rounded-xl bg-pink-300 text-zinc-900 font-medium active:scale-[.98] disabled:opacity-40"
           >
             {saving ? 'Saving…' : 'Save'}

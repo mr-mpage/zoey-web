@@ -63,7 +63,6 @@ export function PumpsScreen() {
         initialAmount={editing?.amount_ml}
         initialTime={editing ? localDatetimeInput(new Date(editing.pumped_at)) : undefined}
         initialNotes={editing?.notes ?? ''}
-        step={10}
         onClose={() => setEditing(null)}
         onSave={(input) => {
           if (!editing) return

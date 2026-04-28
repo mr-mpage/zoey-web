@@ -83,7 +83,28 @@ export function HelpModal({ open, onClose }: Props) {
             <p>
               When you have a fresh weigh-in, go to Settings → Update weight. Enter the new weight in grams
               and (if it changed) the ml/kg/day rate. The daily target recalculates immediately, and history
-              rows for past days keep using the weight that was current then — so they stay accurate.
+              rows for past days keep using the weight that was current then. Tap any row in the weight
+              history to edit or delete it. If a new weight differs by more than 10% or 100 g/day from the
+              previous, you'll get a sanity-check confirmation before it saves.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="text-pink-200 font-medium mb-1.5">Weight gain (g/kg/day)</h3>
+            <p>
+              The Today screen shows her 7-day average gain rate under the pace chip. Reference for stable
+              preterm: <b>15–20 g/kg/day</b>. Each row in the weight history also shows the gain since the
+              previous entry. If gain rate falls below ~10 g/kg/day persistently, mention it at her next visit.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="text-pink-200 font-medium mb-1.5">Diaper count</h3>
+            <p>
+              Tap <span className="bg-zinc-800 text-zinc-100 px-1.5 rounded">+ Wet</span> or
+              <span className="bg-zinc-800 text-zinc-100 px-1.5 rounded ml-1">+ Dirty</span> to log a diaper.
+              Pediatricians usually ask "how many wet diapers in 24 h?" — six is the rough floor for adequate
+              hydration. The minus button next to each counter undoes the most recent entry of that kind.
             </p>
           </section>
 

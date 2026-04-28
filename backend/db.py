@@ -29,6 +29,14 @@ CREATE TABLE IF NOT EXISTS pumps (
 );
 CREATE INDEX IF NOT EXISTS idx_pumps_pumped_at ON pumps(pumped_at);
 
+CREATE TABLE IF NOT EXISTS diapers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    recorded_at TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('wet', 'dirty')),
+    notes TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_diapers_recorded_at ON diapers(recorded_at);
+
 CREATE TABLE IF NOT EXISTS app_settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL

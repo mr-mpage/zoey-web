@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useAppSettings, useFeeds, useWeight } from '../api/hooks'
+import { MlPerKgSparkline, buildSparklinePoints } from '../components/MlPerKgSparkline'
 import { fmtDate } from '../lib/format'
 import type { Weight } from '../api/types'
 
@@ -45,7 +46,7 @@ function bandTone(mlPerKg: number, b: Bands): string {
 }
 
 export function HistoryScreen() {
-  const { data: feeds } = useFeeds(7)
+  const { data: feeds } = useFeeds(30)
   const { data: weight } = useWeight()
   const { data: appSettings } = useAppSettings()
   const anchorH = appSettings?.day_start_hour ?? 2
@@ -77,14 +78,34 @@ export function HistoryScreen() {
       .sort((a, b) => +b.day - +a.day)
   }, [feeds, anchorH, anchorM])
 
+  const sparkPoints = useMemo(
+    () => buildSparklinePoints(feeds ?? [], weights, anchorH, anchorM, 30),
+    [feeds, weights, anchorH, anchorM],
+  )
+
+  // Show only the last 7 completed days + today in the grid
+  const visibleGrid = grid.slice(0, 8)
+
   return (
     <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
       <div className="text-center text-zinc-500 text-sm mb-4">Last 7 days</div>
+
+      {sparkPoints.length >= 2 && (
+        <div className="rounded-xl bg-zinc-900/60 p-3 mb-4">
+          <div className="flex justify-between items-baseline mb-1.5">
+            <div className="text-[11px] uppercase tracking-wider text-zinc-500">30-day trend</div>
+            <div className="text-[11px] text-zinc-500 tabular-nums">{sparkPoints.length} days</div>
+          </div>
+          <MlPerKgSparkline points={sparkPoints} bands={bands} />
+          <div className="mt-1 text-[10px] text-zinc-600 text-center">ml/kg/day · shaded = target zone</div>
+        </div>
+      )}
+
       {grid.length === 0 && (
         <div className="rounded-xl bg-zinc-900/40 p-6 text-center text-zinc-500 text-sm">No feeds logged yet.</div>
       )}
       <div className="space-y-3">
-        {grid.map((row) => {
+        {visibleGrid.map((row) => {
           const total = row.feeds.reduce((a, b) => a + b, 0)
           const dayWeight = weightForDay(row.day, weights)
           const dayTarget = dayWeight ? (dayWeight.weight_grams / 1000) * dayWeight.ml_per_kg_per_day : 0

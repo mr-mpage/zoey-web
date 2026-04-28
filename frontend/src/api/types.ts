@@ -12,6 +12,18 @@ export type Pump = {
   notes: string | null
 }
 
+export type Diaper = {
+  id: number
+  recorded_at: string
+  kind: 'wet' | 'dirty'
+  notes: string | null
+}
+
+export type DiaperSummary = {
+  wet: number
+  dirty: number
+}
+
 export type Weight = {
   id: number
   recorded_at: string
@@ -63,6 +75,7 @@ export type Dashboard = {
   gap_ml: number
   pumps_today_ml: number
   pumps_today_count: number
+  diapers_today: DiaperSummary
   next_feed: NextFeedHint | null
   weight: WeightStatus
 }

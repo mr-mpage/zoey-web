@@ -14,6 +14,7 @@ from ..comparisons import (
 from ..config import settings as cfg
 from ..models import (
     Dashboard,
+    DiaperSummary,
     Feed,
     FeedWithComparison,
     NextFeedHint,
@@ -44,6 +45,11 @@ def get_dashboard() -> Dashboard:
     todays_feeds = sorted(by_day.get(today, []), key=lambda r: r["fed_at"])
 
     pump_rows = repo.list_pumps_between(today_start.isoformat(), today_end.isoformat())
+    diaper_rows = repo.list_diapers_between(today_start.isoformat(), today_end.isoformat())
+    diaper_summary = DiaperSummary(
+        wet=sum(1 for d in diaper_rows if d["kind"] == "wet"),
+        dirty=sum(1 for d in diaper_rows if d["kind"] == "dirty"),
+    )
 
     weight_status = weight_router.compute_status()
     daily_target = weight_status.daily_target_ml
@@ -111,6 +117,7 @@ def get_dashboard() -> Dashboard:
         gap_ml=round(gap_ml, 1),
         pumps_today_ml=round(sum(p["amount_ml"] for p in pump_rows), 1),
         pumps_today_count=len(pump_rows),
+        diapers_today=diaper_summary,
         next_feed=next_feed,
         weight=weight_status,
     )

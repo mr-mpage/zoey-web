@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .db import init_db
-from .routers import auth, dashboard, feeds, pumps, settings, weight
+from .routers import auth, dashboard, diapers, feeds, pumps, settings, weight
 
 logging.basicConfig(level=logging.INFO)
 
@@ -20,6 +20,7 @@ app.include_router(feeds.router)
 app.include_router(pumps.router)
 app.include_router(weight.router)
 app.include_router(settings.router)
+app.include_router(diapers.router)
 
 
 @app.get("/api/health")

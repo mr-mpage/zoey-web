@@ -117,6 +117,77 @@ def list_weights() -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def update_weight(weight_id: int, recorded_at: Optional[datetime], weight_grams: Optional[int], ml_per_kg_per_day: Optional[int], notes: Optional[str]) -> bool:
+    sets, args = [], []
+    if recorded_at is not None:
+        sets.append("recorded_at = ?")
+        args.append(recorded_at.isoformat())
+    if weight_grams is not None:
+        sets.append("weight_grams = ?")
+        args.append(weight_grams)
+    if ml_per_kg_per_day is not None:
+        sets.append("ml_per_kg_per_day = ?")
+        args.append(ml_per_kg_per_day)
+    if notes is not None:
+        sets.append("notes = ?")
+        args.append(notes)
+    if not sets:
+        return True
+    args.append(weight_id)
+    with get_conn() as c:
+        cur = c.execute(f"UPDATE weight_entries SET {', '.join(sets)} WHERE id = ?", args)
+        return cur.rowcount > 0
+
+
+def delete_weight(weight_id: int) -> bool:
+    with get_conn() as c:
+        cur = c.execute("DELETE FROM weight_entries WHERE id = ?", (weight_id,))
+        return cur.rowcount > 0
+
+
+def insert_diaper(recorded_at: datetime, kind: str, notes: Optional[str]) -> int:
+    with get_conn() as c:
+        cur = c.execute(
+            "INSERT INTO diapers (recorded_at, kind, notes) VALUES (?, ?, ?)",
+            (recorded_at.isoformat(), kind, notes),
+        )
+        return cur.lastrowid
+
+
+def update_diaper(diaper_id: int, recorded_at: Optional[datetime], kind: Optional[str], notes: Optional[str]) -> bool:
+    sets, args = [], []
+    if recorded_at is not None:
+        sets.append("recorded_at = ?")
+        args.append(recorded_at.isoformat())
+    if kind is not None:
+        sets.append("kind = ?")
+        args.append(kind)
+    if notes is not None:
+        sets.append("notes = ?")
+        args.append(notes)
+    if not sets:
+        return True
+    args.append(diaper_id)
+    with get_conn() as c:
+        cur = c.execute(f"UPDATE diapers SET {', '.join(sets)} WHERE id = ?", args)
+        return cur.rowcount > 0
+
+
+def delete_diaper(diaper_id: int) -> bool:
+    with get_conn() as c:
+        cur = c.execute("DELETE FROM diapers WHERE id = ?", (diaper_id,))
+        return cur.rowcount > 0
+
+
+def list_diapers_between(start_iso: str, end_iso: str) -> list[dict]:
+    with get_conn() as c:
+        rows = c.execute(
+            "SELECT id, recorded_at, kind, notes FROM diapers WHERE recorded_at >= ? AND recorded_at < ? ORDER BY recorded_at ASC",
+            (start_iso, end_iso),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def get_settings() -> dict[str, str]:
     with get_conn() as c:
         rows = c.execute("SELECT key, value FROM app_settings").fetchall()

@@ -1,10 +1,14 @@
 import { useState } from 'react'
 import {
+  useCreateDiaper,
   useCreateFeed,
   useCreatePump,
   useDashboard,
+  useDeleteDiaper,
   useDeleteFeed,
+  useDiapers,
   usePatchFeed,
+  useWeight,
 } from '../api/hooks'
 import { AmountModal } from '../components/AmountModal'
 import { EncouragementCard } from '../components/EncouragementCard'
@@ -14,7 +18,43 @@ import { StatusBadge } from '../components/StatusBadge'
 import { ZOEY_BIRTH_ISO } from '../lib/constants'
 import { buildEncouragement } from '../lib/encouragement'
 import { ageInDays, fmtClock, fmtDateLong, fmtMl, fmtTime, localDatetimeInput } from '../lib/format'
-import type { FeedWithComparison } from '../api/types'
+import { gainTone, rollingGainRate } from '../lib/growth'
+import type { Diaper, FeedWithComparison } from '../api/types'
+
+function DiaperCounter({
+  label,
+  count,
+  onAdd,
+  onUndo,
+  disabled,
+}: {
+  label: string
+  count: number
+  onAdd: () => void
+  onUndo: () => void
+  disabled?: boolean
+}) {
+  return (
+    <div className="flex items-center bg-zinc-800/60 rounded-lg overflow-hidden">
+      <button
+        onClick={onAdd}
+        disabled={disabled}
+        className="flex-1 px-2 py-2 text-sm flex items-center justify-between gap-2 active:bg-zinc-700/40 disabled:opacity-50"
+      >
+        <span className="text-zinc-400">+ {label}</span>
+        <span className="tabular-nums text-zinc-100">{count}</span>
+      </button>
+      <button
+        onClick={onUndo}
+        disabled={disabled || count === 0}
+        aria-label={`Undo last ${label}`}
+        className="px-2.5 py-2 text-zinc-500 active:text-zinc-300 border-l border-zinc-900/60 disabled:opacity-30"
+      >
+        −
+      </button>
+    </div>
+  )
+}
 
 const FEED_INTERVAL_HOURS = 3
 
@@ -29,10 +69,14 @@ type PumpDraft = { amount_ml?: number; pumped_at?: string; notes?: string }
 
 export function TodayScreen() {
   const { data, isLoading } = useDashboard()
+  const { data: weight } = useWeight()
+  const { data: diapers } = useDiapers(1)
   const createFeed = useCreateFeed()
   const patchFeed = usePatchFeed()
   const deleteFeed = useDeleteFeed()
   const createPump = useCreatePump()
+  const createDiaper = useCreateDiaper()
+  const deleteDiaper = useDeleteDiaper()
 
   const [feedDraft, setFeedDraft] = useState<FeedDraft | null>(null)
   const [pumpDraft, setPumpDraft] = useState<PumpDraft | null>(null)
@@ -44,6 +88,20 @@ export function TodayScreen() {
   const dailyTarget = data.daily_target_ml
   const pct = dailyTarget > 0 ? data.feeds_total_ml / dailyTarget : 0
   const day = ageInDays(ZOEY_BIRTH_ISO)
+  const gain = rollingGainRate(weight?.history ?? [], 7)
+
+  const todayDiapers = (diapers ?? []).filter((d) => {
+    const start = data.feeding_day_start
+    const end = data.feeding_day_end
+    return d.recorded_at >= start && d.recorded_at < end
+  })
+
+  const removeLatestDiaper = (kind: 'wet' | 'dirty') => {
+    const latest = [...todayDiapers]
+      .filter((d) => d.kind === kind)
+      .sort((a, b) => b.recorded_at.localeCompare(a.recorded_at))[0] as Diaper | undefined
+    if (latest) deleteDiaper.mutate(latest.id)
+  }
 
   const openEditFeed = (f: FeedWithComparison) =>
     setFeedDraft({
@@ -85,8 +143,16 @@ export function TodayScreen() {
         </ProgressRing>
       </div>
 
-      <div className="flex justify-center mt-3">
+      <div className="flex flex-col items-center gap-1.5 mt-3">
         <PaceChip pace={data.pace_status} gap={data.gap_ml} hasFeeds={data.feeds_today.length > 0} />
+        {gain !== null && (
+          <div className="text-xs">
+            <span className="text-zinc-500">7-day gain </span>
+            <span className={`tabular-nums ${gainTone(gain)}`}>
+              {gain >= 0 ? '+' : ''}{gain.toFixed(1)} g/kg/day
+            </span>
+          </div>
+        )}
       </div>
 
       <EncouragementCard enc={buildEncouragement(data)} />
@@ -153,6 +219,29 @@ export function TodayScreen() {
         </button>
       </div>
 
+      <div className="mt-3 rounded-xl bg-zinc-900/40 px-3 py-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] uppercase tracking-wider text-zinc-500">Diapers today</span>
+          <span className="text-xs text-zinc-400 tabular-nums">{data.diapers_today.wet} wet · {data.diapers_today.dirty} dirty</span>
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <DiaperCounter
+            label="Wet"
+            count={data.diapers_today.wet}
+            onAdd={() => createDiaper.mutate({ kind: 'wet' })}
+            onUndo={() => removeLatestDiaper('wet')}
+            disabled={createDiaper.isPending || deleteDiaper.isPending}
+          />
+          <DiaperCounter
+            label="Dirty"
+            count={data.diapers_today.dirty}
+            onAdd={() => createDiaper.mutate({ kind: 'dirty' })}
+            onUndo={() => removeLatestDiaper('dirty')}
+            disabled={createDiaper.isPending || deleteDiaper.isPending}
+          />
+        </div>
+      </div>
+
       <div className="mt-6">
         <div className="text-zinc-500 text-xs uppercase tracking-wider mb-2 px-1">Today's feeds</div>
         {data.feeds_today.length === 0 ? (
@@ -210,7 +299,6 @@ export function TodayScreen() {
         open={pumpDraft !== null}
         title="Log pump"
         initialAmount={80}
-        step={10}
         onClose={() => setPumpDraft(null)}
         onSave={onSavePump}
         saving={createPump.isPending}
