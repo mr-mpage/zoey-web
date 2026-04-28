@@ -1,0 +1,186 @@
+import { useState } from 'react'
+import { useCreateFeed, useCreatePump, useDashboard, useDeleteFeed, usePatchFeed } from '../api/hooks'
+import { AmountModal } from '../components/AmountModal'
+import { ProgressRing } from '../components/ProgressRing'
+import { StatusBadge } from '../components/StatusBadge'
+import { ZOEY_BIRTH_ISO } from '../lib/constants'
+import { ageInDays, fmtMl, fmtTime, localDatetimeInput } from '../lib/format'
+import type { FeedWithComparison } from '../api/types'
+
+type FeedDraft = { id?: number; amount_ml?: number; fed_at?: string; notes?: string }
+type PumpDraft = { amount_ml?: number; pumped_at?: string; notes?: string }
+
+export function TodayScreen() {
+  const { data, isLoading } = useDashboard()
+  const createFeed = useCreateFeed()
+  const patchFeed = usePatchFeed()
+  const deleteFeed = useDeleteFeed()
+  const createPump = useCreatePump()
+
+  const [feedDraft, setFeedDraft] = useState<FeedDraft | null>(null)
+  const [pumpDraft, setPumpDraft] = useState<PumpDraft | null>(null)
+
+  if (isLoading || !data) {
+    return <div className="p-8 text-center text-zinc-500">Loading…</div>
+  }
+
+  const dailyTarget = data.daily_target_ml
+  const pct = dailyTarget > 0 ? data.feeds_total_ml / dailyTarget : 0
+  const day = ageInDays(ZOEY_BIRTH_ISO)
+  const paceColor =
+    data.pace_status === 'behind' ? 'text-amber-400' : data.pace_status === 'ahead' ? 'text-sky-400' : 'text-emerald-400'
+
+  const openEditFeed = (f: FeedWithComparison) =>
+    setFeedDraft({
+      id: f.id,
+      amount_ml: f.amount_ml,
+      fed_at: localDatetimeInput(new Date(f.fed_at)),
+      notes: f.notes ?? '',
+    })
+
+  const onSaveFeed = (input: { amount_ml: number; at: string; notes: string }) => {
+    const body = { amount_ml: input.amount_ml, fed_at: input.at, notes: input.notes || undefined }
+    if (feedDraft?.id) {
+      patchFeed.mutate({ id: feedDraft.id, ...body }, { onSuccess: () => setFeedDraft(null) })
+    } else {
+      createFeed.mutate(body, { onSuccess: () => setFeedDraft(null) })
+    }
+  }
+
+  const onSavePump = (input: { amount_ml: number; at: string; notes: string }) => {
+    createPump.mutate(
+      { amount_ml: input.amount_ml, pumped_at: input.at, notes: input.notes || undefined },
+      { onSuccess: () => setPumpDraft(null) },
+    )
+  }
+
+  return (
+    <div className="px-4 pt-6 pb-32 max-w-xl mx-auto">
+      <div className="text-center text-zinc-500 text-sm mb-1">Day {day} · {data.today_date}</div>
+
+      <div className="flex justify-center mt-4">
+        <ProgressRing pct={pct}>
+          <div className="text-3xl font-light tabular-nums">
+            {data.feeds_total_ml.toFixed(0)}
+            <span className="text-zinc-500 text-base"> / {dailyTarget.toFixed(0)}</span>
+          </div>
+          <div className="text-xs text-zinc-500 mt-1">ml today</div>
+          <div className={`text-xs mt-2 ${paceColor}`}>
+            {data.pace_status === 'on_track' ? 'on track' : data.pace_status}
+          </div>
+        </ProgressRing>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 mt-6 text-center text-sm">
+        <div className="rounded-xl bg-zinc-900/60 py-3">
+          <div className="text-zinc-500 text-[11px] uppercase tracking-wider">Avg</div>
+          <div className="tabular-nums">{fmtMl(data.feeds_avg_ml)}</div>
+        </div>
+        <div className="rounded-xl bg-zinc-900/60 py-3">
+          <div className="text-zinc-500 text-[11px] uppercase tracking-wider">Per feed</div>
+          <div className="tabular-nums">{fmtMl(data.per_feed_target_ml)}</div>
+        </div>
+        <div className="rounded-xl bg-zinc-900/60 py-3">
+          <div className="text-zinc-500 text-[11px] uppercase tracking-wider">Left</div>
+          <div className="tabular-nums">{data.feeds_remaining}</div>
+        </div>
+      </div>
+
+      {data.next_feed && (
+        <div className="mt-5 rounded-2xl border border-pink-300/20 bg-pink-300/5 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs text-pink-300/80 uppercase tracking-wider">Next feed · #{data.next_feed.feed_index}</div>
+              <div className="text-xl font-light mt-0.5">target {data.next_feed.target_ml.toFixed(0)} ml</div>
+            </div>
+            <div className="text-right text-xs text-zinc-400">
+              {data.next_feed.historical_avg_ml !== null ? (
+                <>last 7d avg<br /><span className="text-zinc-200 text-base tabular-nums">{data.next_feed.historical_avg_ml.toFixed(0)} ml</span></>
+              ) : (
+                <span className="text-zinc-600">no history yet</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-6">
+        <div className="text-zinc-500 text-xs uppercase tracking-wider mb-2 px-1">Today's feeds</div>
+        {data.feeds_today.length === 0 ? (
+          <div className="rounded-xl bg-zinc-900/40 p-6 text-center text-zinc-500 text-sm">
+            No feeds yet today.
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {[...data.feeds_today].reverse().map((f) => (
+              <li
+                key={f.id}
+                onClick={() => openEditFeed(f)}
+                className="rounded-xl bg-zinc-900/60 p-3 flex items-center gap-3 active:bg-zinc-900"
+              >
+                <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs text-zinc-400">
+                  #{f.feed_index}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="tabular-nums text-lg">{f.amount_ml.toFixed(0)} ml</span>
+                    <StatusBadge status={f.status} sampleDays={f.comparison.sample_days} />
+                  </div>
+                  <div className="text-xs text-zinc-500 mt-0.5">
+                    {fmtTime(f.fed_at)}
+                    {f.comparison.avg_ml !== null && (
+                      <> · 7d avg {f.comparison.avg_ml.toFixed(0)} ml ({f.comparison.min_ml?.toFixed(0)}–{f.comparison.max_ml?.toFixed(0)})</>
+                    )}
+                    {f.notes && <> · {f.notes}</>}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="fixed bottom-20 left-0 right-0 px-4 max-w-xl mx-auto flex gap-2">
+        <button
+          onClick={() => setPumpDraft({})}
+          className="flex-1 py-3 rounded-xl bg-zinc-800 text-zinc-100 font-medium active:scale-[.98] shadow-lg"
+        >
+          + Pump
+        </button>
+        <button
+          onClick={() => setFeedDraft({})}
+          className="flex-1 py-3 rounded-xl bg-pink-300 text-zinc-900 font-medium active:scale-[.98] shadow-lg"
+        >
+          + Feed
+        </button>
+      </div>
+
+      <AmountModal
+        open={feedDraft !== null}
+        title={feedDraft?.id ? 'Edit feed' : 'Log feed'}
+        initialAmount={feedDraft?.amount_ml ?? data.next_feed?.target_ml ?? data.per_feed_target_ml}
+        initialTime={feedDraft?.fed_at}
+        initialNotes={feedDraft?.notes}
+        hint={
+          !feedDraft?.id && data.next_feed?.historical_avg_ml !== null && data.next_feed?.historical_avg_ml !== undefined
+            ? `7-day avg for feed #${data.next_feed.feed_index}: ${data.next_feed.historical_avg_ml.toFixed(0)} ml`
+            : null
+        }
+        onClose={() => setFeedDraft(null)}
+        onSave={onSaveFeed}
+        onDelete={feedDraft?.id ? () => deleteFeed.mutate(feedDraft.id!, { onSuccess: () => setFeedDraft(null) }) : undefined}
+        saving={createFeed.isPending || patchFeed.isPending || deleteFeed.isPending}
+      />
+
+      <AmountModal
+        open={pumpDraft !== null}
+        title="Log pump"
+        initialAmount={80}
+        step={10}
+        onClose={() => setPumpDraft(null)}
+        onSave={onSavePump}
+        saving={createPump.isPending}
+      />
+    </div>
+  )
+}

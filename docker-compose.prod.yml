@@ -1,0 +1,9 @@
+# Server-side overlay: server-specific bind mount + tighter resource caps if desired.
+# Used on plexvps as: cp docker-compose.yml + docker-compose.prod.yml to /srv/zoey-tracker/, then
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+services:
+  zoey-tracker:
+    volumes:
+      - /srv/zoey-tracker/data:/data
+    ports:
+      - "127.0.0.1:8087:8000"

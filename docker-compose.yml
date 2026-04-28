@@ -1,0 +1,34 @@
+services:
+  zoey-tracker:
+    build: .
+    image: zoey-tracker:local
+    container_name: zoey-tracker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - DB_PATH=/data/zoey.db
+      - TZ=Europe/Vienna
+    volumes:
+      - ./data:/data
+    ports:
+      - "127.0.0.1:8087:8000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    networks:
+      - zoey-net
+
+networks:
+  zoey-net:
+    name: zoey-net
+    driver: bridge

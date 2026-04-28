@@ -1,0 +1,55 @@
+from datetime import datetime, timedelta
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+
+from .. import repo
+from ..auth import require_auth
+from ..comparisons import TZ, now_local
+from ..models import Pump, PumpIn, PumpPatch
+
+router = APIRouter(prefix="/api/pumps", tags=["pumps"], dependencies=[Depends(require_auth)])
+
+
+def _row_to_pump(row: dict) -> Pump:
+    return Pump(
+        id=row["id"],
+        pumped_at=datetime.fromisoformat(row["pumped_at"]),
+        amount_ml=row["amount_ml"],
+        notes=row["notes"],
+    )
+
+
+@router.get("")
+def list_pumps(days: int = Query(default=7, ge=1, le=90)) -> list[Pump]:
+    end = now_local() + timedelta(days=1)
+    start = (now_local() - timedelta(days=days - 1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    rows = repo.list_pumps_between(start.isoformat(), end.isoformat())
+    return [_row_to_pump(r) for r in rows]
+
+
+@router.post("", status_code=201)
+def create_pump(payload: PumpIn) -> Pump:
+    pumped_at = payload.pumped_at or now_local()
+    if pumped_at.tzinfo is None:
+        pumped_at = pumped_at.replace(tzinfo=TZ)
+    new_id = repo.insert_pump(pumped_at, payload.amount_ml, payload.notes)
+    return Pump(id=new_id, pumped_at=pumped_at, amount_ml=payload.amount_ml, notes=payload.notes)
+
+
+@router.patch("/{pump_id}")
+def patch_pump(pump_id: int, payload: PumpPatch) -> dict:
+    pumped_at = payload.pumped_at
+    if pumped_at is not None and pumped_at.tzinfo is None:
+        pumped_at = pumped_at.replace(tzinfo=TZ)
+    ok = repo.update_pump(pump_id, pumped_at, payload.amount_ml, payload.notes)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Pump not found")
+    return {"ok": True}
+
+
+@router.delete("/{pump_id}")
+def delete_pump(pump_id: int) -> dict:
+    ok = repo.delete_pump(pump_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Pump not found")
+    return {"ok": True}

@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  --accent: #f0a8b8;
+  --accent-strong: #e88aa1;
+}
+
+html, body, #root {
+  margin: 0;
+  min-height: 100dvh;
+}
+
+body {
+  @apply bg-[#0f1115] text-zinc-100 font-sans antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+button {
+  @apply touch-manipulation;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { @apply bg-zinc-900; }
+::-webkit-scrollbar-thumb { @apply bg-zinc-700 rounded; }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+.animate-shake { animation: shake 0.4s; }
