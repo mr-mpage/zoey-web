@@ -33,11 +33,15 @@ function weightForDay(day: Date, weights: Weight[]): Weight | null {
   )
 }
 
-/** Colour by clinical band: under target, in target, over target. */
-function bandTone(mlPerKg: number, targetLow: number, targetHigh: number): string {
-  if (mlPerKg >= targetHigh) return 'text-sky-300'
-  if (mlPerKg >= targetLow) return 'text-emerald-300'
-  return 'text-amber-400'
+type Bands = { concern: number; low: number; solid: number; high: number }
+
+/** 5 clinical tiers, edges configurable in Settings. */
+function bandTone(mlPerKg: number, b: Bands): string {
+  if (mlPerKg >= b.high) return 'text-sky-300'         // above zone
+  if (mlPerKg >= b.solid) return 'text-emerald-300'    // solidly in zone
+  if (mlPerKg >= b.low) return 'text-lime-300'         // at minimum / lower zone
+  if (mlPerKg >= b.concern) return 'text-amber-400'    // under zone
+  return 'text-rose-400'                                // significant concern
 }
 
 export function HistoryScreen() {
@@ -46,8 +50,12 @@ export function HistoryScreen() {
   const { data: appSettings } = useAppSettings()
   const anchorH = appSettings?.day_start_hour ?? 2
   const anchorM = appSettings?.day_start_minute ?? 30
-  const targetLow = appSettings?.target_low_ml_per_kg ?? 150
-  const targetHigh = appSettings?.target_high_ml_per_kg ?? 180
+  const bands: Bands = {
+    concern: appSettings?.target_concern_ml_per_kg ?? 130,
+    low: appSettings?.target_low_ml_per_kg ?? 150,
+    solid: appSettings?.target_solid_ml_per_kg ?? 165,
+    high: appSettings?.target_high_ml_per_kg ?? 180,
+  }
   const weights = weight?.history ?? []
 
   const grid = useMemo(() => {
@@ -86,7 +94,7 @@ export function HistoryScreen() {
           const deltaSign = delta >= 0 ? '+' : '−'
           const todayKey = feedingDayKey(new Date(), anchorH, anchorM)
           const isToday = ymd(row.day) === ymd(todayKey)
-          const colour = bandTone(mlPerKg, targetLow, targetHigh)
+          const colour = bandTone(mlPerKg, bands)
           const totalTone = isToday ? 'text-zinc-300' : colour
           const subTone = isToday ? 'text-zinc-500' : colour
           return (

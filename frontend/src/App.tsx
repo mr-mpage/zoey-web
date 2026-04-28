@@ -22,7 +22,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-dvh">
+    <div className="min-h-dvh pt-[env(safe-area-inset-top)]">
       {tab === 'today' && <TodayScreen />}
       {tab === 'pumps' && <PumpsScreen />}
       {tab === 'history' && <HistoryScreen />}
@@ -31,7 +31,8 @@ function App() {
       <button
         onClick={() => setHelpOpen(true)}
         aria-label="Help"
-        className="fixed top-3 right-3 w-9 h-9 rounded-full bg-zinc-900/80 backdrop-blur border border-zinc-800 text-zinc-400 text-base flex items-center justify-center active:scale-95 z-40"
+        className="fixed right-3 w-9 h-9 rounded-full bg-zinc-900/80 backdrop-blur border border-zinc-800 text-zinc-400 text-base flex items-center justify-center active:scale-95 z-40"
+        style={{ top: 'calc(env(safe-area-inset-top) + 0.75rem)' }}
       >
         ?
       </button>

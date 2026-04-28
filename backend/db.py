@@ -38,7 +38,9 @@ CREATE TABLE IF NOT EXISTS app_settings (
 DEFAULTS = {
     "day_start_hour": "2",
     "day_start_minute": "30",
+    "target_concern_ml_per_kg": "130",
     "target_low_ml_per_kg": "150",
+    "target_solid_ml_per_kg": "165",
     "target_high_ml_per_kg": "180",
 }
 

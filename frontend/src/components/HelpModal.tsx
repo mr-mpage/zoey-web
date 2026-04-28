@@ -52,17 +52,19 @@ export function HelpModal({ open, onClose }: Props) {
           <section>
             <h3 className="text-pink-200 font-medium mb-1.5">History colours</h3>
             <p className="mb-2">
-              Each row's colour reflects the day's intake in <b>ml per kg of body weight</b> (the metric
-              neonatologists actually use), not just % of the prescribed target:
+              Each row's colour reflects the day's intake in <b>ml per kg of body weight</b> — the metric
+              neonatologists actually use. Five tiers, defaults shown:
             </p>
             <ul className="space-y-1 list-none pl-0">
-              <li><span className="text-amber-400">amber</span> — under 150 ml/kg/day (below the target zone)</li>
-              <li><span className="text-emerald-300">emerald</span> — 150–180 ml/kg/day (target zone for stable preterm)</li>
-              <li><span className="text-sky-300">sky</span> — above 180 ml/kg/day (above target, often catch-up growth)</li>
+              <li><span className="text-rose-400">rose</span> — under 130 ml/kg/day · genuinely low, worth flagging</li>
+              <li><span className="text-amber-400">amber</span> — 130–150 · under the target zone</li>
+              <li><span className="text-lime-300">lime</span> — 150–165 · at minimum, in zone but no cushion</li>
+              <li><span className="text-emerald-300">emerald</span> — 165–180 · solidly in zone</li>
+              <li><span className="text-sky-300">sky</span> — above 180 · over zone, often catch-up growth</li>
             </ul>
             <p className="mt-2">
-              The 150 / 180 edges are the standard NICU range. You can adjust them in Settings if your doctor
-              gave a different range. Today's row stays grey + "in progress" until the day finishes.
+              All four edges are editable in Settings, so you can match what your doctor recommends.
+              Today's row stays grey + "in progress" until the day finishes.
             </p>
           </section>
 

@@ -46,7 +46,7 @@ export function LockScreen() {
   const busy = login.isPending || submittingRef.current
 
   return (
-    <div className="min-h-dvh flex flex-col items-center justify-center px-6 select-none">
+    <div className="min-h-dvh flex flex-col items-center justify-center px-6 select-none pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       <div className="text-center mb-10">
         <div className="text-pink-200/90 text-3xl font-light tracking-wide">Zoey</div>
         <div className="text-zinc-500 text-sm mt-1">{busy ? 'Checking…' : 'Enter passcode'}</div>
