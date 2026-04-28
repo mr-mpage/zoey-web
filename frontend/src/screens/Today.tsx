@@ -156,6 +156,38 @@ export function TodayScreen() {
 
       <EncouragementCard enc={buildEncouragement(data)} />
 
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        <button
+          onClick={() => setPumpDraft({})}
+          className="col-span-1 py-3.5 rounded-xl bg-zinc-800 text-zinc-100 font-medium active:scale-[.98]"
+        >
+          + Pump
+        </button>
+        <button
+          onClick={() => setFeedDraft({})}
+          className="col-span-2 py-3.5 rounded-xl bg-pink-300 text-zinc-900 font-medium active:scale-[.98]"
+        >
+          + Feed
+        </button>
+      </div>
+
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <DiaperCounter
+          label="Wet"
+          count={data.diapers_today.wet}
+          onAdd={() => createDiaper.mutate({ kind: 'wet' })}
+          onUndo={() => removeLatestDiaper('wet')}
+          disabled={createDiaper.isPending || deleteDiaper.isPending}
+        />
+        <DiaperCounter
+          label="Dirty"
+          count={data.diapers_today.dirty}
+          onAdd={() => createDiaper.mutate({ kind: 'dirty' })}
+          onUndo={() => removeLatestDiaper('dirty')}
+          disabled={createDiaper.isPending || deleteDiaper.isPending}
+        />
+      </div>
+
       <div className="grid grid-cols-3 gap-2 mt-4 text-center text-sm">
         <div className="rounded-xl bg-zinc-900/60 py-3">
           <div className="text-zinc-500 text-[11px] uppercase tracking-wider">Avg</div>
@@ -234,44 +266,6 @@ export function TodayScreen() {
           </div>
         )
       })()}
-
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <button
-          onClick={() => setPumpDraft({})}
-          className="col-span-1 py-3.5 rounded-xl bg-zinc-800 text-zinc-100 font-medium active:scale-[.98]"
-        >
-          + Pump
-        </button>
-        <button
-          onClick={() => setFeedDraft({})}
-          className="col-span-2 py-3.5 rounded-xl bg-pink-300 text-zinc-900 font-medium active:scale-[.98]"
-        >
-          + Feed
-        </button>
-      </div>
-
-      <div className="mt-3 rounded-xl bg-zinc-900/40 px-3 py-2.5">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] uppercase tracking-wider text-zinc-500">Diapers today</span>
-          <span className="text-xs text-zinc-400 tabular-nums">{data.diapers_today.wet} wet · {data.diapers_today.dirty} dirty</span>
-        </div>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          <DiaperCounter
-            label="Wet"
-            count={data.diapers_today.wet}
-            onAdd={() => createDiaper.mutate({ kind: 'wet' })}
-            onUndo={() => removeLatestDiaper('wet')}
-            disabled={createDiaper.isPending || deleteDiaper.isPending}
-          />
-          <DiaperCounter
-            label="Dirty"
-            count={data.diapers_today.dirty}
-            onAdd={() => createDiaper.mutate({ kind: 'dirty' })}
-            onUndo={() => removeLatestDiaper('dirty')}
-            disabled={createDiaper.isPending || deleteDiaper.isPending}
-          />
-        </div>
-      </div>
 
       <div className="mt-6">
         <div className="text-zinc-500 text-xs uppercase tracking-wider mb-2 px-1">Today's feeds</div>
