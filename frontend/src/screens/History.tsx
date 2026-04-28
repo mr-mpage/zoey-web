@@ -81,18 +81,30 @@ export function HistoryScreen() {
           const pct = dayTarget > 0 ? total / dayTarget : 0
           const delta = total - dayTarget
           const deltaSign = delta >= 0 ? '+' : '−'
+          const todayKey = feedingDayKey(new Date(), anchorH, anchorM)
+          const isToday = ymd(row.day) === ymd(todayKey)
+          const totalTone = isToday ? 'text-zinc-300' : tone(pct)
+          const subTone = isToday ? 'text-zinc-500' : tone(pct)
           return (
             <div key={row.day.toISOString()} className="rounded-xl bg-zinc-900/60 p-3">
               <div className="flex justify-between items-baseline mb-2">
                 <div>
-                  <div className="text-sm">{fmtDate(row.day.toISOString())}</div>
-                  {dayTarget > 0 && (
-                    <div className={`text-[11px] tabular-nums ${tone(pct)}`}>
+                  <div className="text-sm flex items-center gap-2">
+                    {fmtDate(row.day.toISOString())}
+                    {isToday && (
+                      <span className="text-[10px] uppercase tracking-wider text-pink-300/80 bg-pink-300/10 px-1.5 py-0.5 rounded">today</span>
+                    )}
+                  </div>
+                  {dayTarget > 0 && !isToday && (
+                    <div className={`text-[11px] tabular-nums ${subTone}`}>
                       {deltaSign}{Math.abs(delta).toFixed(0)} ml · {(pct * 100).toFixed(0)}%
                     </div>
                   )}
+                  {isToday && (
+                    <div className="text-[11px] text-zinc-500">in progress</div>
+                  )}
                 </div>
-                <div className={`text-sm tabular-nums ${tone(pct)}`}>
+                <div className={`text-sm tabular-nums ${totalTone}`}>
                   {total.toFixed(0)} / {dayTarget.toFixed(0)} ml
                 </div>
               </div>
