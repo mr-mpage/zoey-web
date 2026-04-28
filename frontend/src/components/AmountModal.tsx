@@ -12,10 +12,12 @@ export type AmountModalProps = {
   initialAmount?: number
   initialTime?: string
   initialNotes?: string
+  initialIsExtra?: boolean
+  showExtraToggle?: boolean
   hint?: string | null
   step?: number
   onClose: () => void
-  onSave: (input: { amount_ml: number; at: string; notes: string }) => void
+  onSave: (input: { amount_ml: number; at: string; notes: string; is_extra: boolean }) => void
   onDelete?: () => void
   saving?: boolean
 }
@@ -26,6 +28,8 @@ export function AmountModal({
   initialAmount,
   initialTime,
   initialNotes,
+  initialIsExtra,
+  showExtraToggle,
   hint,
   step = 1,
   onClose,
@@ -39,6 +43,7 @@ export function AmountModal({
   const [timeStr, setTimeStr] = useState<string>(initSplit.time)
   const [dateStr, setDateStr] = useState<string>(initSplit.date)
   const [notes, setNotes] = useState<string>(initialNotes ?? '')
+  const [isExtra, setIsExtra] = useState<boolean>(initialIsExtra ?? false)
 
   useEffect(() => {
     if (open) {
@@ -48,8 +53,9 @@ export function AmountModal({
       setTimeStr(s.time)
       setDateStr(s.date)
       setNotes(initialNotes ?? '')
+      setIsExtra(initialIsExtra ?? false)
     }
-  }, [open, initialAmount, initialTime, initialNotes])
+  }, [open, initialAmount, initialTime, initialNotes, initialIsExtra])
 
   if (!open) return null
 
@@ -118,6 +124,28 @@ export function AmountModal({
           className="w-full bg-zinc-800 rounded-lg px-3 py-2.5 mb-4 text-zinc-100 placeholder:text-zinc-600"
         />
 
+        {showExtraToggle && (
+          <button
+            type="button"
+            onClick={() => setIsExtra((v) => !v)}
+            className={`w-full mb-4 px-3 py-2.5 rounded-lg border text-left transition ${
+              isExtra ? 'border-amber-500/40 bg-amber-500/5' : 'border-zinc-800 bg-zinc-800/40'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm">Extra feed (off-schedule)</div>
+                <div className="text-[11px] text-zinc-500">
+                  Counted in daily total, but doesn't shift the feed-of-day numbering or pace expectations.
+                </div>
+              </div>
+              <div className={`w-10 h-6 rounded-full p-0.5 transition shrink-0 ml-3 ${isExtra ? 'bg-amber-400' : 'bg-zinc-700'}`}>
+                <div className={`w-5 h-5 rounded-full bg-zinc-100 transition ${isExtra ? 'translate-x-4' : ''}`} />
+              </div>
+            </div>
+          </button>
+        )}
+
         <div className="flex gap-2">
           {onDelete && (
             <button
@@ -131,7 +159,7 @@ export function AmountModal({
           <button
             onClick={() => {
               const at = new Date(`${dateStr}T${timeStr}:00`).toISOString()
-              onSave({ amount_ml: amount, at, notes })
+              onSave({ amount_ml: amount, at, notes, is_extra: isExtra })
             }}
             disabled={saving || amount <= 0 || !timeStr || !dateStr}
             className="flex-1 py-3 rounded-xl bg-pink-300 text-zinc-900 font-medium active:scale-[.98] disabled:opacity-40"

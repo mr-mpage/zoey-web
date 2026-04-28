@@ -63,7 +63,7 @@ function nextFeedClock(feedingDayStartIso: string, nextIndex: number, feedsPerDa
   return fmtClock(expected.toISOString())
 }
 
-type FeedDraft = { id?: number; amount_ml?: number; fed_at?: string; notes?: string }
+type FeedDraft = { id?: number; amount_ml?: number; fed_at?: string; notes?: string; is_extra?: boolean }
 type PumpDraft = { amount_ml?: number; pumped_at?: string; notes?: string }
 
 export function TodayScreen() {
@@ -108,10 +108,16 @@ export function TodayScreen() {
       amount_ml: f.amount_ml,
       fed_at: localDatetimeInput(new Date(f.fed_at)),
       notes: f.notes ?? '',
+      is_extra: f.is_extra,
     })
 
-  const onSaveFeed = (input: { amount_ml: number; at: string; notes: string }) => {
-    const body = { amount_ml: input.amount_ml, fed_at: input.at, notes: input.notes || undefined }
+  const onSaveFeed = (input: { amount_ml: number; at: string; notes: string; is_extra: boolean }) => {
+    const body = {
+      amount_ml: input.amount_ml,
+      fed_at: input.at,
+      notes: input.notes || undefined,
+      is_extra: input.is_extra,
+    }
     if (feedDraft?.id) {
       patchFeed.mutate({ id: feedDraft.id, ...body }, { onSuccess: () => setFeedDraft(null) })
     } else {
@@ -253,19 +259,27 @@ export function TodayScreen() {
               <li
                 key={f.id}
                 onClick={() => openEditFeed(f)}
-                className="rounded-xl bg-zinc-900/60 p-3 flex items-center gap-3 active:bg-zinc-900"
+                className={`rounded-xl p-3 flex items-center gap-3 active:bg-zinc-900 ${
+                  f.is_extra ? 'bg-amber-500/5 border border-amber-500/20' : 'bg-zinc-900/60'
+                }`}
               >
-                <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs text-zinc-400">
-                  #{f.feed_index}
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] ${
+                  f.is_extra ? 'bg-amber-500/15 text-amber-300' : 'bg-zinc-800 text-zinc-400'
+                }`}>
+                  {f.is_extra ? 'EXT' : `#${f.feed_index}`}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="tabular-nums text-lg">{f.amount_ml.toFixed(0)} ml</span>
-                    <StatusBadge status={f.status} sampleDays={f.comparison.sample_days} />
+                    {f.is_extra ? (
+                      <span className="text-[10px] uppercase tracking-wider text-amber-300/80">extra · off-schedule</span>
+                    ) : (
+                      f.comparison && <StatusBadge status={f.status} sampleDays={f.comparison.sample_days} />
+                    )}
                   </div>
                   <div className="text-xs text-zinc-500 mt-0.5">
                     {fmtTime(f.fed_at)}
-                    {f.comparison.avg_ml !== null && (
+                    {!f.is_extra && f.comparison && f.comparison.avg_ml !== null && (
                       <> · 7d avg {f.comparison.avg_ml.toFixed(0)} ml ({f.comparison.min_ml?.toFixed(0)}–{f.comparison.max_ml?.toFixed(0)})</>
                     )}
                     {f.notes && <> · {f.notes}</>}
@@ -283,6 +297,8 @@ export function TodayScreen() {
         initialAmount={feedDraft?.amount_ml ?? data.next_feed?.target_ml ?? data.per_feed_target_ml}
         initialTime={feedDraft?.fed_at}
         initialNotes={feedDraft?.notes}
+        initialIsExtra={feedDraft?.is_extra}
+        showExtraToggle
         hint={
           !feedDraft?.id && data.next_feed?.historical_avg_ml !== null && data.next_feed?.historical_avg_ml !== undefined
             ? `7-day avg for feed #${data.next_feed.feed_index}: ${data.next_feed.historical_avg_ml.toFixed(0)} ml`

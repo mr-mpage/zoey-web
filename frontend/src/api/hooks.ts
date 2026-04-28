@@ -69,7 +69,7 @@ function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
 export function useCreateFeed() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (input: { amount_ml: number; fed_at?: string; notes?: string }) =>
+    mutationFn: (input: { amount_ml: number; fed_at?: string; notes?: string; is_extra?: boolean }) =>
       api.post<Feed>('/api/feeds', input),
     onSuccess: () => invalidateAll(qc),
   })
@@ -78,7 +78,7 @@ export function useCreateFeed() {
 export function usePatchFeed() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, ...rest }: { id: number; amount_ml?: number; fed_at?: string; notes?: string }) =>
+    mutationFn: ({ id, ...rest }: { id: number; amount_ml?: number; fed_at?: string; notes?: string; is_extra?: boolean }) =>
       api.patch(`/api/feeds/${id}`, rest),
     onSuccess: () => invalidateAll(qc),
   })

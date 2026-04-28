@@ -8,12 +8,14 @@ class FeedIn(BaseModel):
     amount_ml: float = Field(gt=0, le=500)
     fed_at: Optional[datetime] = None
     notes: Optional[str] = None
+    is_extra: bool = False
 
 
 class FeedPatch(BaseModel):
     amount_ml: Optional[float] = Field(default=None, gt=0, le=500)
     fed_at: Optional[datetime] = None
     notes: Optional[str] = None
+    is_extra: Optional[bool] = None
 
 
 class Feed(BaseModel):
@@ -21,6 +23,7 @@ class Feed(BaseModel):
     fed_at: datetime
     amount_ml: float
     notes: Optional[str] = None
+    is_extra: bool = False
 
 
 class PumpIn(BaseModel):
@@ -73,9 +76,9 @@ class FeedComparison(BaseModel):
 
 
 class FeedWithComparison(Feed):
-    feed_index: int
-    comparison: FeedComparison
-    status: str  # "below" | "normal" | "above"
+    feed_index: Optional[int] = None  # None for extras
+    comparison: Optional[FeedComparison] = None
+    status: str = "normal"  # "below" | "normal" | "above"
 
 
 class NextFeedHint(BaseModel):

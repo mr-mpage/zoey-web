@@ -3,6 +3,7 @@ export type Feed = {
   fed_at: string
   amount_ml: number
   notes: string | null
+  is_extra: boolean
 }
 
 export type Pump = {
@@ -49,8 +50,8 @@ export type FeedComparison = {
 }
 
 export type FeedWithComparison = Feed & {
-  feed_index: number
-  comparison: FeedComparison
+  feed_index: number | null
+  comparison: FeedComparison | null
   status: 'below' | 'normal' | 'above'
 }
 

@@ -53,7 +53,12 @@ def feeding_day_bounds(day: date, anchor_h: int, anchor_m: int) -> tuple[datetim
 def index_feeds_by_feeding_day(
     rows: Iterable[dict], anchor_h: int, anchor_m: int
 ) -> dict[date, list[dict]]:
-    """Group rows by feeding day, sort chronologically, attach 1-based feed_index."""
+    """Group rows by feeding day, sort chronologically, attach 1-based feed_index.
+
+    Extra (off-schedule) feeds keep their place in chronological order but get
+    feed_index = None so they don't shift the indexing of scheduled feeds and
+    don't participate in feed-of-day historical comparisons.
+    """
     by_day: dict[date, list[dict]] = defaultdict(list)
     for r in rows:
         fed_at = r["fed_at"] if isinstance(r["fed_at"], datetime) else datetime.fromisoformat(r["fed_at"])
@@ -61,8 +66,13 @@ def index_feeds_by_feeding_day(
         by_day[d].append(r)
     for items in by_day.values():
         items.sort(key=lambda r: r["fed_at"])
-        for i, item in enumerate(items, start=1):
-            item["feed_index"] = i
+        scheduled_idx = 0
+        for item in items:
+            if item.get("is_extra"):
+                item["feed_index"] = None
+            else:
+                scheduled_idx += 1
+                item["feed_index"] = scheduled_idx
     return by_day
 
 

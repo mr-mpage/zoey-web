@@ -28,6 +28,7 @@ def _row_to_feed(row: dict) -> Feed:
         fed_at=datetime.fromisoformat(row["fed_at"]),
         amount_ml=row["amount_ml"],
         notes=row["notes"],
+        is_extra=bool(row.get("is_extra", 0)),
     )
 
 
@@ -44,14 +45,14 @@ def list_feeds(
 @router.post("", status_code=201)
 def create_feed(payload: FeedIn) -> Feed:
     fed_at = _normalize_time(payload.fed_at) or now_local()
-    new_id = repo.insert_feed(fed_at, payload.amount_ml, payload.notes)
-    return Feed(id=new_id, fed_at=fed_at, amount_ml=payload.amount_ml, notes=payload.notes)
+    new_id = repo.insert_feed(fed_at, payload.amount_ml, payload.notes, payload.is_extra)
+    return Feed(id=new_id, fed_at=fed_at, amount_ml=payload.amount_ml, notes=payload.notes, is_extra=payload.is_extra)
 
 
 @router.patch("/{feed_id}")
 def patch_feed(feed_id: int, payload: FeedPatch) -> dict:
     fed_at = _normalize_time(payload.fed_at)
-    ok = repo.update_feed(feed_id, fed_at, payload.amount_ml, payload.notes)
+    ok = repo.update_feed(feed_id, fed_at, payload.amount_ml, payload.notes, payload.is_extra)
     if not ok:
         raise HTTPException(status_code=404, detail="Feed not found")
     return {"ok": True}

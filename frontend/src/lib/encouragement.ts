@@ -142,7 +142,7 @@ export function buildEncouragement(d: Dashboard): Encouragement {
     }
   }
 
-  if (last && last.comparison.sample_days > 0 && last.status !== 'normal') {
+  if (last && last.comparison && last.comparison.sample_days > 0 && last.status !== 'normal') {
     if (last.status === 'below') {
       return {
         tone: 'neutral',

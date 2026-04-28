@@ -59,36 +59,44 @@ def get_dashboard() -> Dashboard:
     daily_target = weight_status.daily_target_ml
     per_feed_target = weight_status.per_feed_target_ml
 
+    from ..comparisons import status_for
+
     feeds_with_cmp: list[FeedWithComparison] = []
     for f in todays_feeds:
-        idx = f["feed_index"]
-        cmp = historical_comparison(by_day, today, idx)
+        idx = f["feed_index"]  # None for extras
+        is_extra = bool(f.get("is_extra"))
         feed = Feed(
             id=f["id"],
             fed_at=f["fed_at"] if hasattr(f["fed_at"], "isoformat") else f["fed_at"],
             amount_ml=f["amount_ml"],
             notes=f["notes"],
+            is_extra=is_extra,
         )
-        from ..comparisons import status_for
-
-        feeds_with_cmp.append(
-            FeedWithComparison(
-                **feed.model_dump(),
-                feed_index=idx,
-                comparison=cmp,
-                status=status_for(feed.amount_ml, cmp, cfg.comparison_threshold_pct),
+        if is_extra or idx is None:
+            feeds_with_cmp.append(FeedWithComparison(**feed.model_dump(), feed_index=None, comparison=None, status="normal"))
+        else:
+            cmp = historical_comparison(by_day, today, idx)
+            feeds_with_cmp.append(
+                FeedWithComparison(
+                    **feed.model_dump(),
+                    feed_index=idx,
+                    comparison=cmp,
+                    status=status_for(feed.amount_ml, cmp, cfg.comparison_threshold_pct),
+                )
             )
-        )
 
-    feeds_total = sum(f.amount_ml for f in feeds_with_cmp)
-    feeds_avg = (feeds_total / len(feeds_with_cmp)) if feeds_with_cmp else None
-    feeds_remaining = max(0, feeds_per_day - len(feeds_with_cmp))
+    scheduled = [f for f in feeds_with_cmp if not f.is_extra]
+    extras = [f for f in feeds_with_cmp if f.is_extra]
 
-    expected_so_far = per_feed_target * len(feeds_with_cmp)
-    gap_ml = feeds_total - expected_so_far  # positive = ahead, negative = behind
+    feeds_total = sum(f.amount_ml for f in feeds_with_cmp)  # includes extras
+    feeds_avg = (sum(f.amount_ml for f in scheduled) / len(scheduled)) if scheduled else None
+    feeds_remaining = max(0, feeds_per_day - len(scheduled))
+
+    expected_so_far = per_feed_target * len(scheduled)
+    gap_ml = feeds_total - expected_so_far  # extras count as "ahead" since total > expected
 
     pace_status = "on_track"
-    if daily_target > 0 and feeds_with_cmp:
+    if daily_target > 0 and scheduled:
         tol = expected_so_far * (cfg.comparison_threshold_pct / 100)
         if gap_ml < -tol:
             pace_status = "behind"
@@ -97,7 +105,7 @@ def get_dashboard() -> Dashboard:
 
     next_feed: NextFeedHint | None = None
     if feeds_remaining > 0 and daily_target > 0:
-        next_idx = len(feeds_with_cmp) + 1
+        next_idx = len(scheduled) + 1
         cmp = historical_comparison(by_day, today, next_idx)
         catch_up = max(0.0, (daily_target - feeds_total) / feeds_remaining)
         next_feed = NextFeedHint(
@@ -106,6 +114,10 @@ def get_dashboard() -> Dashboard:
             base_target_ml=per_feed_target,
             historical_avg_ml=cmp.avg_ml,
         )
+
+    # Avoid unused-name warning for the `extras` partition; the frontend
+    # reads them off the unified feeds_today list via is_extra.
+    _ = extras
 
     return Dashboard(
         today_date=today.isoformat(),

@@ -16,6 +16,17 @@ export function HelpModal({ open, onClose }: Props) {
         <div className="overflow-y-auto px-5 py-4 space-y-5 text-sm leading-relaxed text-zinc-200">
 
           <section>
+            <h3 className="text-pink-200 font-medium mb-1.5">Extra (off-schedule) feeds</h3>
+            <p>
+              If she has an unscheduled top-up between regular feeds (e.g. extra at 11:00 between the 08:30
+              and 11:30 feeds), open the feed modal and toggle <b>Extra (off-schedule)</b>. Extras count
+              toward the daily total but don't shift the feed-of-day numbering or pace expectations — so the
+              comparison badge for the regular 11:30 still reads as feed #4 vs the historical 11:30 average.
+              Extras render with an "EXT" tag in amber instead of a #N index.
+            </p>
+          </section>
+
+          <section>
             <h3 className="text-pink-200 font-medium mb-1.5">Quick guide</h3>
             <p>
               Tap <span className="bg-pink-300/20 text-pink-200 px-1.5 rounded">+ Feed</span> to log a bottle and{' '}

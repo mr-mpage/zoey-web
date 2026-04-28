@@ -61,6 +61,10 @@ def init_db() -> None:
         conn.executescript(SCHEMA)
         for k, v in DEFAULTS.items():
             conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", (k, v))
+        # Migrations: add columns introduced after initial release
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(feeds)")}
+        if "is_extra" not in cols:
+            conn.execute("ALTER TABLE feeds ADD COLUMN is_extra INTEGER NOT NULL DEFAULT 0")
 
 
 @contextmanager
