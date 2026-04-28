@@ -89,23 +89,23 @@ export function AmountModal({
           >+</button>
         </div>
 
-        <div className="flex gap-2 mb-4">
-          <div className="flex-1">
+        <div className="flex gap-3 mb-4">
+          <div className="flex-1 min-w-0">
             <label className="block text-xs text-zinc-500 mb-1">Time</label>
             <input
               type="time"
               value={timeStr}
               onChange={(e) => setTimeStr(e.target.value)}
-              className="w-full bg-zinc-800 rounded-lg px-3 py-3 text-zinc-100 text-2xl font-light tabular-nums text-center"
+              className="w-full bg-zinc-800 rounded-lg px-3 py-3 text-zinc-100 text-lg tabular-nums text-center"
             />
           </div>
-          <div className="w-32">
+          <div className="flex-1 min-w-0">
             <label className="block text-xs text-zinc-500 mb-1">Date</label>
             <input
               type="date"
               value={dateStr}
               onChange={(e) => setDateStr(e.target.value)}
-              className="w-full bg-zinc-800 rounded-lg px-2 py-3 text-zinc-300 text-sm tabular-nums text-center"
+              className="w-full bg-zinc-800 rounded-lg px-3 py-3 text-zinc-100 text-lg tabular-nums text-center"
             />
           </div>
         </div>
