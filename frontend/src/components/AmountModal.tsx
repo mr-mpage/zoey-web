@@ -105,7 +105,7 @@ export function AmountModal({
               type="date"
               value={dateStr}
               onChange={(e) => setDateStr(e.target.value)}
-              className="w-full bg-zinc-800 rounded-lg px-3 py-3 text-zinc-100 text-lg tabular-nums text-center"
+              className="w-full bg-zinc-800 rounded-lg px-2 py-3.5 text-zinc-100 text-sm tabular-nums text-center"
             />
           </div>
         </div>
