@@ -110,8 +110,12 @@ class LoginIn(BaseModel):
 class AppSettings(BaseModel):
     day_start_hour: int = Field(ge=0, le=23)
     day_start_minute: int = Field(ge=0, le=59)
+    target_low_ml_per_kg: int = Field(ge=50, le=300)
+    target_high_ml_per_kg: int = Field(ge=50, le=400)
 
 
 class AppSettingsPatch(BaseModel):
     day_start_hour: Optional[int] = Field(default=None, ge=0, le=23)
     day_start_minute: Optional[int] = Field(default=None, ge=0, le=59)
+    target_low_ml_per_kg: Optional[int] = Field(default=None, ge=50, le=300)
+    target_high_ml_per_kg: Optional[int] = Field(default=None, ge=50, le=400)

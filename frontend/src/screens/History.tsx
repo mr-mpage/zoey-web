@@ -18,27 +18,26 @@ function ymd(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
-/** Pick the weight entry that should govern target for a given feeding day:
+/** Pick the weight entry that should govern a given feeding day:
  * preference 1) entry recorded on that calendar date,
  * preference 2) the most recent entry recorded earlier,
  * fallback) the earliest available entry. */
-function targetForDay(day: Date, weights: Weight[]): number {
-  if (weights.length === 0) return 0
+function weightForDay(day: Date, weights: Weight[]): Weight | null {
+  if (weights.length === 0) return null
   const dayStr = ymd(day)
-  const sameDay = weights.find((w) => w.recorded_at.startsWith(dayStr))
-  const pick =
-    sameDay ??
+  return (
+    weights.find((w) => w.recorded_at.startsWith(dayStr)) ??
     weights.filter((w) => w.recorded_at.slice(0, 10) < dayStr).sort((a, b) => b.recorded_at.localeCompare(a.recorded_at))[0] ??
-    [...weights].sort((a, b) => a.recorded_at.localeCompare(b.recorded_at))[0]
-  return (pick.weight_grams / 1000) * pick.ml_per_kg_per_day
+    [...weights].sort((a, b) => a.recorded_at.localeCompare(b.recorded_at))[0] ??
+    null
+  )
 }
 
-function tone(pct: number): string {
-  if (pct >= 1.1) return 'text-sky-300'
-  if (pct >= 1.0) return 'text-emerald-300'
-  if (pct >= 0.95) return 'text-yellow-300'
-  if (pct >= 0.85) return 'text-amber-400'
-  return 'text-rose-400'
+/** Colour by clinical band: under target, in target, over target. */
+function bandTone(mlPerKg: number, targetLow: number, targetHigh: number): string {
+  if (mlPerKg >= targetHigh) return 'text-sky-300'
+  if (mlPerKg >= targetLow) return 'text-emerald-300'
+  return 'text-amber-400'
 }
 
 export function HistoryScreen() {
@@ -47,6 +46,8 @@ export function HistoryScreen() {
   const { data: appSettings } = useAppSettings()
   const anchorH = appSettings?.day_start_hour ?? 2
   const anchorM = appSettings?.day_start_minute ?? 30
+  const targetLow = appSettings?.target_low_ml_per_kg ?? 150
+  const targetHigh = appSettings?.target_high_ml_per_kg ?? 180
   const weights = weight?.history ?? []
 
   const grid = useMemo(() => {
@@ -77,14 +78,17 @@ export function HistoryScreen() {
       <div className="space-y-3">
         {grid.map((row) => {
           const total = row.feeds.reduce((a, b) => a + b, 0)
-          const dayTarget = targetForDay(row.day, weights)
+          const dayWeight = weightForDay(row.day, weights)
+          const dayTarget = dayWeight ? (dayWeight.weight_grams / 1000) * dayWeight.ml_per_kg_per_day : 0
+          const mlPerKg = dayWeight ? total / (dayWeight.weight_grams / 1000) : 0
           const pct = dayTarget > 0 ? total / dayTarget : 0
           const delta = total - dayTarget
           const deltaSign = delta >= 0 ? '+' : '−'
           const todayKey = feedingDayKey(new Date(), anchorH, anchorM)
           const isToday = ymd(row.day) === ymd(todayKey)
-          const totalTone = isToday ? 'text-zinc-300' : tone(pct)
-          const subTone = isToday ? 'text-zinc-500' : tone(pct)
+          const colour = bandTone(mlPerKg, targetLow, targetHigh)
+          const totalTone = isToday ? 'text-zinc-300' : colour
+          const subTone = isToday ? 'text-zinc-500' : colour
           return (
             <div key={row.day.toISOString()} className="rounded-xl bg-zinc-900/60 p-3">
               <div className="flex justify-between items-baseline mb-2">
@@ -97,7 +101,7 @@ export function HistoryScreen() {
                   </div>
                   {dayTarget > 0 && !isToday && (
                     <div className={`text-[11px] tabular-nums ${subTone}`}>
-                      {deltaSign}{Math.abs(delta).toFixed(0)} ml · {(pct * 100).toFixed(0)}%
+                      {mlPerKg.toFixed(0)} ml/kg · {deltaSign}{Math.abs(delta).toFixed(0)} ml ({(pct * 100).toFixed(0)}%)
                     </div>
                   )}
                   {isToday && (

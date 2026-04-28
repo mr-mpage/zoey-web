@@ -13,12 +13,16 @@ export function SettingsScreen() {
   const [rate, setRate] = useState<string>(weight?.current?.ml_per_kg_per_day.toString() ?? '160')
   const [notes, setNotes] = useState<string>('')
   const [anchor, setAnchor] = useState<string>('02:30')
+  const [bandLow, setBandLow] = useState<string>('150')
+  const [bandHigh, setBandHigh] = useState<string>('180')
 
   useEffect(() => {
     if (appSettings) {
       const hh = String(appSettings.day_start_hour).padStart(2, '0')
       const mm = String(appSettings.day_start_minute).padStart(2, '0')
       setAnchor(`${hh}:${mm}`)
+      setBandLow(String(appSettings.target_low_ml_per_kg))
+      setBandHigh(String(appSettings.target_high_ml_per_kg))
     }
   }, [appSettings])
 
@@ -26,6 +30,13 @@ export function SettingsScreen() {
     const [hh, mm] = anchor.split(':').map((s) => parseInt(s, 10))
     if (isNaN(hh) || isNaN(mm)) return
     updateSettings.mutate({ day_start_hour: hh, day_start_minute: mm })
+  }
+
+  const saveBands = () => {
+    const lo = parseInt(bandLow, 10)
+    const hi = parseInt(bandHigh, 10)
+    if (isNaN(lo) || isNaN(hi) || lo >= hi) return
+    updateSettings.mutate({ target_low_ml_per_kg: lo, target_high_ml_per_kg: hi })
   }
 
   const handleSubmit = () => {
@@ -103,6 +114,39 @@ export function SettingsScreen() {
             className="px-4 py-2.5 rounded-lg bg-pink-300 text-zinc-900 text-sm font-medium disabled:opacity-40"
           >
             {updateSettings.isPending ? '…' : 'Save'}
+          </button>
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">
+        <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Target zone (ml/kg/day)</div>
+        <p className="text-xs text-zinc-500 mb-3">
+          History rows turn green when the day's intake falls in this zone. Common range for stable preterm: 150–180.
+          Below low = amber (under), above high = sky (over).
+        </p>
+        <div className="flex gap-2 items-center">
+          <input
+            inputMode="numeric"
+            value={bandLow}
+            onChange={(e) => setBandLow(e.target.value.replace(/\D/g, ''))}
+            className="bg-zinc-800 rounded-lg px-3 py-2.5 tabular-nums w-20 text-center"
+            placeholder="150"
+          />
+          <span className="text-zinc-500 text-sm">to</span>
+          <input
+            inputMode="numeric"
+            value={bandHigh}
+            onChange={(e) => setBandHigh(e.target.value.replace(/\D/g, ''))}
+            className="bg-zinc-800 rounded-lg px-3 py-2.5 tabular-nums w-20 text-center"
+            placeholder="180"
+          />
+          <span className="text-zinc-500 text-sm">ml/kg/day</span>
+          <button
+            onClick={saveBands}
+            disabled={updateSettings.isPending}
+            className="ml-auto px-4 py-2.5 rounded-lg bg-pink-300 text-zinc-900 text-sm font-medium disabled:opacity-40"
+          >
+            Save
           </button>
         </div>
       </div>
