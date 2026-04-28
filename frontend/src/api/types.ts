@@ -108,4 +108,6 @@ export type AppSettings = {
   target_low_ml_per_kg: number
   target_solid_ml_per_kg: number
   target_high_ml_per_kg: number
+  birth_date: string
+  gestational_age_weeks: number
 }

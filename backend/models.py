@@ -187,6 +187,8 @@ class AppSettings(BaseModel):
     target_low_ml_per_kg: int = Field(ge=50, le=300)
     target_solid_ml_per_kg: int = Field(ge=50, le=400)
     target_high_ml_per_kg: int = Field(ge=50, le=400)
+    birth_date: str  # YYYY-MM-DD
+    gestational_age_weeks: int = Field(ge=22, le=42)
 
 
 class AppSettingsPatch(BaseModel):
@@ -197,3 +199,5 @@ class AppSettingsPatch(BaseModel):
     target_low_ml_per_kg: Optional[int] = Field(default=None, ge=50, le=300)
     target_solid_ml_per_kg: Optional[int] = Field(default=None, ge=50, le=400)
     target_high_ml_per_kg: Optional[int] = Field(default=None, ge=50, le=400)
+    birth_date: Optional[str] = None
+    gestational_age_weeks: Optional[int] = Field(default=None, ge=22, le=42)

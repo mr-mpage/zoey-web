@@ -145,6 +145,42 @@ def _diapers_per_day_last_n(n: int) -> tuple[Optional[float], int]:
     return sum(counts) / len(counts), len(counts)
 
 
+def _pma_and_postnatal_age(birth_date_iso: str, ga_weeks: int) -> tuple[float, int]:
+    """Returns (postmenstrual age in weeks, postnatal age in days)."""
+    from datetime import date as _date
+    try:
+        birth = _date.fromisoformat(birth_date_iso)
+    except ValueError:
+        return float(ga_weeks), 0
+    today = now_local().date()
+    postnatal_days = max(0, (today - birth).days)
+    pma = ga_weeks + postnatal_days / 7.0
+    return pma, postnatal_days
+
+
+def _expected_gain_range(pma_weeks: float, postnatal_days: int) -> tuple[int, int]:
+    """Returns (min, max) g/kg/day expected, based on Fenton-derived PMA strata
+    and a postnatal-recovery allowance for the first ~2 weeks of life.
+
+    References: Fenton 2013/2025 growth charts, AAP/ESPGHAN 2022. Velocity
+    decreases monotonically as PMA approaches term: ~21 g/kg/day at 22 weeks
+    PMA → ~12 g/kg/day at 36 weeks PMA → ~10 g/kg/day at term-equivalent.
+    """
+    if postnatal_days < 7:
+        # Birth-weight loss / earliest recovery — gain is often near zero or negative
+        return (0, 12)
+    if postnatal_days < 14:
+        # Regaining birth weight — building toward steady gain
+        return (8, 16)
+    if pma_weeks < 30:
+        return (17, 23)
+    if pma_weeks < 34:
+        return (15, 20)
+    if pma_weeks < 38:
+        return (12, 17)
+    return (10, 15)  # term-equivalent and beyond
+
+
 def _aggregate_status(statuses: list[str]) -> str:
     if "concern" in statuses:
         return "concern"
@@ -197,7 +233,22 @@ def compute_overview() -> Overview:
             detail = f"Last {days_used} days averaged {avg_mlkg:.0f} ml/kg/day — flag at her next check-in if this persists."
         inds.append(OverviewIndicator(key="intake", title="Intake", status=status, headline=headline, detail=detail))
 
-    # Growth — rolling 7-day gain rate g/kg/day
+    # Growth — rolling 7-day gain rate g/kg/day, judged against PMA-aware
+    # expected range (Fenton/AAP/ESPGHAN). Velocity decreases as PMA
+    # approaches term; early postnatal days (<14) tolerate lower gains
+    # while she's regaining birth weight.
+    birth_date_str = s.get("birth_date", "2026-04-15")
+    ga_weeks = int(s.get("gestational_age_weeks", "35"))
+    pma_weeks, postnatal_days = _pma_and_postnatal_age(birth_date_str, ga_weeks)
+    g_min, g_max = _expected_gain_range(pma_weeks, postnatal_days)
+
+    if postnatal_days < 14:
+        stage_phrase = f"first {postnatal_days} days postnatal"
+        expected_phrase = f"{g_min}–{g_max} g/kg/day expected during birth-weight recovery"
+    else:
+        stage_phrase = f"{pma_weeks:.1f} weeks PMA"
+        expected_phrase = f"{g_min}–{g_max} g/kg/day expected at this age"
+
     gain = _rolling_gain_g_per_kg_per_day(7)
     if gain is None:
         inds.append(OverviewIndicator(
@@ -208,21 +259,24 @@ def compute_overview() -> Overview:
             detail="Two or more weight entries on different days are needed to show a gain trend.",
         ))
     else:
-        if gain >= 25:
+        if gain >= g_max + 8:
             status, headline = "over", "Strong gain"
-            detail = f"+{gain:.0f} g/kg/day over the last week — above the typical 15–20 range. Often fine; mention it if she also seems unsettled."
-        elif gain >= 15:
+            detail = f"+{gain:.0f} g/kg/day — above the {expected_phrase} ({stage_phrase}). Often fine; mention if she also seems unsettled."
+        elif gain >= g_max:
             status, headline = "good", "Gaining well"
-            detail = f"+{gain:.0f} g/kg/day over the last week — right in the expected 15–20 range for preterm."
-        elif gain >= 10:
-            status, headline = "watch", "Gain slightly slow"
-            detail = f"+{gain:.0f} g/kg/day — under the typical 15–20 target. Worth watching the next few weigh-ins."
-        elif gain > 0:
-            status, headline = "concern", "Gain low"
-            detail = f"+{gain:.0f} g/kg/day — well below the typical 15–20 range. Worth flagging."
+            detail = f"+{gain:.0f} g/kg/day — at or above the {expected_phrase} ({stage_phrase})."
+        elif gain >= g_min:
+            status, headline = "good", "Within expected range"
+            detail = f"+{gain:.0f} g/kg/day — within the {expected_phrase} ({stage_phrase})."
+        elif gain >= g_min - 3:
+            status, headline = "watch", "Just below target"
+            detail = f"+{gain:.0f} g/kg/day — just under the {expected_phrase} ({stage_phrase}). Worth watching the next weigh-in."
+        elif gain >= max(0, g_min - 8):
+            status, headline = "watch", "Gain below target"
+            detail = f"+{gain:.0f} g/kg/day — under the {expected_phrase} ({stage_phrase}). Worth flagging if it persists."
         else:
-            status, headline = "concern", "Not gaining"
-            detail = f"{gain:+.0f} g/kg/day over the last week. Worth flagging at her next visit."
+            status, headline = "concern", "Gain low"
+            detail = f"+{gain:.0f} g/kg/day — well below the {expected_phrase} ({stage_phrase}). Worth flagging at her next visit."
         inds.append(OverviewIndicator(key="growth", title="Growth", status=status, headline=headline, detail=detail))
 
     # Today's pace — quick look at where today sits

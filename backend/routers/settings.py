@@ -13,10 +13,12 @@ def _current() -> AppSettings:
         day_start_hour=int(s.get("day_start_hour", "2")),
         day_start_minute=int(s.get("day_start_minute", "30")),
         feeds_per_day=int(s.get("feeds_per_day", "8")),
-        target_concern_ml_per_kg=int(s.get("target_concern_ml_per_kg", "130")),
+        target_concern_ml_per_kg=int(s.get("target_concern_ml_per_kg", "135")),
         target_low_ml_per_kg=int(s.get("target_low_ml_per_kg", "150")),
-        target_solid_ml_per_kg=int(s.get("target_solid_ml_per_kg", "165")),
+        target_solid_ml_per_kg=int(s.get("target_solid_ml_per_kg", "160")),
         target_high_ml_per_kg=int(s.get("target_high_ml_per_kg", "180")),
+        birth_date=s.get("birth_date", "2026-04-15"),
+        gestational_age_weeks=int(s.get("gestational_age_weeks", "35")),
     )
 
 
@@ -42,6 +44,10 @@ def patch_settings(payload: AppSettingsPatch) -> AppSettings:
         updates["target_solid_ml_per_kg"] = str(payload.target_solid_ml_per_kg)
     if payload.target_high_ml_per_kg is not None:
         updates["target_high_ml_per_kg"] = str(payload.target_high_ml_per_kg)
+    if payload.birth_date is not None:
+        updates["birth_date"] = payload.birth_date
+    if payload.gestational_age_weeks is not None:
+        updates["gestational_age_weeks"] = str(payload.gestational_age_weeks)
     if updates:
         repo.set_settings(updates)
     return _current()

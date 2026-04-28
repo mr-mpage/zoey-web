@@ -40,11 +40,13 @@ export function rollingGainRate(weights: Weight[], windowDays = 7): number | nul
   return g_per_day / (latest.weight_grams / 1000)
 }
 
-/** Colour bands for g/kg/day gain rate (preterm reference: 15–20 g/kg/day). */
+/** Colour bands for g/kg/day gain rate.
+ * Reference: AAP/ESPGHAN 2022 target is 17–20 g/kg/day for stable preterm
+ * on full feeds. Lower gains are common in the first 1–2 weeks of life. */
 export function gainTone(gpkpd: number): string {
   if (gpkpd >= 25) return 'text-sky-300'
-  if (gpkpd >= 15) return 'text-emerald-300'
-  if (gpkpd >= 10) return 'text-lime-300'
-  if (gpkpd >= 5) return 'text-amber-400'
+  if (gpkpd >= 17) return 'text-emerald-300'
+  if (gpkpd >= 15) return 'text-lime-300'
+  if (gpkpd >= 10) return 'text-amber-400'
   return 'text-rose-400'
 }

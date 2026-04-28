@@ -57,10 +57,17 @@ DEFAULTS = {
     "day_start_hour": "2",
     "day_start_minute": "30",
     "feeds_per_day": "8",
-    "target_concern_ml_per_kg": "130",
+    # Intake bands (ml/kg/day) — defaults align with ESPGHAN 2022 + Brigham/UCD/
+    # Hopkins NICU goal of 150–160; below 135 is the "below safe stable phase"
+    # threshold cited by ESPGHAN.
+    "target_concern_ml_per_kg": "135",
     "target_low_ml_per_kg": "150",
-    "target_solid_ml_per_kg": "165",
+    "target_solid_ml_per_kg": "160",
     "target_high_ml_per_kg": "180",
+    # Birth context — used by the PMA-aware growth indicator on Overview.
+    # Default is Zoey's birth: 2026-04-15 at 35 weeks gestational age.
+    "birth_date": "2026-04-15",
+    "gestational_age_weeks": "35",
 }
 
 
