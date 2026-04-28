@@ -111,10 +111,13 @@ export function TodayScreen() {
     })
 
   const onSaveFeed = (input: { amount_ml: number; at: string; notes: string; is_extra: boolean }) => {
+    // Always send notes (even ""): on PATCH, an empty string is how the user
+    // clears a previously set note. Coercing to undefined hid the field from
+    // the JSON, leaving the old note in place.
     const body = {
       amount_ml: input.amount_ml,
       fed_at: input.at,
-      notes: input.notes || undefined,
+      notes: input.notes,
       is_extra: input.is_extra,
     }
     if (feedDraft?.id) {
@@ -126,7 +129,7 @@ export function TodayScreen() {
 
   const onSavePump = (input: { amount_ml: number; at: string; notes: string }) => {
     createPump.mutate(
-      { amount_ml: input.amount_ml, pumped_at: input.at, notes: input.notes || undefined },
+      { amount_ml: input.amount_ml, pumped_at: input.at, notes: input.notes },
       { onSuccess: () => setPumpDraft(null) },
     )
   }
@@ -212,6 +215,39 @@ export function TodayScreen() {
           <div className="tabular-nums">{data.feeds_remaining}</div>
         </div>
       </div>
+
+      {!data.next_feed && data.feeds_remaining === 0 && data.daily_target_ml > 0 && (() => {
+        const totalDelta = data.feeds_total_ml - data.daily_target_ml
+        const onTarget = Math.abs(totalDelta) <= data.daily_target_ml * 0.05
+        const dayRolloverRel = fmtRelative(data.feeding_day_end)
+        const dayRolloverClock = fmtClock(data.feeding_day_end)
+        const tone = onTarget
+          ? { border: 'border-emerald-500/30', bg: 'bg-emerald-500/5', accent: 'text-emerald-300', word: 'On target' }
+          : totalDelta > 0
+            ? { border: 'border-sky-500/30', bg: 'bg-sky-500/5', accent: 'text-sky-300', word: `${totalDelta.toFixed(0)} ml above` }
+            : { border: 'border-amber-500/30', bg: 'bg-amber-500/5', accent: 'text-amber-300', word: `${Math.abs(totalDelta).toFixed(0)} ml under` }
+        const scheduledCount = data.feeds_today.filter((f) => !f.is_extra).length
+        return (
+          <div className={`mt-5 rounded-2xl border ${tone.border} ${tone.bg} p-4`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className={`text-xs uppercase tracking-wider ${tone.accent}`}>Day complete</div>
+                <div className="text-xl font-light mt-0.5 tabular-nums">
+                  {data.feeds_total_ml.toFixed(0)} ml
+                  <span className="text-zinc-500 text-base"> / {data.daily_target_ml.toFixed(0)} ml</span>
+                </div>
+                <div className={`text-[11px] mt-0.5 ${tone.accent}`}>{tone.word}</div>
+              </div>
+              <div className="text-right text-xs text-zinc-400">
+                <div>{scheduledCount} feeds done</div>
+                <div className="mt-1.5 text-zinc-500">next day</div>
+                <div className="text-zinc-200 tabular-nums">{dayRolloverClock}</div>
+                <div className="text-[10px] text-zinc-500">{dayRolloverRel}</div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {data.next_feed && (() => {
         const nf = data.next_feed
