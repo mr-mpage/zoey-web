@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
-import type { Dashboard, Feed, Pump, Weight, WeightStatus } from './types'
+import type { AppSettings, Dashboard, Feed, Pump, Weight, WeightStatus } from './types'
 
 export function useAuthStatus() {
   return useQuery({
@@ -123,5 +123,24 @@ export function useSetWeight() {
     mutationFn: (input: { weight_grams: number; ml_per_kg_per_day: number; notes?: string }) =>
       api.post<Weight>('/api/weight', input),
     onSuccess: () => invalidateAll(qc),
+  })
+}
+
+export function useAppSettings() {
+  return useQuery({
+    queryKey: ['settings'],
+    queryFn: () => api.get<AppSettings>('/api/settings'),
+    staleTime: 60_000,
+  })
+}
+
+export function useUpdateAppSettings() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: Partial<AppSettings>) => api.patch<AppSettings>('/api/settings', input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['settings'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
   })
 }

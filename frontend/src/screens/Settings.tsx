@@ -1,15 +1,32 @@
-import { useState } from 'react'
-import { useLogout, useSetWeight, useWeight } from '../api/hooks'
+import { useEffect, useState } from 'react'
+import { useAppSettings, useLogout, useSetWeight, useUpdateAppSettings, useWeight } from '../api/hooks'
 import { fmtDate } from '../lib/format'
 
 export function SettingsScreen() {
   const { data: weight } = useWeight()
   const setWeight = useSetWeight()
+  const { data: appSettings } = useAppSettings()
+  const updateSettings = useUpdateAppSettings()
   const logout = useLogout()
 
   const [grams, setGrams] = useState<string>(weight?.current?.weight_grams.toString() ?? '')
   const [rate, setRate] = useState<string>(weight?.current?.ml_per_kg_per_day.toString() ?? '160')
   const [notes, setNotes] = useState<string>('')
+  const [anchor, setAnchor] = useState<string>('02:30')
+
+  useEffect(() => {
+    if (appSettings) {
+      const hh = String(appSettings.day_start_hour).padStart(2, '0')
+      const mm = String(appSettings.day_start_minute).padStart(2, '0')
+      setAnchor(`${hh}:${mm}`)
+    }
+  }, [appSettings])
+
+  const saveAnchor = () => {
+    const [hh, mm] = anchor.split(':').map((s) => parseInt(s, 10))
+    if (isNaN(hh) || isNaN(mm)) return
+    updateSettings.mutate({ day_start_hour: hh, day_start_minute: mm })
+  }
 
   const handleSubmit = () => {
     const g = parseInt(grams, 10)
@@ -66,6 +83,28 @@ export function SettingsScreen() {
         >
           {setWeight.isPending ? 'Saving…' : 'Save weight'}
         </button>
+      </div>
+
+      <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">
+        <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Day starts at</div>
+        <p className="text-xs text-zinc-500 mb-3">
+          Feed #1 of the day is the first feed at or after this time. Daily total resets here, not at midnight.
+        </p>
+        <div className="flex gap-2 items-center">
+          <input
+            type="time"
+            value={anchor}
+            onChange={(e) => setAnchor(e.target.value)}
+            className="bg-zinc-800 rounded-lg px-3 py-2.5 tabular-nums flex-1"
+          />
+          <button
+            onClick={saveAnchor}
+            disabled={updateSettings.isPending}
+            className="px-4 py-2.5 rounded-lg bg-pink-300 text-zinc-900 text-sm font-medium disabled:opacity-40"
+          >
+            {updateSettings.isPending ? '…' : 'Save'}
+          </button>
+        </div>
       </div>
 
       <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">

@@ -1,7 +1,12 @@
-"""Feed-of-day indexing and per-index historical aggregation."""
+"""Feeding-day indexing and per-index historical aggregation.
+
+A "feeding day" is a 24h window anchored at a configurable clock time
+(default 02:30 local) — so an early-morning feed counts as feed #1 of
+the day instead of belonging to the previous calendar date.
+"""
 
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import Iterable
 from zoneinfo import ZoneInfo
 
@@ -21,21 +26,40 @@ def to_local(dt_str: str | datetime) -> datetime:
     return dt.astimezone(TZ)
 
 
-def local_date(dt: datetime) -> date:
-    return to_local(dt).date()
-
-
 def now_local() -> datetime:
     return datetime.now(TZ)
 
 
-def index_feeds_by_day(rows: Iterable[dict]) -> dict[date, list[dict]]:
-    """Group rows by local date, sorted chronologically. Add 'feed_index' (1-based)."""
+def feeding_day_for(dt: datetime, anchor_h: int, anchor_m: int) -> date:
+    """Return the date label of the feeding day a timestamp belongs to.
+
+    A feed at 02:00 with anchor 02:30 belongs to the *previous* calendar day's feeding day.
+    A feed at 02:30 or later belongs to today's feeding day.
+    """
+    local = to_local(dt)
+    anchor = time(hour=anchor_h, minute=anchor_m)
+    if local.timetz().replace(tzinfo=None) >= anchor:
+        return local.date()
+    return local.date() - timedelta(days=1)
+
+
+def feeding_day_bounds(day: date, anchor_h: int, anchor_m: int) -> tuple[datetime, datetime]:
+    """Return [start, end) datetime range covering a feeding day."""
+    start = datetime.combine(day, time(hour=anchor_h, minute=anchor_m), tzinfo=TZ)
+    end = start + timedelta(days=1)
+    return start, end
+
+
+def index_feeds_by_feeding_day(
+    rows: Iterable[dict], anchor_h: int, anchor_m: int
+) -> dict[date, list[dict]]:
+    """Group rows by feeding day, sort chronologically, attach 1-based feed_index."""
     by_day: dict[date, list[dict]] = defaultdict(list)
     for r in rows:
-        d = local_date(r["fed_at"] if isinstance(r["fed_at"], datetime) else datetime.fromisoformat(r["fed_at"]))
+        fed_at = r["fed_at"] if isinstance(r["fed_at"], datetime) else datetime.fromisoformat(r["fed_at"])
+        d = feeding_day_for(fed_at, anchor_h, anchor_m)
         by_day[d].append(r)
-    for day, items in by_day.items():
+    for items in by_day.values():
         items.sort(key=lambda r: r["fed_at"])
         for i, item in enumerate(items, start=1):
             item["feed_index"] = i
@@ -48,7 +72,6 @@ def historical_comparison(
     feed_index: int,
     days_back: int = 7,
 ) -> FeedComparison:
-    """For previous `days_back` days, look up the feed at `feed_index` and aggregate."""
     samples: list[float] = []
     for delta in range(1, days_back + 1):
         d = today - timedelta(days=delta)

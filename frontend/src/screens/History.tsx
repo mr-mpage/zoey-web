@@ -1,21 +1,33 @@
 import { useMemo } from 'react'
-import { useFeeds, useWeight } from '../api/hooks'
+import { useAppSettings, useFeeds, useWeight } from '../api/hooks'
 import { fmtDate } from '../lib/format'
 
 const FEEDS_PER_DAY = 8
 
+function feedingDayKey(d: Date, anchorH: number, anchorM: number): Date {
+  const minutes = d.getHours() * 60 + d.getMinutes()
+  const anchor = anchorH * 60 + anchorM
+  const day = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  if (minutes < anchor) day.setDate(day.getDate() - 1)
+  return day
+}
+
 export function HistoryScreen() {
   const { data: feeds } = useFeeds(7)
   const { data: weight } = useWeight()
+  const { data: appSettings } = useAppSettings()
   const dailyTarget = weight?.daily_target_ml ?? 0
+  const anchorH = appSettings?.day_start_hour ?? 2
+  const anchorM = appSettings?.day_start_minute ?? 30
 
   const grid = useMemo(() => {
     type Bucket = { day: Date; entries: { time: number; amount: number }[] }
     const byDay = new Map<string, Bucket>()
     for (const f of feeds ?? []) {
       const d = new Date(f.fed_at)
-      const key = d.toDateString()
-      if (!byDay.has(key)) byDay.set(key, { day: new Date(d.getFullYear(), d.getMonth(), d.getDate()), entries: [] })
+      const dayKey = feedingDayKey(d, anchorH, anchorM)
+      const key = dayKey.toDateString()
+      if (!byDay.has(key)) byDay.set(key, { day: dayKey, entries: [] })
       byDay.get(key)!.entries.push({ time: +d, amount: f.amount_ml })
     }
     return Array.from(byDay.values())
@@ -25,7 +37,7 @@ export function HistoryScreen() {
         return { day: b.day, feeds: sorted }
       })
       .sort((a, b) => +b.day - +a.day)
-  }, [feeds])
+  }, [feeds, anchorH, anchorM])
 
   return (
     <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">

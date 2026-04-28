@@ -44,12 +44,15 @@ export type FeedWithComparison = Feed & {
 
 export type NextFeedHint = {
   feed_index: number
-  target_ml: number
+  target_ml: number       // catch-up target
+  base_target_ml: number  // static daily/8 baseline
   historical_avg_ml: number | null
 }
 
 export type Dashboard = {
   today_date: string
+  feeding_day_start: string
+  feeding_day_end: string
   daily_target_ml: number
   per_feed_target_ml: number
   feeds_today: FeedWithComparison[]
@@ -57,8 +60,14 @@ export type Dashboard = {
   feeds_avg_ml: number | null
   feeds_remaining: number
   pace_status: 'behind' | 'on_track' | 'ahead'
+  gap_ml: number
   pumps_today_ml: number
   pumps_today_count: number
   next_feed: NextFeedHint | null
   weight: WeightStatus
+}
+
+export type AppSettings = {
+  day_start_hour: number
+  day_start_minute: number
 }

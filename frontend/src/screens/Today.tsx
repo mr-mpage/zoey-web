@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useCreateFeed, useCreatePump, useDashboard, useDeleteFeed, usePatchFeed } from '../api/hooks'
 import { AmountModal } from '../components/AmountModal'
+import { PaceChip } from '../components/PaceChip'
 import { ProgressRing } from '../components/ProgressRing'
 import { StatusBadge } from '../components/StatusBadge'
 import { ZOEY_BIRTH_ISO } from '../lib/constants'
@@ -27,8 +28,6 @@ export function TodayScreen() {
   const dailyTarget = data.daily_target_ml
   const pct = dailyTarget > 0 ? data.feeds_total_ml / dailyTarget : 0
   const day = ageInDays(ZOEY_BIRTH_ISO)
-  const paceColor =
-    data.pace_status === 'behind' ? 'text-amber-400' : data.pace_status === 'ahead' ? 'text-sky-400' : 'text-emerald-400'
 
   const openEditFeed = (f: FeedWithComparison) =>
     setFeedDraft({
@@ -65,10 +64,11 @@ export function TodayScreen() {
             <span className="text-zinc-500 text-base"> / {dailyTarget.toFixed(0)}</span>
           </div>
           <div className="text-xs text-zinc-500 mt-1">ml today</div>
-          <div className={`text-xs mt-2 ${paceColor}`}>
-            {data.pace_status === 'on_track' ? 'on track' : data.pace_status}
-          </div>
         </ProgressRing>
+      </div>
+
+      <div className="flex justify-center mt-3">
+        <PaceChip pace={data.pace_status} gap={data.gap_ml} hasFeeds={data.feeds_today.length > 0} />
       </div>
 
       <div className="grid grid-cols-3 gap-2 mt-6 text-center text-sm">
@@ -91,7 +91,13 @@ export function TodayScreen() {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-xs text-pink-300/80 uppercase tracking-wider">Next feed · #{data.next_feed.feed_index}</div>
-              <div className="text-xl font-light mt-0.5">target {data.next_feed.target_ml.toFixed(0)} ml</div>
+              <div className="text-xl font-light mt-0.5 tabular-nums">{data.next_feed.target_ml.toFixed(0)} ml</div>
+              {Math.abs(data.next_feed.target_ml - data.next_feed.base_target_ml) >= 1 && (
+                <div className="text-[11px] text-zinc-500 mt-0.5">
+                  base {data.next_feed.base_target_ml.toFixed(0)}
+                  {data.next_feed.target_ml > data.next_feed.base_target_ml ? ' · catch-up bump' : ' · ease-off'}
+                </div>
+              )}
             </div>
             <div className="text-right text-xs text-zinc-400">
               {data.next_feed.historical_avg_ml !== null ? (

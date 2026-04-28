@@ -9,6 +9,18 @@ from ..models import Feed, FeedIn, FeedPatch
 
 router = APIRouter(prefix="/api/feeds", tags=["feeds"], dependencies=[Depends(require_auth)])
 
+FUTURE_TOLERANCE = timedelta(minutes=10)
+
+
+def _normalize_time(dt: datetime | None) -> datetime | None:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=TZ)
+    if dt > now_local() + FUTURE_TOLERANCE:
+        raise HTTPException(status_code=422, detail="fed_at cannot be in the future")
+    return dt
+
 
 def _row_to_feed(row: dict) -> Feed:
     return Feed(
@@ -31,18 +43,14 @@ def list_feeds(
 
 @router.post("", status_code=201)
 def create_feed(payload: FeedIn) -> Feed:
-    fed_at = payload.fed_at or now_local()
-    if fed_at.tzinfo is None:
-        fed_at = fed_at.replace(tzinfo=TZ)
+    fed_at = _normalize_time(payload.fed_at) or now_local()
     new_id = repo.insert_feed(fed_at, payload.amount_ml, payload.notes)
     return Feed(id=new_id, fed_at=fed_at, amount_ml=payload.amount_ml, notes=payload.notes)
 
 
 @router.patch("/{feed_id}")
 def patch_feed(feed_id: int, payload: FeedPatch) -> dict:
-    fed_at = payload.fed_at
-    if fed_at is not None and fed_at.tzinfo is None:
-        fed_at = fed_at.replace(tzinfo=TZ)
+    fed_at = _normalize_time(payload.fed_at)
     ok = repo.update_feed(feed_id, fed_at, payload.amount_ml, payload.notes)
     if not ok:
         raise HTTPException(status_code=404, detail="Feed not found")

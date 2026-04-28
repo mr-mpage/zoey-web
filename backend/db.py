@@ -28,7 +28,17 @@ CREATE TABLE IF NOT EXISTS pumps (
     notes TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_pumps_pumped_at ON pumps(pumped_at);
+
+CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
 """
+
+DEFAULTS = {
+    "day_start_hour": "2",
+    "day_start_minute": "30",
+}
 
 
 def init_db() -> None:
@@ -36,6 +46,8 @@ def init_db() -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(path) as conn:
         conn.executescript(SCHEMA)
+        for k, v in DEFAULTS.items():
+            conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", (k, v))
 
 
 @contextmanager

@@ -80,12 +80,15 @@ class FeedWithComparison(Feed):
 
 class NextFeedHint(BaseModel):
     feed_index: int
-    target_ml: float
+    target_ml: float        # catch-up target — adjusts to current pace
+    base_target_ml: float   # static daily/8 baseline
     historical_avg_ml: Optional[float]
 
 
 class Dashboard(BaseModel):
     today_date: str
+    feeding_day_start: datetime
+    feeding_day_end: datetime
     daily_target_ml: float
     per_feed_target_ml: float
     feeds_today: list[FeedWithComparison]
@@ -93,6 +96,7 @@ class Dashboard(BaseModel):
     feeds_avg_ml: Optional[float]
     feeds_remaining: int
     pace_status: str  # "behind" | "on_track" | "ahead"
+    gap_ml: float  # positive = ahead, negative = behind, vs expected at this feed count
     pumps_today_ml: float
     pumps_today_count: int
     next_feed: Optional[NextFeedHint]
@@ -101,3 +105,13 @@ class Dashboard(BaseModel):
 
 class LoginIn(BaseModel):
     passcode: str
+
+
+class AppSettings(BaseModel):
+    day_start_hour: int = Field(ge=0, le=23)
+    day_start_minute: int = Field(ge=0, le=59)
+
+
+class AppSettingsPatch(BaseModel):
+    day_start_hour: Optional[int] = Field(default=None, ge=0, le=23)
+    day_start_minute: Optional[int] = Field(default=None, ge=0, le=59)

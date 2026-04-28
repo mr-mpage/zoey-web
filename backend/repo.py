@@ -115,3 +115,18 @@ def list_weights() -> list[dict]:
             "SELECT id, recorded_at, weight_grams, ml_per_kg_per_day, notes FROM weight_entries ORDER BY recorded_at DESC, id DESC"
         ).fetchall()
     return [dict(r) for r in rows]
+
+
+def get_settings() -> dict[str, str]:
+    with get_conn() as c:
+        rows = c.execute("SELECT key, value FROM app_settings").fetchall()
+    return {r["key"]: r["value"] for r in rows}
+
+
+def set_settings(updates: dict[str, str]) -> None:
+    with get_conn() as c:
+        for k, v in updates.items():
+            c.execute(
+                "INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                (k, v),
+            )
