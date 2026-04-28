@@ -7,10 +7,12 @@ import {
   usePatchFeed,
 } from '../api/hooks'
 import { AmountModal } from '../components/AmountModal'
+import { EncouragementCard } from '../components/EncouragementCard'
 import { PaceChip } from '../components/PaceChip'
 import { ProgressRing } from '../components/ProgressRing'
 import { StatusBadge } from '../components/StatusBadge'
 import { ZOEY_BIRTH_ISO } from '../lib/constants'
+import { buildEncouragement } from '../lib/encouragement'
 import { ageInDays, fmtClock, fmtDateLong, fmtMl, fmtTime, localDatetimeInput } from '../lib/format'
 import type { FeedWithComparison } from '../api/types'
 
@@ -87,7 +89,9 @@ export function TodayScreen() {
         <PaceChip pace={data.pace_status} gap={data.gap_ml} hasFeeds={data.feeds_today.length > 0} />
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mt-6 text-center text-sm">
+      <EncouragementCard enc={buildEncouragement(data)} />
+
+      <div className="grid grid-cols-3 gap-2 mt-4 text-center text-sm">
         <div className="rounded-xl bg-zinc-900/60 py-3">
           <div className="text-zinc-500 text-[11px] uppercase tracking-wider">Avg</div>
           <div className="tabular-nums">{fmtMl(data.feeds_avg_ml)}</div>
