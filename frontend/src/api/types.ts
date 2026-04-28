@@ -83,6 +83,7 @@ export type Dashboard = {
 export type AppSettings = {
   day_start_hour: number
   day_start_minute: number
+  feeds_per_day: number
   target_concern_ml_per_kg: number
   target_low_ml_per_kg: number
   target_solid_ml_per_kg: number

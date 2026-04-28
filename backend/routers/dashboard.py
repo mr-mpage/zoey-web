@@ -23,17 +23,21 @@ from . import weight as weight_router
 
 router = APIRouter(prefix="/api", tags=["dashboard"], dependencies=[Depends(require_auth)])
 
-FEEDS_PER_DAY = 8
-
 
 def _read_anchor() -> tuple[int, int]:
     s = repo.get_settings()
     return int(s.get("day_start_hour", "2")), int(s.get("day_start_minute", "30"))
 
 
+def _read_feeds_per_day() -> int:
+    s = repo.get_settings()
+    return int(s.get("feeds_per_day", "8"))
+
+
 @router.get("/dashboard")
 def get_dashboard() -> Dashboard:
     anchor_h, anchor_m = _read_anchor()
+    feeds_per_day = _read_feeds_per_day()
     today = feeding_day_for(now_local(), anchor_h, anchor_m)
     today_start, today_end = feeding_day_bounds(today, anchor_h, anchor_m)
 
@@ -78,7 +82,7 @@ def get_dashboard() -> Dashboard:
 
     feeds_total = sum(f.amount_ml for f in feeds_with_cmp)
     feeds_avg = (feeds_total / len(feeds_with_cmp)) if feeds_with_cmp else None
-    feeds_remaining = max(0, FEEDS_PER_DAY - len(feeds_with_cmp))
+    feeds_remaining = max(0, feeds_per_day - len(feeds_with_cmp))
 
     expected_so_far = per_feed_target * len(feeds_with_cmp)
     gap_ml = feeds_total - expected_so_far  # positive = ahead, negative = behind

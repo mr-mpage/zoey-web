@@ -4,8 +4,6 @@ import { MlPerKgSparkline, buildSparklinePoints } from '../components/MlPerKgSpa
 import { fmtDate } from '../lib/format'
 import type { Weight } from '../api/types'
 
-const FEEDS_PER_DAY = 8
-
 function feedingDayKey(d: Date, anchorH: number, anchorM: number): Date {
   const minutes = d.getHours() * 60 + d.getMinutes()
   const anchor = anchorH * 60 + anchorM
@@ -51,6 +49,7 @@ export function HistoryScreen() {
   const { data: appSettings } = useAppSettings()
   const anchorH = appSettings?.day_start_hour ?? 2
   const anchorM = appSettings?.day_start_minute ?? 30
+  const feedsPerDay = appSettings?.feeds_per_day ?? 8
   const bands: Bands = {
     concern: appSettings?.target_concern_ml_per_kg ?? 130,
     low: appSettings?.target_low_ml_per_kg ?? 150,
@@ -72,7 +71,7 @@ export function HistoryScreen() {
     return Array.from(byDay.values())
       .map((b) => {
         const sorted = b.entries.sort((x, y) => x.time - y.time).map((e) => e.amount)
-        while (sorted.length < FEEDS_PER_DAY) sorted.push(0)
+        while (sorted.length < feedsPerDay) sorted.push(0)
         return { day: b.day, feeds: sorted }
       })
       .sort((a, b) => +b.day - +a.day)
@@ -141,7 +140,7 @@ export function HistoryScreen() {
                   {total.toFixed(0)} / {dayTarget.toFixed(0)} ml
                 </div>
               </div>
-              <div className="grid grid-cols-8 gap-1">
+              <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${feedsPerDay}, minmax(0, 1fr))` }}>
                 {row.feeds.map((v, i) => (
                   <div
                     key={i}

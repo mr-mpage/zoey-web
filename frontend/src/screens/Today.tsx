@@ -56,11 +56,10 @@ function DiaperCounter({
   )
 }
 
-const FEED_INTERVAL_HOURS = 3
-
-function nextFeedClock(feedingDayStartIso: string, nextIndex: number): string {
+function nextFeedClock(feedingDayStartIso: string, nextIndex: number, feedsPerDay: number): string {
   const start = new Date(feedingDayStartIso)
-  const expected = new Date(start.getTime() + (nextIndex - 1) * FEED_INTERVAL_HOURS * 3600 * 1000)
+  const intervalMs = (24 / feedsPerDay) * 3600 * 1000
+  const expected = new Date(start.getTime() + (nextIndex - 1) * intervalMs)
   return fmtClock(expected.toISOString())
 }
 
@@ -175,7 +174,7 @@ export function TodayScreen() {
       {data.next_feed && (() => {
         const nf = data.next_feed
         const delta = Math.round(nf.target_ml - nf.base_target_ml)
-        const expectedAt = nextFeedClock(data.feeding_day_start, nf.feed_index)
+        const expectedAt = nextFeedClock(data.feeding_day_start, nf.feed_index, data.weight.feeds_per_day)
         const subline =
           delta > 0
             ? `${delta} ml extra to catch up · even pace ${nf.base_target_ml.toFixed(0)} ml`

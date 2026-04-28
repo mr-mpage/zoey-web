@@ -142,6 +142,7 @@ export function SettingsScreen() {
   const [rate, setRate] = useState<string>(weight?.current?.ml_per_kg_per_day.toString() ?? '160')
   const [notes, setNotes] = useState<string>('')
   const [anchor, setAnchor] = useState<string>('02:30')
+  const [feedsPerDay, setFeedsPerDay] = useState<string>('8')
   const [bandConcern, setBandConcern] = useState<string>('130')
   const [bandLow, setBandLow] = useState<string>('150')
   const [bandSolid, setBandSolid] = useState<string>('165')
@@ -152,6 +153,7 @@ export function SettingsScreen() {
       const hh = String(appSettings.day_start_hour).padStart(2, '0')
       const mm = String(appSettings.day_start_minute).padStart(2, '0')
       setAnchor(`${hh}:${mm}`)
+      setFeedsPerDay(String(appSettings.feeds_per_day))
       setBandConcern(String(appSettings.target_concern_ml_per_kg))
       setBandLow(String(appSettings.target_low_ml_per_kg))
       setBandSolid(String(appSettings.target_solid_ml_per_kg))
@@ -161,8 +163,9 @@ export function SettingsScreen() {
 
   const saveAnchor = () => {
     const [hh, mm] = anchor.split(':').map((s) => parseInt(s, 10))
-    if (isNaN(hh) || isNaN(mm)) return
-    updateSettings.mutate({ day_start_hour: hh, day_start_minute: mm })
+    const n = parseInt(feedsPerDay, 10)
+    if (isNaN(hh) || isNaN(mm) || isNaN(n) || n < 4 || n > 12) return
+    updateSettings.mutate({ day_start_hour: hh, day_start_minute: mm, feeds_per_day: n })
   }
 
   const saveBands = () => {
@@ -252,25 +255,54 @@ export function SettingsScreen() {
       </div>
 
       <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">
-        <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Day starts at</div>
+        <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Feeding schedule</div>
         <p className="text-xs text-zinc-500 mb-3">
-          Feed #1 of the day is the first feed at or after this time. Daily total resets here, not at midnight.
+          Feed #1 of the day is the first feed at or after the start time. Daily total resets here, not
+          at midnight. The interval between feeds is 24h ÷ feeds-per-day.
         </p>
-        <div className="flex gap-2 items-center">
-          <input
-            type="time"
-            value={anchor}
-            onChange={(e) => setAnchor(e.target.value)}
-            className="bg-zinc-800 rounded-lg px-3 py-2.5 tabular-nums flex-1"
-          />
-          <button
-            onClick={saveAnchor}
-            disabled={updateSettings.isPending}
-            className="px-4 py-2.5 rounded-lg bg-pink-300 text-zinc-900 text-sm font-medium disabled:opacity-40"
-          >
-            {updateSettings.isPending ? '…' : 'Save'}
-          </button>
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <div className="text-sm">Day starts at</div>
+              <div className="text-[11px] text-zinc-500">e.g. 02:30 or 03:00</div>
+            </div>
+            <input
+              type="time"
+              value={anchor}
+              onChange={(e) => setAnchor(e.target.value)}
+              className="bg-zinc-800 rounded-lg px-3 py-2 tabular-nums w-28 text-center"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <div className="text-sm">Feeds per day</div>
+              <div className="text-[11px] text-zinc-500">
+                {(() => {
+                  const n = parseInt(feedsPerDay, 10)
+                  if (!n || n < 1) return 'every — hours'
+                  const hours = 24 / n
+                  const h = Math.floor(hours)
+                  const m = Math.round((hours - h) * 60)
+                  return `every ${h}${m ? ` h ${m} min` : ' h'}`
+                })()}
+              </div>
+            </div>
+            <input
+              inputMode="numeric"
+              value={feedsPerDay}
+              onChange={(e) => setFeedsPerDay(e.target.value.replace(/\D/g, ''))}
+              className="bg-zinc-800 rounded-lg px-3 py-2 tabular-nums w-20 text-center"
+              placeholder="8"
+            />
+          </div>
         </div>
+        <button
+          onClick={saveAnchor}
+          disabled={updateSettings.isPending}
+          className="mt-3 w-full py-2.5 rounded-lg bg-pink-300 text-zinc-900 text-sm font-medium disabled:opacity-40"
+        >
+          {updateSettings.isPending ? 'Saving…' : 'Save schedule'}
+        </button>
       </div>
 
       <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">

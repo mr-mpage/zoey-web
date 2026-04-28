@@ -31,13 +31,15 @@ def _row_to_weight(row: dict) -> Weight:
 def compute_status() -> WeightStatus:
     latest = repo.latest_weight()
     history = [_row_to_weight(r) for r in repo.list_weights()]
+    fpd = int(repo.get_settings().get("feeds_per_day", "8"))
     if latest is None:
-        return WeightStatus(current=None, daily_target_ml=0.0, per_feed_target_ml=0.0, history=history)
+        return WeightStatus(current=None, daily_target_ml=0.0, per_feed_target_ml=0.0, feeds_per_day=fpd, history=history)
     daily = latest["weight_grams"] / 1000 * latest["ml_per_kg_per_day"]
     return WeightStatus(
         current=_row_to_weight(latest),
         daily_target_ml=round(daily, 1),
-        per_feed_target_ml=round(daily / 8, 1),
+        per_feed_target_ml=round(daily / fpd, 1),
+        feeds_per_day=fpd,
         history=history,
     )
 

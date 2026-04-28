@@ -69,12 +69,20 @@ export function HelpModal({ open, onClose }: Props) {
           </section>
 
           <section>
-            <h3 className="text-pink-200 font-medium mb-1.5">The day anchor</h3>
-            <p>
-              The "feeding day" runs from the anchor time to the anchor time the next morning — default
-              <b> 02:30</b>. So feed #1 is the first feed at or after 02:30, and a 23:30 feed counts as feed #8
-              of the same day, not feed #1 of the next. The running total resets at the anchor, not midnight.
-              Change it in Settings if your schedule shifts.
+            <h3 className="text-pink-200 font-medium mb-1.5">The feeding schedule</h3>
+            <p className="mb-2">
+              The feeding day runs from the anchor time (default <b>02:30</b>) to the anchor time the next
+              morning, divided into <b>8 feeds</b> by default. Both are configurable in
+              Settings → Feeding schedule.
+            </p>
+            <p className="mb-2">
+              When the doctor changes her schedule (e.g. moves to every 4h = 6/day, or shifts the start time
+              to 03:00), update the two numbers and everything follows: the per-feed target, the
+              expected-time on the next-feed card, the history grid columns, the pace calculation.
+            </p>
+            <p className="text-zinc-400 text-[11px]">
+              Don't change feeds-per-day on your own — that's a clinical decision. The setting exists so
+              the app can match whatever the doctor recommends.
             </p>
           </section>
 
