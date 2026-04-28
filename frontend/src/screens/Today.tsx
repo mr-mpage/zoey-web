@@ -1,12 +1,26 @@
 import { useState } from 'react'
-import { useCreateFeed, useCreatePump, useDashboard, useDeleteFeed, usePatchFeed } from '../api/hooks'
+import {
+  useCreateFeed,
+  useCreatePump,
+  useDashboard,
+  useDeleteFeed,
+  usePatchFeed,
+} from '../api/hooks'
 import { AmountModal } from '../components/AmountModal'
 import { PaceChip } from '../components/PaceChip'
 import { ProgressRing } from '../components/ProgressRing'
 import { StatusBadge } from '../components/StatusBadge'
 import { ZOEY_BIRTH_ISO } from '../lib/constants'
-import { ageInDays, fmtMl, fmtTime, localDatetimeInput } from '../lib/format'
+import { ageInDays, fmtClock, fmtDateLong, fmtMl, fmtTime, localDatetimeInput } from '../lib/format'
 import type { FeedWithComparison } from '../api/types'
+
+const FEED_INTERVAL_HOURS = 3
+
+function nextFeedClock(feedingDayStartIso: string, nextIndex: number): string {
+  const start = new Date(feedingDayStartIso)
+  const expected = new Date(start.getTime() + (nextIndex - 1) * FEED_INTERVAL_HOURS * 3600 * 1000)
+  return fmtClock(expected.toISOString())
+}
 
 type FeedDraft = { id?: number; amount_ml?: number; fed_at?: string; notes?: string }
 type PumpDraft = { amount_ml?: number; pumped_at?: string; notes?: string }
@@ -54,8 +68,10 @@ export function TodayScreen() {
   }
 
   return (
-    <div className="px-4 pt-6 pb-32 max-w-xl mx-auto">
-      <div className="text-center text-zinc-500 text-sm mb-1">Day {day} · {data.today_date}</div>
+    <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
+      <div className="text-center text-zinc-500 text-sm mb-1">
+        Day {day} · {fmtDateLong(data.today_date)}
+      </div>
 
       <div className="flex justify-center mt-4">
         <ProgressRing pct={pct}>
@@ -86,29 +102,52 @@ export function TodayScreen() {
         </div>
       </div>
 
-      {data.next_feed && (
-        <div className="mt-5 rounded-2xl border border-pink-300/20 bg-pink-300/5 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-xs text-pink-300/80 uppercase tracking-wider">Next feed · #{data.next_feed.feed_index}</div>
-              <div className="text-xl font-light mt-0.5 tabular-nums">{data.next_feed.target_ml.toFixed(0)} ml</div>
-              {Math.abs(data.next_feed.target_ml - data.next_feed.base_target_ml) >= 1 && (
-                <div className="text-[11px] text-zinc-500 mt-0.5">
-                  base {data.next_feed.base_target_ml.toFixed(0)}
-                  {data.next_feed.target_ml > data.next_feed.base_target_ml ? ' · catch-up bump' : ' · ease-off'}
+      {data.next_feed && (() => {
+        const nf = data.next_feed
+        const delta = Math.round(nf.target_ml - nf.base_target_ml)
+        const expectedAt = nextFeedClock(data.feeding_day_start, nf.feed_index)
+        const subline =
+          delta > 0
+            ? `${delta} ml extra to catch up · even pace ${nf.base_target_ml.toFixed(0)} ml`
+            : delta < 0
+              ? `${Math.abs(delta)} ml less, she's ahead · even pace ${nf.base_target_ml.toFixed(0)} ml`
+              : `at even pace · ${nf.base_target_ml.toFixed(0)} ml`
+        return (
+          <div className="mt-5 rounded-2xl border border-pink-300/20 bg-pink-300/5 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs text-pink-300/80 uppercase tracking-wider">
+                  Next feed · #{nf.feed_index} · {expectedAt}
                 </div>
-              )}
-            </div>
-            <div className="text-right text-xs text-zinc-400">
-              {data.next_feed.historical_avg_ml !== null ? (
-                <>last 7d avg<br /><span className="text-zinc-200 text-base tabular-nums">{data.next_feed.historical_avg_ml.toFixed(0)} ml</span></>
-              ) : (
-                <span className="text-zinc-600">no history yet</span>
-              )}
+                <div className="text-xl font-light mt-0.5 tabular-nums">{nf.target_ml.toFixed(0)} ml</div>
+                <div className="text-[11px] text-zinc-500 mt-0.5">{subline}</div>
+              </div>
+              <div className="text-right text-xs text-zinc-400">
+                {nf.historical_avg_ml !== null ? (
+                  <>last 7d avg<br /><span className="text-zinc-200 text-base tabular-nums">{nf.historical_avg_ml.toFixed(0)} ml</span></>
+                ) : (
+                  <span className="text-zinc-600">no history yet</span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
+
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        <button
+          onClick={() => setPumpDraft({})}
+          className="col-span-1 py-3.5 rounded-xl bg-zinc-800 text-zinc-100 font-medium active:scale-[.98]"
+        >
+          + Pump
+        </button>
+        <button
+          onClick={() => setFeedDraft({})}
+          className="col-span-2 py-3.5 rounded-xl bg-pink-300 text-zinc-900 font-medium active:scale-[.98]"
+        >
+          + Feed
+        </button>
+      </div>
 
       <div className="mt-6">
         <div className="text-zinc-500 text-xs uppercase tracking-wider mb-2 px-1">Today's feeds</div>
@@ -144,21 +183,6 @@ export function TodayScreen() {
             ))}
           </ul>
         )}
-      </div>
-
-      <div className="fixed bottom-20 left-0 right-0 px-4 max-w-xl mx-auto flex gap-2">
-        <button
-          onClick={() => setPumpDraft({})}
-          className="flex-1 py-3 rounded-xl bg-zinc-800 text-zinc-100 font-medium active:scale-[.98] shadow-lg"
-        >
-          + Pump
-        </button>
-        <button
-          onClick={() => setFeedDraft({})}
-          className="flex-1 py-3 rounded-xl bg-pink-300 text-zinc-900 font-medium active:scale-[.98] shadow-lg"
-        >
-          + Feed
-        </button>
       </div>
 
       <AmountModal
