@@ -36,4 +36,9 @@ if static_dir.is_dir():
         candidate = static_dir / full_path
         if full_path and candidate.is_file():
             return FileResponse(candidate)
-        return FileResponse(static_dir / "index.html")
+        # SPA fallback: never cache HTML so a not-yet-deployed asset path can't
+        # get pinned as the index.html bytes by an upstream cache (Cloudflare).
+        return FileResponse(
+            static_dir / "index.html",
+            headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
+        )
