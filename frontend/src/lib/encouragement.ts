@@ -17,18 +17,26 @@ function pickStable(dayKey: string, branch: string, options: string[]): string {
   return options[Math.abs(h) % options.length]
 }
 
-/** Plain-language status line for the Today screen. */
+/** Plain-language status line for the Today screen. Branches off pace_status
+ * (the single source of truth from the backend) so the verdict can never
+ * disagree with the pace chip. Magnitude-based sub-tiering within each pace
+ * state uses the gap relative to per-feed target (a "big" deviation is more
+ * than ~1.5 feeds' worth). */
 export function buildEncouragement(d: Dashboard): Encouragement {
-  const feedsDone = d.feeds_today.length
+  const feedsDone = d.feeds_today.filter((f) => !f.is_extra).length
   const remaining = d.feeds_remaining
   const target = d.daily_target_ml
   const total = d.feeds_total_ml
   const gap = d.gap_ml
   const absGap = Math.abs(gap)
+  const pace = d.pace_status
   const nf = d.next_feed
   const next = nf?.target_ml ?? d.per_feed_target_ml
   const last = feedsDone > 0 ? d.feeds_today[feedsDone - 1] : null
   const dayKey = d.today_date
+
+  const perFeed = d.per_feed_target_ml || 1
+  const bigDeviation = absGap > perFeed * 1.5
 
   if (target === 0) {
     return { tone: 'neutral', text: 'Set her current weight in Settings to unlock the daily target.' }
@@ -50,7 +58,7 @@ export function buildEncouragement(d: Dashboard): Encouragement {
       return {
         tone: 'celebrate',
         text: pickStable(dayKey, 'done-hit', [
-          `All 8 feeds done, target reached. Great work today.`,
+          `All ${feedsDone} feeds done, target reached. Great work today.`,
           `Target hit, all feeds in. Lovely job.`,
           `Day complete and over the line. Nicely done.`,
         ]),
@@ -74,17 +82,18 @@ export function buildEncouragement(d: Dashboard): Encouragement {
     }
   }
 
+  // Last feed — special-case so the wording reflects "this is the closer"
   if (remaining === 1) {
-    if (gap < -target * 0.1) {
+    if (pace === 'behind') {
       return {
-        tone: 'concern',
+        tone: bigDeviation ? 'concern' : 'neutral',
         text: pickStable(dayKey, 'last-behind', [
           `Last feed of the day. She's ${absGap.toFixed(0)} ml short — try ${next.toFixed(0)} ml, but don't force it if she's done.`,
           `One feed left. ${absGap.toFixed(0)} ml behind — aim for ${next.toFixed(0)} ml, ok to let her stop when full.`,
         ]),
       }
     }
-    if (gap > target * 0.1) {
+    if (pace === 'ahead') {
       return {
         tone: 'positive',
         text: pickStable(dayKey, 'last-ahead', [
@@ -102,37 +111,36 @@ export function buildEncouragement(d: Dashboard): Encouragement {
     }
   }
 
-  if (gap < -target * 0.15) {
-    return {
-      tone: 'concern',
-      text: pickStable(dayKey, 'behind-big', [
-        `Behind by ${absGap.toFixed(0)} ml. Aim for ${next.toFixed(0)} ml on the next feed and see how she takes it — never force.`,
-        `${absGap.toFixed(0)} ml short. Try ${next.toFixed(0)} ml next, but only what she'll take comfortably.`,
-      ]),
+  // Mid-day — branch off pace_status so we can't contradict the pace chip
+  if (pace === 'behind') {
+    if (bigDeviation) {
+      return {
+        tone: 'concern',
+        text: pickStable(dayKey, 'behind-big', [
+          `Behind by ${absGap.toFixed(0)} ml. Aim for ${next.toFixed(0)} ml on the next feed and see how she takes it — never force.`,
+          `${absGap.toFixed(0)} ml short. Try ${next.toFixed(0)} ml next, but only what she'll take comfortably.`,
+        ]),
+      }
     }
-  }
-
-  if (gap < -target * 0.05) {
     return {
       tone: 'neutral',
       text: pickStable(dayKey, 'behind-small', [
-        `Slightly under pace, still well within range. About ${next.toFixed(0)} ml next will help close the gap.`,
-        `A bit under pace. ${next.toFixed(0)} ml next should bring her back.`,
+        `A bit behind pace. About ${next.toFixed(0)} ml next will help close the gap.`,
+        `Slightly under pace. ${next.toFixed(0)} ml next should bring her back.`,
       ]),
     }
   }
 
-  if (gap > target * 0.15) {
-    return {
-      tone: 'positive',
-      text: pickStable(dayKey, 'ahead-big', [
-        `Well ahead of pace — she's eating well today. ${next.toFixed(0)} ml is plenty for the next feed.`,
-        `She's eating strongly. ${next.toFixed(0)} ml is fine, no need to push.`,
-      ]),
+  if (pace === 'ahead') {
+    if (bigDeviation) {
+      return {
+        tone: 'positive',
+        text: pickStable(dayKey, 'ahead-big', [
+          `Well ahead of pace — she's eating well today. ${next.toFixed(0)} ml is plenty for the next feed.`,
+          `She's eating strongly. ${next.toFixed(0)} ml is fine, no need to push.`,
+        ]),
+      }
     }
-  }
-
-  if (gap > target * 0.05) {
     return {
       tone: 'positive',
       text: pickStable(dayKey, 'ahead-small', [
@@ -142,6 +150,7 @@ export function buildEncouragement(d: Dashboard): Encouragement {
     }
   }
 
+  // pace === 'on_track' — within tolerance. Optionally nuance from last-feed badge.
   if (last && last.comparison && last.comparison.sample_days > 0 && last.status !== 'normal') {
     if (last.status === 'below') {
       return {
