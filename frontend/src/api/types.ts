@@ -58,8 +58,9 @@ export type FeedWithComparison = Feed & {
 export type NextFeedHint = {
   feed_index: number
   target_ml: number       // catch-up target
-  base_target_ml: number  // static daily/8 baseline
+  base_target_ml: number  // static daily/N baseline
   historical_avg_ml: number | null
+  expected_at: string     // ISO timestamp, adaptive (last scheduled + interval)
 }
 
 export type Dashboard = {

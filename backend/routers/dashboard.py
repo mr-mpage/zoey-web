@@ -108,11 +108,22 @@ def get_dashboard() -> Dashboard:
         next_idx = len(scheduled) + 1
         cmp = historical_comparison(by_day, today, next_idx)
         catch_up = max(0.0, (daily_target - feeds_total) / feeds_remaining)
+        # Adaptive expected-at: anchor first feed to feeding-day start,
+        # subsequent feeds to (last scheduled feed time + interval). This
+        # follows the actual rhythm rather than the rigid grid, so a 30-min
+        # late feed shifts the next slot by 30 min too.
+        interval = timedelta(hours=24 / feeds_per_day)
+        if scheduled:
+            last_feed_dt = scheduled[-1].fed_at
+            expected_at = last_feed_dt + interval
+        else:
+            expected_at = today_start
         next_feed = NextFeedHint(
             feed_index=next_idx,
             target_ml=round(catch_up, 1),
             base_target_ml=per_feed_target,
             historical_avg_ml=cmp.avg_ml,
+            expected_at=expected_at,
         )
 
     # Avoid unused-name warning for the `extras` partition; the frontend

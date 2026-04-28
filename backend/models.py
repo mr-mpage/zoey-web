@@ -84,8 +84,9 @@ class FeedWithComparison(Feed):
 class NextFeedHint(BaseModel):
     feed_index: int
     target_ml: float        # catch-up target — adjusts to current pace
-    base_target_ml: float   # static daily/8 baseline
+    base_target_ml: float   # static daily/N baseline
     historical_avg_ml: Optional[float]
+    expected_at: datetime   # adaptive: last scheduled feed + interval, or anchor for feed #1
 
 
 class DiaperIn(BaseModel):

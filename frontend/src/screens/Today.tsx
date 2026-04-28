@@ -17,7 +17,7 @@ import { ProgressRing } from '../components/ProgressRing'
 import { StatusBadge } from '../components/StatusBadge'
 import { ZOEY_BIRTH_ISO } from '../lib/constants'
 import { buildEncouragement } from '../lib/encouragement'
-import { ageInDays, fmtClock, fmtDateLong, fmtMl, fmtTime, localDatetimeInput } from '../lib/format'
+import { ageInDays, fmtClock, fmtDateLong, fmtMl, fmtRelative, fmtTime, localDatetimeInput } from '../lib/format'
 import { gainTone, rollingGainRate } from '../lib/growth'
 import type { Diaper, FeedWithComparison } from '../api/types'
 
@@ -56,12 +56,6 @@ function DiaperCounter({
   )
 }
 
-function nextFeedClock(feedingDayStartIso: string, nextIndex: number, feedsPerDay: number): string {
-  const start = new Date(feedingDayStartIso)
-  const intervalMs = (24 / feedsPerDay) * 3600 * 1000
-  const expected = new Date(start.getTime() + (nextIndex - 1) * intervalMs)
-  return fmtClock(expected.toISOString())
-}
 
 type FeedDraft = { id?: number; amount_ml?: number; fed_at?: string; notes?: string; is_extra?: boolean }
 type PumpDraft = { amount_ml?: number; pumped_at?: string; notes?: string }
@@ -180,21 +174,27 @@ export function TodayScreen() {
       {data.next_feed && (() => {
         const nf = data.next_feed
         const delta = Math.round(nf.target_ml - nf.base_target_ml)
-        const expectedAt = nextFeedClock(data.feeding_day_start, nf.feed_index, data.weight.feeds_per_day)
+        const expectedClock = fmtClock(nf.expected_at)
+        const expectedRel = fmtRelative(nf.expected_at)
         const subline =
           delta > 0
             ? `${delta} ml extra to catch up · even pace ${nf.base_target_ml.toFixed(0)} ml`
             : delta < 0
               ? `${Math.abs(delta)} ml less, she's ahead · even pace ${nf.base_target_ml.toFixed(0)} ml`
               : `at even pace · ${nf.base_target_ml.toFixed(0)} ml`
+        const overdue = expectedRel.includes('ago')
         return (
           <div className="mt-5 rounded-2xl border border-pink-300/20 bg-pink-300/5 p-4">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs text-pink-300/80 uppercase tracking-wider">
-                  Next feed · #{nf.feed_index} · {expectedAt}
+                  Next feed · #{nf.feed_index}
                 </div>
-                <div className="text-xl font-light mt-0.5 tabular-nums">{nf.target_ml.toFixed(0)} ml</div>
+                <div className="flex items-baseline gap-2 mt-0.5">
+                  <span className="text-xl font-light tabular-nums">{expectedClock}</span>
+                  <span className={`text-[11px] ${overdue ? 'text-amber-300' : 'text-zinc-500'}`}>{expectedRel}</span>
+                </div>
+                <div className="text-base text-zinc-200 mt-1.5 tabular-nums">{nf.target_ml.toFixed(0)} ml</div>
                 <div className="text-[11px] text-zinc-500 mt-0.5">{subline}</div>
               </div>
               <div className="text-right text-xs text-zinc-400">
