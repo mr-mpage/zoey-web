@@ -176,11 +176,14 @@ export function TodayScreen() {
           className="col-span-2 py-3.5 rounded-xl bg-pink-300 text-zinc-900 font-medium active:scale-[.98] flex items-center justify-center gap-2"
         >
           <span>+ Feed</span>
-          {data.next_feed && (
-            <span className="text-zinc-900/60 font-normal tabular-nums">
-              · suggest {data.next_feed.target_ml.toFixed(0)} ml
-            </span>
-          )}
+          {(() => {
+            const suggest = data.next_feed?.target_ml ?? (data.daily_target_ml > 0 ? data.per_feed_target_ml : null)
+            return suggest !== null && suggest > 0 ? (
+              <span className="text-zinc-900/60 font-normal tabular-nums">
+                · suggest {suggest.toFixed(0)} ml
+              </span>
+            ) : null
+          })()}
         </button>
       </div>
 
@@ -227,6 +230,7 @@ export function TodayScreen() {
             ? { border: 'border-sky-500/30', bg: 'bg-sky-500/5', accent: 'text-sky-300', word: `${totalDelta.toFixed(0)} ml above` }
             : { border: 'border-amber-500/30', bg: 'bg-amber-500/5', accent: 'text-amber-300', word: `${Math.abs(totalDelta).toFixed(0)} ml under` }
         const scheduledCount = data.feeds_today.filter((f) => !f.is_extra).length
+        const nextSuggest = data.per_feed_target_ml
         return (
           <div className={`mt-5 rounded-2xl border ${tone.border} ${tone.bg} p-4`}>
             <div className="flex items-center justify-between">
@@ -240,9 +244,16 @@ export function TodayScreen() {
               </div>
               <div className="text-right text-xs text-zinc-400">
                 <div>{scheduledCount} feeds done</div>
-                <div className="mt-1.5 text-zinc-500">next day</div>
-                <div className="text-zinc-200 tabular-nums">{dayRolloverClock}</div>
-                <div className="text-[10px] text-zinc-500">{dayRolloverRel}</div>
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-current/10 flex items-baseline justify-between gap-2 text-[12px]">
+              <div className="text-zinc-500">
+                Next feed <span className="text-pink-200">#1</span> at{' '}
+                <span className="text-zinc-200 tabular-nums">{dayRolloverClock}</span>{' '}
+                <span className="text-zinc-500">· {dayRolloverRel}</span>
+              </div>
+              <div className="text-zinc-500">
+                suggest <span className="text-zinc-100 tabular-nums">{nextSuggest.toFixed(0)} ml</span>
               </div>
             </div>
           </div>
