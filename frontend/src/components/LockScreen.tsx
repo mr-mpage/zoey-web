@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useLogin } from '../api/hooks'
 import { ApiError } from '../api/client'
 
@@ -10,10 +10,9 @@ export function LockScreen() {
   const [shake, setShake] = useState(false)
   const login = useLogin()
 
-  useEffect(() => {
-    if (pin.length !== 6) return
+  const submit = (code: string) => {
     setError(null)
-    login.mutate(pin, {
+    login.mutate(code, {
       onError: (e) => {
         const msg = e instanceof ApiError ? e.message : 'Login failed'
         setError(msg)
@@ -22,19 +21,30 @@ export function LockScreen() {
         setTimeout(() => setShake(false), 400)
       },
     })
-  }, [pin, login])
+  }
 
   const tap = (k: string) => {
     if (login.isPending) return
-    if (k === 'del') setPin((p) => p.slice(0, -1))
-    else if (k && pin.length < 6) setPin((p) => p + k)
+    if (k === 'del') {
+      setPin((p) => p.slice(0, -1))
+      return
+    }
+    if (!k) return
+    setPin((prev) => {
+      if (prev.length >= 6) return prev
+      const next = prev + k
+      if (next.length === 6) submit(next)
+      return next
+    })
   }
+
+  const busy = login.isPending
 
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center px-6 select-none">
       <div className="text-center mb-10">
         <div className="text-pink-200/90 text-3xl font-light tracking-wide">Zoey</div>
-        <div className="text-zinc-500 text-sm mt-1">Enter passcode</div>
+        <div className="text-zinc-500 text-sm mt-1">{busy ? 'Checking…' : 'Enter passcode'}</div>
       </div>
       <div className={`flex gap-3 mb-12 ${shake ? 'animate-shake' : ''}`}>
         {Array.from({ length: 6 }).map((_, i) => (
@@ -46,15 +56,14 @@ export function LockScreen() {
           />
         ))}
       </div>
-      {error && <div className="text-rose-400 text-sm mb-4 h-5">{error}</div>}
-      {!error && <div className="h-5 mb-4" />}
+      <div className="text-rose-400 text-sm mb-4 h-5">{error ?? ''}</div>
       <div className="grid grid-cols-3 gap-4 w-full max-w-xs">
         {KEYS.map((k, idx) => (
           <button
             key={idx}
             onClick={() => tap(k)}
-            disabled={!k && k !== ''}
-            className={`h-16 rounded-full text-2xl font-light transition active:scale-95 ${
+            disabled={busy || (!k && k !== '')}
+            className={`h-16 rounded-full text-2xl font-light transition active:scale-95 disabled:opacity-40 ${
               k === ''
                 ? 'invisible'
                 : k === 'del'
