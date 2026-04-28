@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useLogin } from '../api/hooks'
 import { ApiError } from '../api/client'
 
@@ -8,9 +8,12 @@ export function LockScreen() {
   const [pin, setPin] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [shake, setShake] = useState(false)
+  const submittingRef = useRef(false)
   const login = useLogin()
 
   const submit = (code: string) => {
+    if (submittingRef.current) return
+    submittingRef.current = true
     setError(null)
     login.mutate(code, {
       onError: (e) => {
@@ -18,27 +21,29 @@ export function LockScreen() {
         setError(msg)
         setShake(true)
         setPin('')
+        submittingRef.current = false
         setTimeout(() => setShake(false), 400)
+      },
+      onSuccess: () => {
+        // ref stays true; component will unmount when auth flips.
       },
     })
   }
 
   const tap = (k: string) => {
-    if (login.isPending) return
+    if (submittingRef.current || login.isPending) return
     if (k === 'del') {
       setPin((p) => p.slice(0, -1))
       return
     }
     if (!k) return
-    setPin((prev) => {
-      if (prev.length >= 6) return prev
-      const next = prev + k
-      if (next.length === 6) submit(next)
-      return next
-    })
+    if (pin.length >= 6) return
+    const next = pin + k
+    setPin(next)
+    if (next.length === 6) submit(next)
   }
 
-  const busy = login.isPending
+  const busy = login.isPending || submittingRef.current
 
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center px-6 select-none">
