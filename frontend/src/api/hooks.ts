@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
-import type { AppSettings, Dashboard, Diaper, Feed, Pump, Weight, WeightStatus } from './types'
+import type { AppSettings, Dashboard, Diaper, Feed, Overview, Pump, Weight, WeightStatus } from './types'
 
 export function useAuthStatus() {
   return useQuery({
@@ -31,6 +31,15 @@ export function useDashboard(enabled = true) {
     queryKey: ['dashboard'],
     queryFn: () => api.get<Dashboard>('/api/dashboard'),
     refetchInterval: 10_000,
+    enabled,
+  })
+}
+
+export function useOverview(enabled = true) {
+  return useQuery({
+    queryKey: ['overview'],
+    queryFn: () => api.get<Overview>('/api/overview'),
+    refetchInterval: 60_000,
     enabled,
   })
 }

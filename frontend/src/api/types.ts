@@ -85,6 +85,21 @@ export type Dashboard = {
   weight: WeightStatus
 }
 
+export type OverviewStatus = 'good' | 'watch' | 'concern' | 'over' | 'unknown'
+
+export type OverviewIndicator = {
+  key: string
+  title: string
+  status: OverviewStatus
+  headline: string
+  detail: string
+}
+
+export type Overview = {
+  indicators: OverviewIndicator[]
+  summary: { status: OverviewStatus; text: string }
+}
+
 export type AppSettings = {
   day_start_hour: number
   day_start_minute: number

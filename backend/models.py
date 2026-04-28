@@ -161,6 +161,24 @@ class VapidKeyOut(BaseModel):
     vapid_public_key: str
 
 
+class OverviewIndicator(BaseModel):
+    key: str  # 'intake' | 'growth' | 'today_pace' | 'hydration'
+    title: str
+    status: str  # 'good' | 'watch' | 'concern' | 'over' | 'unknown'
+    headline: str  # short verdict, e.g. "In target zone"
+    detail: str  # one-sentence supporting context
+
+
+class OverviewSummary(BaseModel):
+    status: str  # aggregate of indicators
+    text: str
+
+
+class Overview(BaseModel):
+    indicators: list[OverviewIndicator]
+    summary: OverviewSummary
+
+
 class AppSettings(BaseModel):
     day_start_hour: int = Field(ge=0, le=23)
     day_start_minute: int = Field(ge=0, le=59)

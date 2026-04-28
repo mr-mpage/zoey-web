@@ -27,6 +27,16 @@ export function HelpModal({ open, onClose }: Props) {
           </section>
 
           <section>
+            <h3 className="text-pink-200 font-medium mb-1.5">Overview tab</h3>
+            <p>
+              The Overview tab is the at-a-glance "how is she doing?" view. Four indicators —
+              <b> Intake</b>, <b>Growth</b>, <b>Today's pace</b>, <b>Hydration</b> — each with a colour dot
+              (emerald = on track, amber = watch, rose = flag, sky = above target) and a one-line plain-English
+              verdict. Use it for quick check-ins or to share status with the doctor.
+            </p>
+          </section>
+
+          <section>
             <h3 className="text-pink-200 font-medium mb-1.5">Quick guide</h3>
             <p>
               Tap <span className="bg-pink-300/20 text-pink-200 px-1.5 rounded">+ Feed</span> to log a bottle and{' '}

@@ -4,6 +4,7 @@ import { HelpModal } from './components/HelpModal'
 import { LockScreen } from './components/LockScreen'
 import { TabBar, type Tab } from './components/TabBar'
 import { TodayScreen } from './screens/Today'
+import { OverviewScreen } from './screens/Overview'
 import { PumpsScreen } from './screens/Pumps'
 import { HistoryScreen } from './screens/History'
 import { SettingsScreen } from './screens/Settings'
@@ -24,6 +25,7 @@ function App() {
   return (
     <div className="min-h-dvh pt-[env(safe-area-inset-top)]">
       {tab === 'today' && <TodayScreen />}
+      {tab === 'overview' && <OverviewScreen />}
       {tab === 'pumps' && <PumpsScreen />}
       {tab === 'history' && <HistoryScreen />}
       {tab === 'settings' && <SettingsScreen />}

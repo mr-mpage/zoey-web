@@ -1,4 +1,4 @@
-type Tab = 'today' | 'pumps' | 'history' | 'settings'
+type Tab = 'today' | 'overview' | 'pumps' | 'history' | 'settings'
 
 type IconProps = { className?: string }
 
@@ -10,6 +10,15 @@ function TodayIcon({ className }: IconProps) {
       <path d="M3.5 9.5h17" />
       <path d="M8 3.5v3M16 3.5v3" />
       <circle cx="12" cy="14.5" r="1.6" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+function OverviewIcon({ className }: IconProps) {
+  // Heart — health overview
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      <path d="M12 20.5s-7.5-4.6-7.5-10.3a4.2 4.2 0 0 1 7.5-2.6 4.2 4.2 0 0 1 7.5 2.6c0 5.7-7.5 10.3-7.5 10.3z" />
     </svg>
   )
 }
@@ -47,6 +56,7 @@ function SettingsIcon({ className }: IconProps) {
 
 const TABS: { id: Tab; label: string; Icon: (p: IconProps) => React.ReactElement }[] = [
   { id: 'today', label: 'Today', Icon: TodayIcon },
+  { id: 'overview', label: 'Overview', Icon: OverviewIcon },
   { id: 'pumps', label: 'Pumps', Icon: PumpIcon },
   { id: 'history', label: 'History', Icon: HistoryIcon },
   { id: 'settings', label: 'Settings', Icon: SettingsIcon },
@@ -55,7 +65,7 @@ const TABS: { id: Tab; label: string; Icon: (p: IconProps) => React.ReactElement
 export function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
   return (
     <nav className="fixed bottom-0 inset-x-0 bg-zinc-950/95 backdrop-blur border-t border-zinc-900 pb-[env(safe-area-inset-bottom)]">
-      <div className="max-w-xl mx-auto grid grid-cols-4">
+      <div className="max-w-xl mx-auto grid grid-cols-5">
         {TABS.map((t) => (
           <button
             key={t.id}
