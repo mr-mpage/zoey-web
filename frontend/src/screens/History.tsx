@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useAppSettings, useFeeds, useWeight } from '../api/hooks'
+import { useAppSettings, useDiapers, useFeeds, useWeight } from '../api/hooks'
 import { MlPerKgSparkline, buildSparklinePoints } from '../components/MlPerKgSparkline'
 import { fmtDate } from '../lib/format'
 import type { Weight } from '../api/types'
@@ -45,6 +45,7 @@ function bandTone(mlPerKg: number, b: Bands): string {
 
 export function HistoryScreen() {
   const { data: feeds } = useFeeds(30)
+  const { data: diapers } = useDiapers(30)
   const { data: weight } = useWeight()
   const { data: appSettings } = useAppSettings()
   const anchorH = appSettings?.day_start_hour ?? 2
@@ -75,7 +76,21 @@ export function HistoryScreen() {
         return { day: b.day, feeds: sorted }
       })
       .sort((a, b) => +b.day - +a.day)
-  }, [feeds, anchorH, anchorM])
+  }, [feeds, anchorH, anchorM, feedsPerDay])
+
+  const diapersByDay = useMemo(() => {
+    const map = new Map<string, { wet: number; dirty: number }>()
+    for (const d of diapers ?? []) {
+      const dt = new Date(d.recorded_at)
+      const dayKey = feedingDayKey(dt, anchorH, anchorM)
+      const key = dayKey.toDateString()
+      if (!map.has(key)) map.set(key, { wet: 0, dirty: 0 })
+      const bucket = map.get(key)!
+      if (d.kind === 'wet') bucket.wet++
+      else if (d.kind === 'dirty') bucket.dirty++
+    }
+    return map
+  }, [diapers, anchorH, anchorM])
 
   const sparkPoints = useMemo(
     () => buildSparklinePoints(feeds ?? [], weights, anchorH, anchorM, 30),
@@ -152,6 +167,18 @@ export function HistoryScreen() {
                   </div>
                 ))}
               </div>
+              {(() => {
+                const dc = diapersByDay.get(row.day.toDateString()) ?? { wet: 0, dirty: 0 }
+                if (dc.wet === 0 && dc.dirty === 0) return null
+                const lowWet = !isToday && dc.wet < 6
+                return (
+                  <div className="mt-1.5 text-[11px] text-zinc-500 text-right">
+                    <span className={lowWet ? 'text-amber-400' : 'text-zinc-400'}>{dc.wet} wet</span>
+                    <span className="text-zinc-600"> · </span>
+                    <span className="text-zinc-400">{dc.dirty} dirty</span>
+                  </div>
+                )
+              })()}
             </div>
           )
         })}
