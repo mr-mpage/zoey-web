@@ -11,6 +11,13 @@ import {
 import { api, ApiError } from '../api/client'
 import { fmtDate, localDatetimeInput } from '../lib/format'
 import { gainTone, gainsBetweenEntries } from '../lib/growth'
+
+function pmaAtDate(dateIso: string, birthDateIso: string, gaWeeks: number): { pma: number; postnatalDays: number } {
+  const birth = new Date(birthDateIso + 'T00:00:00').getTime()
+  const at = new Date(dateIso).getTime()
+  const days = Math.max(0, Math.floor((at - birth) / 86_400_000))
+  return { pma: gaWeeks + days / 7, postnatalDays: days }
+}
 import { disablePush, enablePush, getState as getPushState, isStandalone } from '../lib/push'
 import type { Weight } from '../api/types'
 
@@ -483,6 +490,9 @@ export function SettingsScreen() {
           <ul className="space-y-1">
             {weight.history.map((w) => {
               const gain = gains.find((g) => g.to.id === w.id)
+              const ctx = appSettings
+                ? pmaAtDate(w.recorded_at, appSettings.birth_date, appSettings.gestational_age_weeks)
+                : null
               return (
                 <li
                   key={w.id}
@@ -496,7 +506,7 @@ export function SettingsScreen() {
                     </span>
                   </div>
                   {gain && (
-                    <div className={`text-[11px] tabular-nums text-right ${gainTone(gain.g_per_kg_per_day)}`}>
+                    <div className={`text-[11px] tabular-nums text-right ${gainTone(gain.g_per_kg_per_day, ctx?.pma, ctx?.postnatalDays)}`}>
                       {gain.g_per_day >= 0 ? '+' : ''}{gain.g_per_day.toFixed(0)} g/day · {gain.g_per_kg_per_day >= 0 ? '+' : ''}{gain.g_per_kg_per_day.toFixed(1)} g/kg/day
                     </div>
                   )}
@@ -508,7 +518,8 @@ export function SettingsScreen() {
           <div className="text-zinc-500 text-sm">No history yet.</div>
         )}
         <div className="text-[11px] text-zinc-600 mt-3 text-center">
-          Preterm reference: 15–20 g/kg/day weight gain.
+          Expected gain depends on her age. Earliest weeks: lower while she regains birth weight.
+          PMA &lt; 30: 17–23 · 30–34: 15–20 · 34–38: 12–17 · term-equivalent: 10–15 g/kg/day.
         </div>
       </div>
 

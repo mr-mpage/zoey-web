@@ -40,13 +40,41 @@ export function rollingGainRate(weights: Weight[], windowDays = 7): number | nul
   return g_per_day / (latest.weight_grams / 1000)
 }
 
-/** Colour bands for g/kg/day gain rate.
- * Reference: AAP/ESPGHAN 2022 target is 17–20 g/kg/day for stable preterm
- * on full feeds. Lower gains are common in the first 1–2 weeks of life. */
-export function gainTone(gpkpd: number): string {
-  if (gpkpd >= 25) return 'text-sky-300'
-  if (gpkpd >= 17) return 'text-emerald-300'
-  if (gpkpd >= 15) return 'text-lime-300'
-  if (gpkpd >= 10) return 'text-amber-400'
+/** PMA-aware expected gain range (g/kg/day), mirrors the backend in services.py.
+ * References: Fenton 2013/2025, AAP/ESPGHAN 2022. */
+export function expectedGainRange(pmaWeeks: number, postnatalDays: number): [number, number] {
+  if (postnatalDays < 7) return [0, 12]
+  if (postnatalDays < 14) return [8, 16]
+  if (pmaWeeks < 30) return [17, 23]
+  if (pmaWeeks < 34) return [15, 20]
+  if (pmaWeeks < 38) return [12, 17]
+  return [10, 15]
+}
+
+/** Colour for a g/kg/day reading. When PMA + postnatal age are known, uses
+ * the PMA-aware expected range so a 9 g/kg/day reading on day 13 is judged
+ * against 8–16 (not the term target of 17–20). */
+export function gainTone(gpkpd: number, pmaWeeks?: number, postnatalDays?: number): string {
+  if (pmaWeeks !== undefined && postnatalDays !== undefined) {
+    const [gMin, gMax] = expectedGainRange(pmaWeeks, postnatalDays)
+    if (gpkpd >= gMax + 8) return 'text-sky-300'
+    if (gpkpd >= gMin) return 'text-emerald-300'
+    if (gpkpd >= gMin - 3) return 'text-lime-300'
+    if (gpkpd >= Math.max(0, gMin - 8)) return 'text-amber-400'
+    return 'text-rose-400'
+  }
+  // PMA-agnostic fallback
+  if (gpkpd >= 22) return 'text-sky-300'
+  if (gpkpd >= 15) return 'text-emerald-300'
+  if (gpkpd >= 10) return 'text-lime-300'
+  if (gpkpd >= 5) return 'text-amber-400'
   return 'text-rose-400'
+}
+
+/** Helper to compute PMA + postnatal days from birth date and GA at birth. */
+export function pmaAndPostnatal(birthDateIso: string, gestationalAgeWeeks: number): { pma: number; postnatalDays: number } {
+  const birth = new Date(birthDateIso + 'T00:00:00')
+  const now = new Date()
+  const days = Math.max(0, Math.floor((now.getTime() - birth.getTime()) / 86_400_000))
+  return { pma: gestationalAgeWeeks + days / 7, postnatalDays: days }
 }

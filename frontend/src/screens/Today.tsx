@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  useAppSettings,
   useCreateDiaper,
   useCreateFeed,
   useCreatePump,
@@ -18,7 +19,7 @@ import { StatusBadge } from '../components/StatusBadge'
 import { ZOEY_BIRTH_ISO } from '../lib/constants'
 import { buildEncouragement } from '../lib/encouragement'
 import { ageInDays, fmtClock, fmtDateLong, fmtMl, fmtRelative, fmtTime, localDatetimeInput } from '../lib/format'
-import { gainTone, rollingGainRate } from '../lib/growth'
+import { gainTone, pmaAndPostnatal, rollingGainRate } from '../lib/growth'
 import type { Diaper, FeedWithComparison } from '../api/types'
 
 function DiaperCounter({
@@ -63,6 +64,7 @@ type PumpDraft = { amount_ml?: number; pumped_at?: string; notes?: string }
 export function TodayScreen() {
   const { data, isLoading } = useDashboard()
   const { data: weight } = useWeight()
+  const { data: appSettings } = useAppSettings()
   const { data: diapers } = useDiapers(1)
   const createFeed = useCreateFeed()
   const patchFeed = usePatchFeed()
@@ -82,6 +84,9 @@ export function TodayScreen() {
   const pct = dailyTarget > 0 ? data.feeds_total_ml / dailyTarget : 0
   const day = ageInDays(ZOEY_BIRTH_ISO)
   const gain = rollingGainRate(weight?.history ?? [], 7)
+  const { pma, postnatalDays } = appSettings
+    ? pmaAndPostnatal(appSettings.birth_date, appSettings.gestational_age_weeks)
+    : { pma: 0, postnatalDays: 0 }
 
   const todayDiapers = (diapers ?? []).filter((d) => {
     const start = data.feeding_day_start
@@ -147,7 +152,7 @@ export function TodayScreen() {
         {gain !== null && (
           <div className="text-xs">
             <span className="text-zinc-500">7-day gain </span>
-            <span className={`tabular-nums ${gainTone(gain)}`}>
+            <span className={`tabular-nums ${gainTone(gain, pma || undefined, appSettings ? postnatalDays : undefined)}`}>
               {gain >= 0 ? '+' : ''}{gain.toFixed(1)} g/kg/day
             </span>
           </div>
