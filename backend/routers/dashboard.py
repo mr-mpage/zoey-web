@@ -103,7 +103,10 @@ def get_dashboard() -> Dashboard:
         elif gap_ml > tol:
             pace_status = "ahead"
 
+    interval = timedelta(hours=24 / feeds_per_day)
+
     next_feed: NextFeedHint | None = None
+    expected_at: datetime | None = None
     if feeds_remaining > 0 and daily_target > 0:
         next_idx = len(scheduled) + 1
         cmp = historical_comparison(by_day, today, next_idx)
@@ -112,7 +115,6 @@ def get_dashboard() -> Dashboard:
         # subsequent feeds to (last scheduled feed time + interval). This
         # follows the actual rhythm rather than the rigid grid, so a 30-min
         # late feed shifts the next slot by 30 min too.
-        interval = timedelta(hours=24 / feeds_per_day)
         if scheduled:
             last_feed_dt = scheduled[-1].fed_at
             expected_at = last_feed_dt + interval
@@ -126,8 +128,34 @@ def get_dashboard() -> Dashboard:
             expected_at=expected_at,
         )
 
-    # Avoid unused-name warning for the `extras` partition; the frontend
-    # reads them off the unified feeds_today list via is_extra.
+    # Schedule drift: how late/early the actual scheduled feeds are running
+    # vs the rigid grid (anchor + interval × (i-1)). Average minutes across
+    # today's scheduled feeds.
+    schedule_drift_min: int | None = None
+    if scheduled:
+        diffs = []
+        for i, f in enumerate(scheduled, start=1):
+            grid_at = today_start + interval * (i - 1)
+            diff_sec = (f.fed_at - grid_at).total_seconds()
+            diffs.append(diff_sec)
+        schedule_drift_min = int(round(sum(diffs) / len(diffs) / 60))
+
+    # Project where the last feed of today would land if we continue at the
+    # current adaptive cadence. Compare to feeding_day_end (next anchor).
+    projected_last: datetime | None = None
+    day_fit = "n/a"
+    if expected_at is not None and feeds_remaining > 0:
+        projected_last = expected_at + interval * (feeds_remaining - 1)
+        margin = (today_end - projected_last).total_seconds() / 60  # minutes of buffer before day rolls
+        if margin >= 30:
+            day_fit = "fits"
+        elif margin >= 0:
+            day_fit = "tight"
+        else:
+            day_fit = "overflow"
+    elif feeds_remaining == 0 and scheduled:
+        day_fit = "fits"  # all done, no question of fit
+
     _ = extras
 
     return Dashboard(
@@ -142,6 +170,9 @@ def get_dashboard() -> Dashboard:
         feeds_remaining=feeds_remaining,
         pace_status=pace_status,
         gap_ml=round(gap_ml, 1),
+        schedule_drift_min=schedule_drift_min,
+        projected_last_feed_at=projected_last,
+        day_fit=day_fit,
         pumps_today_ml=round(sum(p["amount_ml"] for p in pump_rows), 1),
         pumps_today_count=len(pump_rows),
         diapers_today=diaper_summary,

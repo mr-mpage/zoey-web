@@ -125,6 +125,9 @@ class Dashboard(BaseModel):
     feeds_remaining: int
     pace_status: str  # "behind" | "on_track" | "ahead"
     gap_ml: float  # positive = ahead, negative = behind, vs expected at this feed count
+    schedule_drift_min: Optional[int]  # avg minutes late/early vs the rigid grid; null if no scheduled feeds yet
+    projected_last_feed_at: Optional[datetime]  # when feed #N (last) lands if continuing at interval
+    day_fit: str  # "fits" | "tight" | "overflow" | "n/a"
     pumps_today_ml: float
     pumps_today_count: int
     diapers_today: DiaperSummary

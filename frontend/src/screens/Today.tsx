@@ -183,6 +183,22 @@ export function TodayScreen() {
               ? `${Math.abs(delta)} ml less, she's ahead · even pace ${nf.base_target_ml.toFixed(0)} ml`
               : `at even pace · ${nf.base_target_ml.toFixed(0)} ml`
         const overdue = expectedRel.includes('ago')
+
+        const fitMap = {
+          fits: { tone: 'text-zinc-500', word: 'fits the day' },
+          tight: { tone: 'text-amber-300', word: 'tight — last feed close to day-end' },
+          overflow: { tone: 'text-rose-300', word: "won't fit — consider one extra or shorter intervals" },
+        } as const
+        const fit = data.day_fit !== 'n/a' ? fitMap[data.day_fit] : null
+
+        const driftLabel = (() => {
+          if (data.schedule_drift_min === null || data.feeds_today.filter((f) => !f.is_extra).length === 0) return null
+          const m = data.schedule_drift_min
+          if (m === 0) return 'on schedule'
+          if (m > 0) return `running ${m} min late`
+          return `running ${-m} min ahead`
+        })()
+
         return (
           <div className="mt-5 rounded-2xl border border-pink-300/20 bg-pink-300/5 p-4">
             <div className="flex items-center justify-between">
@@ -205,6 +221,16 @@ export function TodayScreen() {
                 )}
               </div>
             </div>
+            {(driftLabel || fit) && (
+              <div className="mt-3 pt-3 border-t border-pink-300/10 text-[11px] flex items-baseline justify-between gap-2">
+                {driftLabel && <span className="text-zinc-500">{driftLabel}</span>}
+                {fit && data.projected_last_feed_at && (
+                  <span className={fit.tone}>
+                    last #{data.weight.feeds_per_day} ~{fmtClock(data.projected_last_feed_at)} · {fit.word}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         )
       })()}

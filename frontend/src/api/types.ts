@@ -75,6 +75,9 @@ export type Dashboard = {
   feeds_remaining: number
   pace_status: 'behind' | 'on_track' | 'ahead'
   gap_ml: number
+  schedule_drift_min: number | null
+  projected_last_feed_at: string | null
+  day_fit: 'fits' | 'tight' | 'overflow' | 'n/a'
   pumps_today_ml: number
   pumps_today_count: number
   diapers_today: DiaperSummary

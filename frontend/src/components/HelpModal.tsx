@@ -41,7 +41,7 @@ export function HelpModal({ open, onClose }: Props) {
               <li><b>Progress ring</b> — total fed today vs daily target (weight × ml/kg/day).</li>
               <li><b>Pace chip</b> — whether she's <span className="text-emerald-300">on track</span>, <span className="text-amber-300">behind</span>, or <span className="text-sky-300">ahead</span> at this point in the day.</li>
               <li><b>Status card</b> — plain-language summary of where you are and what to aim for next.</li>
-              <li><b>Next feed</b> — the index, expected time, and suggested amount. Time shifts with reality: if a feed runs late, the next slot slides over too (anchored to the last actual scheduled feed + interval, not a rigid clock grid). The amount auto-adjusts: if she's behind it bumps up to catch up, if she's ahead it eases off.</li>
+              <li><b>Next feed</b> — the index, expected time, suggested amount, and at the bottom: drift vs. the rigid grid (e.g. "running 22 min late") and a day-fit projection ("last #8 ~23:30 · fits the day", or "tight", or "won't fit — consider one extra or shorter intervals"). Time shifts with reality: if a feed runs late, the next slot slides over too. The amount auto-adjusts: behind = bump up to catch up, ahead = ease off.</li>
               <li><b>Today's feeds</b> — each row tap-able to edit. The badge tells you if that feed was unusual.</li>
             </ul>
           </section>
