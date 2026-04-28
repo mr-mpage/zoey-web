@@ -165,9 +165,14 @@ export function TodayScreen() {
         </button>
         <button
           onClick={() => setFeedDraft({})}
-          className="col-span-2 py-3.5 rounded-xl bg-pink-300 text-zinc-900 font-medium active:scale-[.98]"
+          className="col-span-2 py-3.5 rounded-xl bg-pink-300 text-zinc-900 font-medium active:scale-[.98] flex items-center justify-center gap-2"
         >
-          + Feed
+          <span>+ Feed</span>
+          {data.next_feed && (
+            <span className="text-zinc-900/60 font-normal tabular-nums">
+              · suggest {data.next_feed.target_ml.toFixed(0)} ml
+            </span>
+          )}
         </button>
       </div>
 
