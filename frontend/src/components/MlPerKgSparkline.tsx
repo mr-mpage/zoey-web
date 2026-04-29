@@ -74,6 +74,13 @@ export function MlPerKgSparkline({ points, bands, width = 320, height = 56 }: Pr
 /** Helper: build per-day points from raw feeds + weights, anchored to feeding-day.
  *  Respects per-feed feeding_day_override so off-by-one overrides land in the
  *  correct day's total. */
+/** Local YYYY-MM-DD string (NOT toISOString — that uses UTC and produces
+ *  off-by-one keys in any timezone east of UTC). */
+function ymdLocal(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
 export function buildSparklinePoints(
   feeds: { fed_at: string; amount_ml: number; feeding_day_override?: string | null }[],
   weights: Weight[],
@@ -92,7 +99,7 @@ export function buildSparklinePoints(
       const minutes = d.getHours() * 60 + d.getMinutes()
       const day = new Date(d.getFullYear(), d.getMonth(), d.getDate())
       if (minutes < anchorMin) day.setDate(day.getDate() - 1)
-      key = day.toISOString().slice(0, 10)
+      key = ymdLocal(day)
     }
     totalsByDay.set(key, (totalsByDay.get(key) ?? 0) + f.amount_ml)
   }
@@ -110,7 +117,7 @@ export function buildSparklinePoints(
   for (let i = windowDays; i >= 1; i--) {
     const d = new Date(todayKey)
     d.setDate(d.getDate() - i)
-    const key = d.toISOString().slice(0, 10)
+    const key = ymdLocal(d)
     const total = totalsByDay.get(key)
     if (!total) continue
 
