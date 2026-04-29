@@ -13,7 +13,6 @@ type Args = {
   gestationalAgeWeeks: number
   feeds: Feed[]
   weights: Weight[]
-  todayFeedTotalMl: number
   todayMaxFeedMl: number | null
 }
 
@@ -25,7 +24,6 @@ export function computeMilestones({
   gestationalAgeWeeks,
   feeds,
   weights,
-  todayFeedTotalMl,
   todayMaxFeedMl,
 }: Args): Milestone[] {
   const out: Milestone[] = []

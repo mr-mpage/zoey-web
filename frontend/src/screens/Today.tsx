@@ -143,7 +143,6 @@ export function TodayScreen() {
       gestationalAgeWeeks: appSettings.gestational_age_weeks,
       feeds: feedHistory ?? [],
       weights: weight?.history ?? [],
-      todayFeedTotalMl: data.feeds_total_ml,
       todayMaxFeedMl: todayMaxFeedMl > 0 ? todayMaxFeedMl : null,
     })
     return list[0] ?? null
