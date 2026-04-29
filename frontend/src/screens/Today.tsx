@@ -237,25 +237,25 @@ export function TodayScreen() {
         Day {day} · {fmtDateLong(data.today_date)}
       </div>
 
-      <div className="flex items-center gap-4 mt-4">
-        <ProgressRing pct={pct} size={132} stroke={10}>
-          <div className="text-2xl font-light tabular-nums leading-none">
+      <div className="flex items-center gap-5 mt-4">
+        <ProgressRing pct={pct} size={156} stroke={11}>
+          <div className="text-3xl font-light tabular-nums leading-none">
             {data.feeds_total_ml.toFixed(0)}
           </div>
-          <div className="text-[11px] text-zinc-500 tabular-nums mt-0.5">/ {dailyTarget.toFixed(0)} ml</div>
+          <div className="text-[11px] text-zinc-500 tabular-nums mt-1">/ {dailyTarget.toFixed(0)} ml</div>
         </ProgressRing>
-        <div className="flex-1 grid grid-cols-1 gap-1.5">
-          <div className="rounded-lg bg-zinc-900/60 px-3 py-2 flex items-baseline justify-between">
-            <div className="text-zinc-500 text-[11px] uppercase tracking-wider">Avg</div>
-            <div className="tabular-nums text-sm">{fmtMl(data.feeds_avg_ml)}</div>
+        <div className="flex-1 space-y-1.5 text-[12px]">
+          <div className="flex items-baseline justify-between">
+            <div className="text-zinc-500">Avg</div>
+            <div className="tabular-nums text-zinc-300">{fmtMl(data.feeds_avg_ml)}</div>
           </div>
-          <div className="rounded-lg bg-zinc-900/60 px-3 py-2 flex items-baseline justify-between">
-            <div className="text-zinc-500 text-[11px] uppercase tracking-wider">Per feed</div>
-            <div className="tabular-nums text-sm">{fmtMl(data.per_feed_target_ml)}</div>
+          <div className="flex items-baseline justify-between">
+            <div className="text-zinc-500">Per feed</div>
+            <div className="tabular-nums text-zinc-300">{fmtMl(data.per_feed_target_ml)}</div>
           </div>
-          <div className="rounded-lg bg-zinc-900/60 px-3 py-2 flex items-baseline justify-between">
-            <div className="text-zinc-500 text-[11px] uppercase tracking-wider">Left</div>
-            <div className="tabular-nums text-sm">{data.feeds_remaining}</div>
+          <div className="flex items-baseline justify-between">
+            <div className="text-zinc-500">Left</div>
+            <div className="tabular-nums text-zinc-300">{data.feeds_remaining}</div>
           </div>
         </div>
       </div>
