@@ -154,6 +154,13 @@ export function TodayScreen() {
 
   const dailyTarget = data.daily_target_ml
   const pct = dailyTarget > 0 ? data.feeds_total_ml / dailyTarget : 0
+  // Where the day's intake should be by now: actual minus signed gap.
+  // Only meaningful once at least one scheduled feed has happened.
+  const expectedSoFar = data.feeds_total_ml - data.gap_ml
+  const paceTickPct =
+    dailyTarget > 0 && expectedSoFar > 0 && data.feeds_today.some((f) => !f.is_extra)
+      ? expectedSoFar / dailyTarget
+      : null
   const gain = rollingGainRate(weight?.history ?? [], 7)
   const { pma, postnatalDays } = appSettings
     ? pmaAndPostnatal(appSettings.birth_date, appSettings.gestational_age_weeks)
@@ -285,7 +292,7 @@ export function TodayScreen() {
             />
           </div>
         )}
-        <ProgressRing pct={pct}>
+        <ProgressRing pct={pct} paceTickPct={paceTickPct}>
           <svg
             width={16}
             height={16}
