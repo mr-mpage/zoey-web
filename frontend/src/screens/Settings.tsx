@@ -10,7 +10,7 @@ import {
 } from '../api/hooks'
 import { api, ApiError } from '../api/client'
 import { fmtDate, localDatetimeInput } from '../lib/format'
-import { gainTone, gainsBetweenEntries } from '../lib/growth'
+import { expectedGainRange, gainTone, gainsBetweenEntries } from '../lib/growth'
 
 function pmaAtDate(dateIso: string, birthDateIso: string, gaWeeks: number): { pma: number; postnatalDays: number } {
   const birth = new Date(birthDateIso + 'T00:00:00').getTime()
@@ -517,10 +517,43 @@ export function SettingsScreen() {
         ) : (
           <div className="text-zinc-500 text-sm">No history yet.</div>
         )}
-        <div className="text-[11px] text-zinc-600 mt-3 text-center">
-          Expected gain depends on her age. Earliest weeks: lower while she regains birth weight.
-          PMA &lt; 30: 17–23 · 30–34: 15–20 · 34–38: 12–17 · term-equivalent: 10–15 g/kg/day.
-        </div>
+        {appSettings && (() => {
+          const today = new Date().toISOString()
+          const ctx = pmaAtDate(today, appSettings.birth_date, appSettings.gestational_age_weeks)
+          const [gMin, gMax] = expectedGainRange(ctx.pma, ctx.postnatalDays)
+          const stage =
+            ctx.postnatalDays < 7
+              ? 'first week (birth-weight loss/regain)'
+              : ctx.postnatalDays < 14
+                ? 'first 2 weeks (rebuilding from birth weight)'
+                : `PMA ~${ctx.pma.toFixed(0)} weeks`
+          return (
+            <div className="text-[11px] text-zinc-500 mt-3 leading-relaxed">
+              <div className="text-zinc-300 mb-1">How the gain colours work</div>
+              <p>
+                Each row's gain (eg <span className="tabular-nums">+9 g/kg/day</span>) is coloured against the
+                range expected for her age at that point. Premature babies have an age-shifting target rather
+                than one fixed number — the youngest preemies are on the steepest growth curve, slowing toward
+                a term-equivalent rate.
+              </p>
+              <p className="mt-1.5">
+                <b className="text-zinc-300">Today</b> (day {ctx.postnatalDays}, {stage}): expected{' '}
+                <b className="text-zinc-300 tabular-nums">{gMin}–{gMax} g/kg/day</b>.
+              </p>
+              <details className="mt-1.5">
+                <summary className="cursor-pointer text-zinc-400">Full reference</summary>
+                <ul className="mt-1 space-y-0.5 list-none pl-3 text-zinc-500 tabular-nums">
+                  <li>First week: 0–12 g/kg/day (loss/regain phase)</li>
+                  <li>Days 7–14: 8–16 (rebuilding birth weight)</li>
+                  <li>PMA &lt; 30 weeks: 17–23</li>
+                  <li>PMA 30–34 weeks: 15–20</li>
+                  <li>PMA 34–38 weeks: 12–17</li>
+                  <li>Term-equivalent (≥ 38 w): 10–15</li>
+                </ul>
+              </details>
+            </div>
+          )
+        })()}
       </div>
 
       {editingWeight && (
