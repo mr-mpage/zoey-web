@@ -23,7 +23,6 @@ import { ZOEY_BIRTH_ISO } from '../lib/constants'
 import { buildEncouragement } from '../lib/encouragement'
 import { fmtClock, fmtDateLong, fmtMl, fmtRelative, fmtTime, friendlyAge, localDatetimeInput } from '../lib/format'
 import { feedingDayKey } from '../lib/feedingday'
-import { gainTone, pmaAndPostnatal, rollingGainRate } from '../lib/growth'
 import { computeMilestones } from '../lib/milestones'
 import type { Diaper, FeedWithComparison } from '../api/types'
 
@@ -161,10 +160,6 @@ export function TodayScreen() {
     dailyTarget > 0 && expectedSoFar > 0 && data.feeds_today.some((f) => !f.is_extra)
       ? expectedSoFar / dailyTarget
       : null
-  const gain = rollingGainRate(weight?.history ?? [], 7)
-  const { pma, postnatalDays } = appSettings
-    ? pmaAndPostnatal(appSettings.birth_date, appSettings.gestational_age_weeks)
-    : { pma: 0, postnatalDays: 0 }
 
   const todayDiapers = (diapers ?? []).filter((d) => {
     const start = data.feeding_day_start
@@ -317,16 +312,8 @@ export function TodayScreen() {
         </ProgressRing>
       </div>
 
-      <div className="flex flex-col items-center gap-1.5 mt-3">
+      <div className="flex justify-center mt-3">
         <PaceChip pace={data.pace_status} gap={data.gap_ml} hasFeeds={data.feeds_today.length > 0} />
-        {gain !== null && (
-          <div className="text-xs">
-            <span className="text-zinc-500">7-day gain </span>
-            <span className={`tabular-nums ${gainTone(gain, pma || undefined, appSettings ? postnatalDays : undefined)}`}>
-              {gain >= 0 ? '+' : ''}{gain.toFixed(1)} g/kg/day
-            </span>
-          </div>
-        )}
       </div>
 
       <EncouragementCard enc={buildEncouragement(data)} />
