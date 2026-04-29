@@ -42,42 +42,48 @@ export function computeMilestones({
     out.push({ id: 'term-week', text: 'Past term-equivalent — full preterm course done', rank: 5 })
   }
 
-  // Birth weight regained — first weight ≥ first recorded weight that wasn't a loss
+  const today = new Date().toISOString().slice(0, 10)
   const sortedW = [...weights].sort((a, b) => a.recorded_at.localeCompare(b.recorded_at))
+
+  // Birth weight regained — first weight ≥ first recorded weight that wasn't a loss
   if (sortedW.length >= 2) {
     const first = sortedW[0].weight_grams
-    const idxRegained = sortedW.findIndex((w) => w.weight_grams >= first && w !== sortedW[0])
-    if (idxRegained > 0) {
-      const recorded = sortedW[idxRegained].recorded_at.slice(0, 10)
-      const today = new Date().toISOString().slice(0, 10)
-      if (recorded === today) {
-        out.push({ id: 'regained-bw', text: 'Back to birth weight', rank: 1 })
+    const idxRegained = sortedW.findIndex((w, i) => i > 0 && w.weight_grams >= first)
+    if (idxRegained > 0 && sortedW[idxRegained].recorded_at.slice(0, 10) === today) {
+      out.push({ id: 'regained-bw', text: 'Back to birth weight', rank: 1 })
+    }
+  }
+
+  // Birth weight doubled — typical ~4–5 months
+  if (sortedW.length >= 2) {
+    const first = sortedW[0].weight_grams
+    const idxDoubled = sortedW.findIndex((w, i) => i > 0 && w.weight_grams >= first * 2)
+    if (idxDoubled > 0 && sortedW[idxDoubled].recorded_at.slice(0, 10) === today) {
+      out.push({ id: 'doubled-bw', text: 'Doubled birth weight!', rank: 1 })
+    }
+  }
+
+  // Crossed a round-number weight threshold for the first time
+  if (sortedW.length >= 2) {
+    const latest = sortedW[sortedW.length - 1]
+    const prior = sortedW[sortedW.length - 2]
+    if (latest.recorded_at.slice(0, 10) === today) {
+      for (const threshold of [2000, 2500, 3000, 3500, 4000, 4500, 5000, 6000, 7000]) {
+        if (prior.weight_grams < threshold && latest.weight_grams >= threshold) {
+          out.push({ id: `crossed-${threshold}`, text: `Crossed ${threshold} g`, rank: 2 })
+          break
+        }
       }
     }
   }
 
-  // Heaviest weight ever — surfaces on every weigh-in past the first
-  if (sortedW.length >= 2) {
-    const latest = sortedW[sortedW.length - 1]
-    const isHeaviest = sortedW.slice(0, -1).every((w) => latest.weight_grams > w.weight_grams)
-    const recordedToday = latest.recorded_at.slice(0, 10) === new Date().toISOString().slice(0, 10)
-    if (isHeaviest && recordedToday) {
-      out.push({
-        id: 'new-max-weight',
-        text: `New high: ${latest.weight_grams} g`,
-        rank: 2,
-      })
-    }
-  }
-
-  // First feed of a round amount — 50/60/70/80/90/100 ml
+  // First feed of a round amount — happens once per threshold per lifetime
   if (todayMaxFeedMl !== null) {
     const bottleHistory = feeds.filter((f) => f.method !== 'breast')
-    const todayDate = new Date().toISOString().slice(0, 10)
     const priorMax = bottleHistory
-      .filter((f) => f.fed_at.slice(0, 10) < todayDate)
+      .filter((f) => f.fed_at.slice(0, 10) < today)
       .reduce((m, f) => Math.max(m, f.amount_ml), 0)
-    for (const target of [40, 50, 60, 70, 80, 90, 100, 120]) {
+    for (const target of [40, 50, 60, 70, 80, 90, 100, 120, 150]) {
       if (priorMax < target && todayMaxFeedMl >= target) {
         out.push({
           id: `first-${target}`,
@@ -86,28 +92,6 @@ export function computeMilestones({
         })
         break
       }
-    }
-  }
-
-  // Best single-day intake
-  if (feeds.length > 1) {
-    const totalsByDay = new Map<string, number>()
-    for (const f of feeds) {
-      if (f.method === 'breast') continue
-      const day = f.fed_at.slice(0, 10)
-      totalsByDay.set(day, (totalsByDay.get(day) ?? 0) + f.amount_ml)
-    }
-    const today = new Date().toISOString().slice(0, 10)
-    const todayTotal = todayFeedTotalMl
-    const priorBest = [...totalsByDay.entries()]
-      .filter(([d]) => d < today)
-      .reduce((m, [, v]) => Math.max(m, v), 0)
-    if (priorBest > 0 && todayTotal > priorBest) {
-      out.push({
-        id: 'best-day',
-        text: `Best day so far · ${todayTotal.toFixed(0)} ml`,
-        rank: 4,
-      })
     }
   }
 
