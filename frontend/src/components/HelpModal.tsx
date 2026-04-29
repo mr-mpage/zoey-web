@@ -64,7 +64,8 @@ export function HelpModal({ open, onClose }: Props) {
               <li><b>Progress ring</b> — total fed today vs daily target (weight × ml/kg/day).</li>
               <li><b>Pace chip</b> — <span className="text-emerald-300">on track</span>,{' '}
                 <span className="text-amber-300">behind</span>, or <span className="text-sky-300">ahead</span>{' '}
-                at this point in the day.</li>
+                at this point in the day. Tolerance is ±10% of expected-so-far (tighter than per-feed
+                comparisons because pace deviations stack up across feeds).</li>
               <li><b>7-day gain chip</b> — her weight gain rate vs what's expected for her current age.</li>
               <li><b>Status card</b> — plain-language summary of where you are and what to aim for next.</li>
               <li><b>Next feed card</b> — index, expected time (adaptive — slides with reality if a feed runs late),

@@ -103,7 +103,7 @@ def get_dashboard() -> Dashboard:
 
     pace_status = "on_track"
     if daily_target > 0 and scheduled:
-        tol = expected_so_far * (cfg.comparison_threshold_pct / 100)
+        tol = expected_so_far * (cfg.pace_threshold_pct / 100)
         if gap_ml < -tol:
             pace_status = "behind"
         elif gap_ml > tol:

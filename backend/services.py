@@ -303,7 +303,9 @@ def compute_overview() -> Overview:
         total = sum(f["amount_ml"] for f in todays)
         expected = per_feed_target * len(scheduled_today)
         gap = total - expected
-        tol = expected * 0.15
+        from .config import settings as _cfg
+
+        tol = expected * (_cfg.pace_threshold_pct / 100)
         if gap < -tol:
             status, headline = "watch", "Slightly behind today"
             detail = f"{abs(gap):.0f} ml under the expected mid-day pace. Catch-up is built into the next feed's target."

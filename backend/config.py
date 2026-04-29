@@ -10,7 +10,13 @@ class Settings(BaseSettings):
     session_secret: str = "dev-secret-change-me"
     db_path: str = "/data/zoey.db"
     tz: str = "Europe/Vienna"
+    # 15% — tolerance for per-feed comparison badges (↓ ≈ ↑) where natural
+    # variation between feeds at the same slot is wide.
     comparison_threshold_pct: float = 15.0
+    # 10% — tolerance for the cumulative pace chip ('on track / behind /
+    # ahead'). Tighter than per-feed because deviations accumulate across
+    # multiple feeds.
+    pace_threshold_pct: float = 10.0
     session_max_age_days: int = 90
     rate_limit_window_min: int = 15
     rate_limit_max_attempts: int = 5
