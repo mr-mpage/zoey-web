@@ -7,6 +7,7 @@ from . import repo
 from .comparisons import (
     feeding_day_bounds,
     feeding_day_for,
+    feeding_day_for_row,
     index_feeds_by_feeding_day,
     now_local,
 )
@@ -74,7 +75,12 @@ def _weight_for_day(day_iso: str, weights: list[dict]) -> Optional[dict]:
 
 
 def _ml_per_kg_last_n_days(n: int) -> tuple[Optional[float], int]:
-    """Average ml/kg/day across the last `n` *completed* feeding days. Returns (avg, days_used)."""
+    """Average ml/kg/day across the last `n` *completed* feeding days. Returns (avg, days_used).
+
+    Respects feeding_day_override on individual feeds: a feed at 02:20 tagged
+    as "first feed of today" is counted under today rather than under the
+    previous feeding day's raw 02:30-to-02:30 window.
+    """
     s = repo.get_settings()
     anchor_h = int(s.get("day_start_hour", "2"))
     anchor_m = int(s.get("day_start_minute", "30"))
@@ -84,14 +90,26 @@ def _ml_per_kg_last_n_days(n: int) -> tuple[Optional[float], int]:
     if not weights:
         return None, 0
 
+    # Pull a wider raw window than n days, then bucket by feeding_day_for_row
+    # so overrides land in the correct day. Pad by one day on each side to
+    # cover boundary feeds.
+    earliest = today - timedelta(days=n + 1)
+    latest = today + timedelta(days=1)
+    e_start, _ = feeding_day_bounds(earliest, anchor_h, anchor_m)
+    _, l_end = feeding_day_bounds(latest, anchor_h, anchor_m)
+    rows = repo.list_feeds_between(e_start.isoformat(), l_end.isoformat())
+
+    totals_by_day: dict[str, float] = {}
+    for r in rows:
+        d = feeding_day_for_row(r, anchor_h, anchor_m).isoformat()
+        totals_by_day[d] = totals_by_day.get(d, 0.0) + r["amount_ml"]
+
     samples: list[float] = []
     for delta in range(1, n + 1):
         d = today - timedelta(days=delta)
-        d_start, d_end = feeding_day_bounds(d, anchor_h, anchor_m)
-        feeds = repo.list_feeds_between(d_start.isoformat(), d_end.isoformat())
-        if not feeds:
+        total = totals_by_day.get(d.isoformat())
+        if not total:
             continue
-        total = sum(f["amount_ml"] for f in feeds)
         w = _weight_for_day(d.isoformat(), weights)
         if not w:
             continue
