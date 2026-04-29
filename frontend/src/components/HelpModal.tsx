@@ -62,10 +62,20 @@ export function HelpModal({ open, onClose }: Props) {
             <SectionHeader>What you see on Today</SectionHeader>
             <ul className="space-y-1.5 list-disc pl-5">
               <li><b>Progress ring</b> — total fed today vs daily target (weight × ml/kg/day).</li>
-              <li><b>Pace chip</b> — <span className="text-emerald-300">on track</span>,{' '}
-                <span className="text-amber-300">behind</span>, or <span className="text-sky-300">ahead</span>{' '}
-                at this point in the day. Tolerance is ±10% of expected-so-far (tighter than per-feed
-                comparisons because pace deviations stack up across feeds).</li>
+              <li>
+                <b>Pace chip</b> — seven tiers vs the expected mid-day pace:{' '}
+                <span className="text-rose-300">well behind</span>{' / '}
+                <span className="text-amber-300">behind</span>{' / '}
+                <span className="text-yellow-300">slightly behind</span>{' / '}
+                <span className="text-emerald-300">on track</span>{' / '}
+                <span className="text-lime-300">slightly ahead</span>{' / '}
+                <span className="text-sky-300">ahead</span>{' / '}
+                <span className="text-sky-200">well ahead</span>.
+                Boundaries are ±5% (on track), ±10% (slightly), and ±20% (well off) of expected-so-far —
+                stricter than per-feed badges because pace deviations stack across feeds. The on-track chip
+                also shows the exact gap as a soft secondary number so you can see how close to flipping
+                you are.
+              </li>
               <li><b>7-day gain chip</b> — her weight gain rate vs what's expected for her current age.</li>
               <li><b>Status card</b> — plain-language summary of where you are and what to aim for next.</li>
               <li><b>Next feed card</b> — index, expected time (adaptive — slides with reality if a feed runs late),

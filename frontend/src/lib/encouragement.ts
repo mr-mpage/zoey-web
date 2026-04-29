@@ -82,18 +82,27 @@ export function buildEncouragement(d: Dashboard): Encouragement {
     }
   }
 
+  // Normalise the 7-tier pace into 3 buckets for messaging:
+  //  big behind = behind/well_behind ; small behind = slightly_behind
+  //  big ahead = ahead/well_ahead ; small ahead = slightly_ahead
+  const isBigBehind = pace === 'behind' || pace === 'well_behind'
+  const isSmallBehind = pace === 'slightly_behind'
+  const isBigAhead = pace === 'ahead' || pace === 'well_ahead'
+  const isSmallAhead = pace === 'slightly_ahead'
+  void bigDeviation // retained for future use; tier already encodes magnitude
+
   // Last feed — special-case so the wording reflects "this is the closer"
   if (remaining === 1) {
-    if (pace === 'behind') {
+    if (isBigBehind || isSmallBehind) {
       return {
-        tone: bigDeviation ? 'concern' : 'neutral',
+        tone: isBigBehind ? 'concern' : 'neutral',
         text: pickStable(dayKey, 'last-behind', [
           `Last feed of the day. She's ${absGap.toFixed(0)} ml short — try ${next.toFixed(0)} ml, but don't force it if she's done.`,
           `One feed left. ${absGap.toFixed(0)} ml behind — aim for ${next.toFixed(0)} ml, ok to let her stop when full.`,
         ]),
       }
     }
-    if (pace === 'ahead') {
+    if (isBigAhead || isSmallAhead) {
       return {
         tone: 'positive',
         text: pickStable(dayKey, 'last-ahead', [
@@ -112,16 +121,16 @@ export function buildEncouragement(d: Dashboard): Encouragement {
   }
 
   // Mid-day — branch off pace_status so we can't contradict the pace chip
-  if (pace === 'behind') {
-    if (bigDeviation) {
-      return {
-        tone: 'concern',
-        text: pickStable(dayKey, 'behind-big', [
-          `Behind by ${absGap.toFixed(0)} ml. Aim for ${next.toFixed(0)} ml on the next feed and see how she takes it — never force.`,
-          `${absGap.toFixed(0)} ml short. Try ${next.toFixed(0)} ml next, but only what she'll take comfortably.`,
-        ]),
-      }
+  if (isBigBehind) {
+    return {
+      tone: 'concern',
+      text: pickStable(dayKey, 'behind-big', [
+        `Behind by ${absGap.toFixed(0)} ml. Aim for ${next.toFixed(0)} ml on the next feed and see how she takes it — never force.`,
+        `${absGap.toFixed(0)} ml short. Try ${next.toFixed(0)} ml next, but only what she'll take comfortably.`,
+      ]),
     }
+  }
+  if (isSmallBehind) {
     return {
       tone: 'neutral',
       text: pickStable(dayKey, 'behind-small', [
@@ -131,16 +140,16 @@ export function buildEncouragement(d: Dashboard): Encouragement {
     }
   }
 
-  if (pace === 'ahead') {
-    if (bigDeviation) {
-      return {
-        tone: 'positive',
-        text: pickStable(dayKey, 'ahead-big', [
-          `Well ahead of pace — she's eating well today. ${next.toFixed(0)} ml is plenty for the next feed.`,
-          `She's eating strongly. ${next.toFixed(0)} ml is fine, no need to push.`,
-        ]),
-      }
+  if (isBigAhead) {
+    return {
+      tone: 'positive',
+      text: pickStable(dayKey, 'ahead-big', [
+        `Well ahead of pace — she's eating well today. ${next.toFixed(0)} ml is plenty for the next feed.`,
+        `She's eating strongly. ${next.toFixed(0)} ml is fine, no need to push.`,
+      ]),
     }
+  }
+  if (isSmallAhead) {
     return {
       tone: 'positive',
       text: pickStable(dayKey, 'ahead-small', [

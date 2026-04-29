@@ -303,18 +303,28 @@ def compute_overview() -> Overview:
         total = sum(f["amount_ml"] for f in todays)
         expected = per_feed_target * len(scheduled_today)
         gap = total - expected
-        from .config import settings as _cfg
-
-        tol = expected * (_cfg.pace_threshold_pct / 100)
-        if gap < -tol:
+        pct = abs(gap) / expected if expected > 0 else 0
+        if pct <= 0.05:
+            status, headline = "good", "On track today"
+            detail = f"{abs(gap):.0f} ml from the expected mid-day pace — right on rhythm."
+        elif gap < 0 and pct >= 0.20:
+            status, headline = "concern", "Well behind today"
+            detail = f"{abs(gap):.0f} ml under the expected pace. Catch-up is built into the next feed's target."
+        elif gap < 0 and pct >= 0.10:
+            status, headline = "watch", "Behind today"
+            detail = f"{abs(gap):.0f} ml under the expected pace. Catch-up is built into the next feed's target."
+        elif gap < 0:
             status, headline = "watch", "Slightly behind today"
-            detail = f"{abs(gap):.0f} ml under the expected mid-day pace. Catch-up is built into the next feed's target."
-        elif gap > tol:
+            detail = f"{abs(gap):.0f} ml under the expected mid-day pace — well within range, easy to recover."
+        elif pct >= 0.20:
+            status, headline = "over", "Well ahead today"
+            detail = f"{gap:.0f} ml above the expected pace. Next feeds will ease off."
+        elif pct >= 0.10:
             status, headline = "good", "Ahead today"
             detail = f"{gap:.0f} ml above the expected pace. Next feeds can ease off if she's full."
         else:
-            status, headline = "good", "On track today"
-            detail = "Right on the expected pace for this point in the day."
+            status, headline = "good", "Slightly ahead today"
+            detail = f"{gap:.0f} ml above the expected pace — she's eating well."
     elif nf is None:
         status, headline = "good", "Day is complete"
         detail = "All scheduled feeds done."

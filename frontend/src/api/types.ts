@@ -80,7 +80,14 @@ export type Dashboard = {
   feeds_total_ml: number
   feeds_avg_ml: number | null
   feeds_remaining: number
-  pace_status: 'behind' | 'on_track' | 'ahead'
+  pace_status:
+    | 'well_behind'
+    | 'behind'
+    | 'slightly_behind'
+    | 'on_track'
+    | 'slightly_ahead'
+    | 'ahead'
+    | 'well_ahead'
   gap_ml: number
   schedule_drift_min: number | null
   projected_last_feed_at: string | null
