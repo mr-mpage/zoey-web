@@ -1,6 +1,7 @@
 import { useOverview } from '../api/hooks'
 import { ZOEY_BIRTH_ISO } from '../lib/constants'
 import { ageInDays, fmtDateLong } from '../lib/format'
+import { buildOverviewNarrative } from '../lib/overviewNarrative'
 import type { OverviewIndicator, OverviewStatus } from '../api/types'
 
 const ICON_PROPS = { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
@@ -106,6 +107,7 @@ export function OverviewScreen() {
   }
 
   const summaryTone = TONE[data.summary.status]
+  const narrative = buildOverviewNarrative(data)
 
   return (
     <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
@@ -114,15 +116,16 @@ export function OverviewScreen() {
       </div>
       <div className="text-center text-zinc-300 text-xl font-light mt-1">How is Zoey doing?</div>
 
-      <div className={`mt-6 rounded-2xl border ${summaryTone.border} ${summaryTone.bg} p-5 text-center`}>
-        <div className="flex items-center justify-center gap-2 mb-2">
+      <div className={`mt-6 rounded-2xl border ${summaryTone.border} ${summaryTone.bg} p-5`}>
+        <div className="flex items-center gap-2 mb-3">
           <span className={`w-2.5 h-2.5 rounded-full ${summaryTone.dot}`} />
-          <span className={`text-[11px] uppercase tracking-wider ${summaryTone.accent}`}>Overall</span>
+          <span className={`text-[11px] uppercase tracking-wider ${summaryTone.accent}`}>This week</span>
         </div>
-        <div className="text-base text-zinc-100 leading-relaxed">{data.summary.text}</div>
+        <p className="text-[15px] text-zinc-100 leading-relaxed">{narrative}</p>
       </div>
 
-      <div className="mt-4 space-y-2.5">
+      <div className="mt-5 mb-2 px-1 text-[11px] uppercase tracking-wider text-zinc-500">The detail</div>
+      <div className="space-y-2.5">
         {data.indicators.map((ind) => (
           <IndicatorCard key={ind.key} ind={ind} />
         ))}
@@ -130,7 +133,7 @@ export function OverviewScreen() {
 
       <div className="mt-6 text-[11px] text-zinc-600 text-center leading-relaxed">
         Indicators use the last few completed days, your configured target band, and her weight history.
-        They're informational — your doctor's guidance always takes precedence.
+        Your doctor's guidance always takes precedence.
       </div>
     </div>
   )
