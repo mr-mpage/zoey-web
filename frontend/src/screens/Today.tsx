@@ -133,19 +133,8 @@ export function TodayScreen() {
   const [boundaryPrompt, setBoundaryPrompt] = useState<BoundaryPrompt | null>(null)
   const [diaperList, setDiaperList] = useState<'wet' | 'dirty' | null>(null)
 
-  if (isLoading || !data) {
-    return <div className="p-8 text-center text-zinc-500">Loading…</div>
-  }
-
-  const dailyTarget = data.daily_target_ml
-  const pct = dailyTarget > 0 ? data.feeds_total_ml / dailyTarget : 0
-  const gain = rollingGainRate(weight?.history ?? [], 7)
-  const { pma, postnatalDays } = appSettings
-    ? pmaAndPostnatal(appSettings.birth_date, appSettings.gestational_age_weeks)
-    : { pma: 0, postnatalDays: 0 }
-
   const milestone = useMemo(() => {
-    if (!appSettings) return null
+    if (!data || !appSettings) return null
     const todayMaxFeedMl = data.feeds_today
       .filter((f) => f.method !== 'breast')
       .reduce((m, f) => Math.max(m, f.amount_ml), 0)
@@ -158,7 +147,18 @@ export function TodayScreen() {
       todayMaxFeedMl: todayMaxFeedMl > 0 ? todayMaxFeedMl : null,
     })
     return list[0] ?? null
-  }, [appSettings, data.feeds_today, data.feeds_total_ml, feedHistory, weight?.history])
+  }, [data, appSettings, feedHistory, weight?.history])
+
+  if (isLoading || !data) {
+    return <div className="p-8 text-center text-zinc-500">Loading…</div>
+  }
+
+  const dailyTarget = data.daily_target_ml
+  const pct = dailyTarget > 0 ? data.feeds_total_ml / dailyTarget : 0
+  const gain = rollingGainRate(weight?.history ?? [], 7)
+  const { pma, postnatalDays } = appSettings
+    ? pmaAndPostnatal(appSettings.birth_date, appSettings.gestational_age_weeks)
+    : { pma: 0, postnatalDays: 0 }
 
   const todayDiapers = (diapers ?? []).filter((d) => {
     const start = data.feeding_day_start
