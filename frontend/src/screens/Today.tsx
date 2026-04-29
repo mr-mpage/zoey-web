@@ -118,7 +118,11 @@ export function TodayScreen() {
   const { data, isLoading } = useDashboard()
   const { data: weight } = useWeight()
   const { data: appSettings } = useAppSettings()
-  const { data: diapers } = useDiapers(1)
+  // Fetch 2 days, not 1: today's feeding day starts at the anchor (02:30),
+  // so a diaper logged between calendar midnight and the anchor belongs to
+  // today's feeding day even though it's "yesterday" by date. The window
+  // filter below trims to the actual feeding-day bounds.
+  const { data: diapers } = useDiapers(2)
   const { data: feedHistory } = useFeeds(180)
   const createFeed = useCreateFeed()
   const patchFeed = usePatchFeed()
