@@ -74,6 +74,7 @@ def get_dashboard() -> Dashboard:
             is_extra=is_extra,
             method=method,
             duration_min=f.get("duration_min"),
+            feeding_day_override=f.get("feeding_day_override"),
         )
         # Skip volume comparison for breast feeds — the ml is a rough estimate so
         # comparing it to historical bottle ml at the same slot would be misleading.
