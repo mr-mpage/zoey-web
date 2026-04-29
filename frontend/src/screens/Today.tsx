@@ -433,7 +433,7 @@ export function TodayScreen() {
       <AmountModal
         open={feedDraft !== null}
         title={feedDraft?.id ? 'Edit feed' : 'Log feed'}
-        initialAmount={feedDraft?.amount_ml ?? data.next_feed?.target_ml ?? data.per_feed_target_ml}
+        initialAmount={feedDraft?.amount_ml ?? 0}
         initialTime={feedDraft?.fed_at}
         initialNotes={feedDraft?.notes}
         initialIsExtra={feedDraft?.is_extra}
@@ -442,8 +442,12 @@ export function TodayScreen() {
         showExtraToggle
         showMethodToggle
         hint={
-          !feedDraft?.id && data.next_feed?.historical_avg_ml !== null && data.next_feed?.historical_avg_ml !== undefined
-            ? `7-day avg for feed #${data.next_feed.feed_index}: ${data.next_feed.historical_avg_ml.toFixed(0)} ml`
+          !feedDraft?.id && data.next_feed
+            ? `Suggested ${data.next_feed.target_ml.toFixed(0)} ml${
+                data.next_feed.historical_avg_ml !== null && data.next_feed.historical_avg_ml !== undefined
+                  ? ` · 7d avg for #${data.next_feed.feed_index}: ${data.next_feed.historical_avg_ml.toFixed(0)} ml`
+                  : ''
+              }`
             : null
         }
         onClose={() => setFeedDraft(null)}
