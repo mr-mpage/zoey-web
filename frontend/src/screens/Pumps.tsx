@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useDeletePump, usePatchPump, usePumps } from '../api/hooks'
+import { useDeletePump, useFeeds, usePatchPump, usePumps } from '../api/hooks'
 import { AmountModal } from '../components/AmountModal'
 import { PumpDailyChart } from '../components/PumpDailyChart'
 import { fmtDate, fmtTime, localDatetimeInput } from '../lib/format'
@@ -10,6 +10,7 @@ const CHART_DAYS = 30
 
 export function PumpsScreen() {
   const { data, isLoading } = usePumps(CHART_DAYS)
+  const { data: feeds } = useFeeds(CHART_DAYS)
   const patch = usePatchPump()
   const del = useDeletePump()
   const [editing, setEditing] = useState<Pump | null>(null)
@@ -39,12 +40,17 @@ export function PumpsScreen() {
 
   return (
     <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
-      {pumps.length > 0 && (
+      {(pumps.length > 0 || (feeds ?? []).length > 0) && (
         <div className="rounded-xl bg-zinc-900/60 p-3 mb-4">
           <div className="text-[11px] uppercase tracking-wider text-zinc-500 mb-2">
-            Pump supply · last {CHART_DAYS} days
+            Supply vs intake · last {CHART_DAYS} days
           </div>
-          <PumpDailyChart pumps={pumps} days={CHART_DAYS} />
+          <PumpDailyChart pumps={pumps} feeds={feeds ?? []} days={CHART_DAYS} />
+          <div className="text-[10px] text-zinc-500 mt-2 leading-relaxed">
+            Positive balance means Sabrina's pumped more than Zoey drank from a bottle, so the freezer
+            is building. Negative means the freezer is being drawn down. Breastfeeds aren't counted on
+            either side since they don't go through the bottle supply.
+          </div>
         </div>
       )}
 

@@ -173,16 +173,36 @@ const SECTIONS: Section[] = [
   {
     id: 'pumps',
     title: 'Pumps',
-    blurb: '30-day supply chart + 7-day detail, edit on tap.',
+    blurb: 'Supply vs intake balance, 7-day detail, edit on tap.',
     tone: 'sky',
     icon: Icons.pump,
     body: (
-      <p>
-        The Pumps tab opens with a 30-day daily-totals chart. Today's bar is highlighted; a dashed line
-        marks the rolling 7-day average. Underneath, the caption shows peak day, 7-day average, and active-day
-        count. The detail list shows the last 7 days grouped by day — tap any pump to edit amount, time,
-        or notes.
-      </p>
+      <>
+        <H>Supply vs intake balance</H>
+        <p className="mb-2">
+          Top of the Pumps tab shows three numbers: today's balance, the rolling 7-day balance, and the
+          rolling 30-day balance. Each is <b>pumped minus bottle-fed</b>: a positive balance (emerald)
+          means more was pumped than Zoey drank from a bottle, so the freezer is building. A negative
+          balance (amber) means the freezer is being drawn down.
+        </p>
+        <p className="mb-2">
+          Breastfeeds aren't counted on either side, since they don't pass through the bottle supply.
+        </p>
+
+        <H>The 30-day chart</H>
+        <p className="mb-2">
+          One pair of bars per day: <span className="text-sky-300">sky</span> for pumped,{' '}
+          <span className="text-pink-300">pink</span> for bottle-fed. Today's bars are full opacity, prior
+          days are slightly faded. Visible gap between the two tells you that day's surplus or deficit at
+          a glance.
+        </p>
+
+        <H>Detail list</H>
+        <p>
+          Last 7 days grouped by day, with each pump on its own row. Tap any pump to edit the amount,
+          time, or notes, or to delete it.
+        </p>
+      </>
     ),
   },
   {

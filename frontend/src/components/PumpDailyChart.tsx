@@ -1,99 +1,164 @@
-import type { Pump } from '../api/types'
+import type { Feed, Pump } from '../api/types'
 
 type Props = {
   pumps: Pump[]
+  feeds: Feed[]
   days?: number
   width?: number
   height?: number
 }
 
-/** Daily total bar chart over `days` calendar days, ending today. */
-export function PumpDailyChart({ pumps, days = 30, width = 320, height = 80 }: Props) {
+type DayTotals = { date: Date; pumped: number; bottled: number }
+
+function bucketize(pumps: Pump[], feeds: Feed[], days: number): DayTotals[] {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-
-  const totals: number[] = new Array(days).fill(0)
-  const dayLabels: Date[] = []
+  const buckets: DayTotals[] = []
   for (let i = 0; i < days; i++) {
     const d = new Date(today)
     d.setDate(d.getDate() - (days - 1 - i))
-    dayLabels.push(d)
+    buckets.push({ date: d, pumped: 0, bottled: 0 })
+  }
+  const indexFor = (when: Date) => {
+    const d = new Date(when)
+    d.setHours(0, 0, 0, 0)
+    return buckets.findIndex((b) => b.date.getTime() === d.getTime())
   }
   for (const p of pumps) {
-    const d = new Date(p.pumped_at)
-    d.setHours(0, 0, 0, 0)
-    const idx = dayLabels.findIndex((dd) => dd.getTime() === d.getTime())
-    if (idx >= 0) totals[idx] += p.amount_ml
+    const i = indexFor(new Date(p.pumped_at))
+    if (i >= 0) buckets[i].pumped += p.amount_ml
   }
+  for (const f of feeds) {
+    if (f.method === 'breast') continue
+    const i = indexFor(new Date(f.fed_at))
+    if (i >= 0) buckets[i].bottled += f.amount_ml
+  }
+  return buckets
+}
 
-  const padX = 6
+function formatBalance(v: number): string {
+  if (v === 0) return '±0 ml'
+  return `${v > 0 ? '+' : ''}${v.toFixed(0)} ml`
+}
+
+/** Daily pumped vs bottle-fed comparison so it's visible whether Sabrina
+ *  is over- or under-producing relative to Zoey's intake. Dual bars per
+ *  day (sky = pumped, pink = bottle fed); summary card above shows the
+ *  rolling balance over today and the last 7 / 30 days. */
+export function PumpDailyChart({ pumps, feeds, days = 30, width = 320, height = 100 }: Props) {
+  const buckets = bucketize(pumps, feeds, days)
+  const todayB = buckets[buckets.length - 1]
+  const last7 = buckets.slice(-7)
+  const last30 = buckets.slice(-30)
+
+  const sumP = (arr: DayTotals[]) => arr.reduce((s, b) => s + b.pumped, 0)
+  const sumB = (arr: DayTotals[]) => arr.reduce((s, b) => s + b.bottled, 0)
+
+  const balToday = todayB.pumped - todayB.bottled
+  const bal7 = sumP(last7) - sumB(last7)
+  const bal30 = sumP(last30) - sumB(last30)
+
+  const padX = 8
   const padTop = 6
-  const padBottom = 14
+  const padBottom = 16
   const innerW = width - padX * 2
   const innerH = height - padTop - padBottom
-  const max = Math.max(1, ...totals)
+  const max = Math.max(1, ...buckets.flatMap((b) => [b.pumped, b.bottled]))
 
+  const dayW = innerW / days
   const barGap = 1
-  const barW = (innerW - barGap * (days - 1)) / days
+  const barW = (dayW - barGap * 3) / 2
 
-  const recentNonZero = totals.filter((t) => t > 0)
-  const avg7 = (() => {
-    const last7 = totals.slice(-7).filter((t) => t > 0)
-    if (!last7.length) return null
-    return last7.reduce((s, v) => s + v, 0) / last7.length
-  })()
+  const colorFor = (n: number) =>
+    n > 0
+      ? 'text-emerald-300'
+      : n < 0
+        ? 'text-amber-300'
+        : 'text-zinc-400'
 
   return (
     <div>
+      {/* Summary card — today + rolling balances */}
+      <div className="grid grid-cols-3 gap-2 mb-3 text-center">
+        <div className="rounded-lg bg-zinc-900/50 px-2 py-2">
+          <div className="text-[10px] uppercase tracking-wider text-zinc-500">Today</div>
+          <div className={`tabular-nums text-sm leading-tight mt-0.5 ${colorFor(balToday)}`}>
+            {formatBalance(balToday)}
+          </div>
+        </div>
+        <div className="rounded-lg bg-zinc-900/50 px-2 py-2">
+          <div className="text-[10px] uppercase tracking-wider text-zinc-500">7 days</div>
+          <div className={`tabular-nums text-sm leading-tight mt-0.5 ${colorFor(bal7)}`}>
+            {formatBalance(bal7)}
+          </div>
+        </div>
+        <div className="rounded-lg bg-zinc-900/50 px-2 py-2">
+          <div className="text-[10px] uppercase tracking-wider text-zinc-500">30 days</div>
+          <div className={`tabular-nums text-sm leading-tight mt-0.5 ${colorFor(bal30)}`}>
+            {formatBalance(bal30)}
+          </div>
+        </div>
+      </div>
+
+      {/* Dual-bar chart */}
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full block" preserveAspectRatio="none">
-        {/* 7-day average reference line */}
-        {avg7 !== null && (
-          <line
-            x1={padX}
-            x2={width - padX}
-            y1={padTop + innerH - (avg7 / max) * innerH}
-            y2={padTop + innerH - (avg7 / max) * innerH}
-            stroke="rgb(113 113 122)"
-            strokeWidth={0.7}
-            strokeDasharray="2 3"
-          />
-        )}
-        {totals.map((t, i) => {
-          const h = (t / max) * innerH
-          const x = padX + i * (barW + barGap)
-          const y = padTop + innerH - h
-          const isToday = i === days - 1
+        {buckets.map((b, i) => {
+          const x = padX + i * dayW + barGap
+          const ph = (b.pumped / max) * innerH
+          const bh = (b.bottled / max) * innerH
           return (
-            <rect
-              key={i}
-              x={x}
-              y={y}
-              width={barW}
-              height={Math.max(h, t > 0 ? 1 : 0)}
-              fill={isToday ? 'rgb(244 175 195)' : t > 0 ? 'rgb(212 175 195 / 0.55)' : 'rgb(63 63 70 / 0.4)'}
-              rx={0.8}
-            />
+            <g key={i}>
+              <rect
+                x={x}
+                y={padTop + innerH - ph}
+                width={barW}
+                height={Math.max(ph, b.pumped > 0 ? 1 : 0)}
+                fill="rgb(125 211 252)"
+                opacity={i === buckets.length - 1 ? 1 : 0.7}
+                rx={0.6}
+              />
+              <rect
+                x={x + barW + barGap}
+                y={padTop + innerH - bh}
+                width={barW}
+                height={Math.max(bh, b.bottled > 0 ? 1 : 0)}
+                fill="rgb(244 175 195)"
+                opacity={i === buckets.length - 1 ? 1 : 0.7}
+                rx={0.6}
+              />
+            </g>
           )
         })}
-        {/* Axis labels — first day, midpoint, today */}
-        {[0, Math.floor(days / 2), days - 1].map((i) => (
+        {/* Date labels at start, mid, end. Anchor adjusted so they don't clip. */}
+        {[
+          { i: 0, anchor: 'start', dx: padX },
+          { i: Math.floor(days / 2), anchor: 'middle', dx: padX + Math.floor(days / 2) * dayW + dayW / 2 },
+          { i: days - 1, anchor: 'end', dx: width - padX },
+        ].map(({ i, anchor, dx }) => (
           <text
             key={i}
-            x={padX + i * (barW + barGap) + barW / 2}
-            y={height - 3}
+            x={dx}
+            y={height - 4}
             fontSize={9}
-            textAnchor="middle"
+            textAnchor={anchor as 'start' | 'middle' | 'end'}
             fill="rgb(113 113 122)"
             className="tabular-nums"
           >
-            {dayLabels[i].toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+            {buckets[i].date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
           </text>
         ))}
       </svg>
-      <div className="flex items-center justify-between text-[10px] text-zinc-500 mt-1 px-1 tabular-nums">
-        <span>peak {max.toFixed(0)} ml</span>
-        <span>{avg7 !== null ? `7-day avg ${avg7.toFixed(0)} ml/day` : 'no recent data'}</span>
-        <span>{recentNonZero.length} active days</span>
+
+      <div className="flex items-center gap-3 text-[10px] text-zinc-500 mt-1 px-1">
+        <span className="inline-flex items-center gap-1">
+          <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: 'rgb(125 211 252)' }} />
+          pumped
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: 'rgb(244 175 195)' }} />
+          bottle fed
+        </span>
+        <span className="ml-auto tabular-nums">peak {max.toFixed(0)} ml</span>
       </div>
     </div>
   )
