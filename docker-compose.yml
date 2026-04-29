@@ -22,7 +22,6 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    pids_limit: 200
     ulimits:
       nofile:
         soft: 1024
@@ -32,6 +31,7 @@ services:
         limits:
           cpus: '0.5'
           memory: 256M
+          pids: 200
     networks:
       - zoey-net
 
