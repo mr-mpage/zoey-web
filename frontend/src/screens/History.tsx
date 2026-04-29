@@ -120,16 +120,58 @@ export function HistoryScreen() {
     <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
       <div className="text-center text-zinc-500 text-sm mb-4">Last 7 days</div>
 
-      {sparkPoints.length >= 2 && (
-        <div className="rounded-xl bg-zinc-900/60 p-3 mb-4">
-          <div className="flex justify-between items-baseline mb-1.5">
-            <div className="text-[11px] uppercase tracking-wider text-zinc-500">30-day trend</div>
-            <div className="text-[11px] text-zinc-500 tabular-nums">{sparkPoints.length} days</div>
+      {sparkPoints.length >= 2 && (() => {
+        // Headline = avg over the last (up to) 7 completed days
+        const recent = sparkPoints.slice(-7)
+        const recentAvg = recent.reduce((s, p) => s + p.mlPerKg, 0) / recent.length
+        const verdict =
+          recentAvg >= bands.high
+            ? { word: 'above target zone', tone: 'text-sky-300' }
+            : recentAvg >= bands.solid
+              ? { word: 'solidly in target zone', tone: 'text-emerald-300' }
+              : recentAvg >= bands.low
+                ? { word: 'in target zone (lower edge)', tone: 'text-lime-300' }
+                : recentAvg >= bands.concern
+                  ? { word: 'under target zone', tone: 'text-amber-400' }
+                  : { word: 'well under target', tone: 'text-rose-400' }
+        return (
+          <div className="rounded-xl bg-zinc-900/60 p-3 mb-4">
+            <div className="text-[11px] uppercase tracking-wider text-zinc-500 mb-2">
+              Daily intake · ml per kg
+            </div>
+            <div className="flex items-baseline justify-between gap-3 mb-3">
+              <div>
+                <div className="text-3xl font-light tabular-nums leading-none">
+                  {recentAvg.toFixed(0)}
+                  <span className="text-zinc-500 text-base font-normal ml-1">ml/kg/day</span>
+                </div>
+                <div className={`text-[11px] mt-1 ${verdict.tone}`}>{verdict.word}</div>
+              </div>
+              <div className="text-right text-[11px] text-zinc-500">
+                <div>last {recent.length} day{recent.length === 1 ? '' : 's'} avg</div>
+                <div className="mt-0.5 text-zinc-600">{sparkPoints.length}-day trend below</div>
+              </div>
+            </div>
+            <div className="relative">
+              <MlPerKgSparkline points={sparkPoints} bands={bands} />
+              <div className="absolute top-0 left-1 text-[10px] text-zinc-600 tabular-nums">
+                {Math.max(...sparkPoints.map((p) => p.mlPerKg)).toFixed(0)}
+              </div>
+              <div className="absolute bottom-0 left-1 text-[10px] text-zinc-600 tabular-nums">
+                {Math.min(...sparkPoints.map((p) => p.mlPerKg)).toFixed(0)}
+              </div>
+            </div>
+            <div className="mt-1.5 flex justify-between items-center text-[10px] text-zinc-600">
+              <span>← {sparkPoints.length} days ago</span>
+              <span>
+                <span className="inline-block w-2 h-2 rounded-sm bg-emerald-500/30 mr-1 align-middle" />
+                target zone {bands.low}–{bands.high}
+              </span>
+              <span>yesterday →</span>
+            </div>
           </div>
-          <MlPerKgSparkline points={sparkPoints} bands={bands} />
-          <div className="mt-1 text-[10px] text-zinc-600 text-center">ml/kg/day · shaded = target zone</div>
-        </div>
-      )}
+        )
+      })()}
 
       {grid.length === 0 && (
         <div className="rounded-xl bg-zinc-900/40 p-6 text-center text-zinc-500 text-sm">No feeds logged yet.</div>
