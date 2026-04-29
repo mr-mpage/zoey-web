@@ -237,25 +237,27 @@ export function TodayScreen() {
         Day {day} · {fmtDateLong(data.today_date)}
       </div>
 
-      <div className="flex items-center gap-5 mt-4">
-        <ProgressRing pct={pct} size={156} stroke={11}>
-          <div className="text-3xl font-light tabular-nums leading-none">
-            {data.feeds_total_ml.toFixed(0)}
+      <div className="flex items-center gap-3 mt-4">
+        <div className="flex-1 flex justify-center">
+          <ProgressRing pct={pct} size={196} stroke={12}>
+            <div className="text-4xl font-light tabular-nums leading-none">
+              {data.feeds_total_ml.toFixed(0)}
+            </div>
+            <div className="text-[11px] text-zinc-500 tabular-nums mt-1.5">/ {dailyTarget.toFixed(0)} ml</div>
+          </ProgressRing>
+        </div>
+        <div className="w-20 space-y-1.5 shrink-0">
+          <div className="rounded-md bg-zinc-900/50 px-2 py-1.5 text-center">
+            <div className="text-[9px] uppercase tracking-wider text-zinc-500">Avg</div>
+            <div className="tabular-nums text-[13px] text-zinc-200 leading-tight">{fmtMl(data.feeds_avg_ml)}</div>
           </div>
-          <div className="text-[11px] text-zinc-500 tabular-nums mt-1">/ {dailyTarget.toFixed(0)} ml</div>
-        </ProgressRing>
-        <div className="flex-1 space-y-1.5 text-[12px]">
-          <div className="flex items-baseline justify-between">
-            <div className="text-zinc-500">Avg</div>
-            <div className="tabular-nums text-zinc-300">{fmtMl(data.feeds_avg_ml)}</div>
+          <div className="rounded-md bg-zinc-900/50 px-2 py-1.5 text-center">
+            <div className="text-[9px] uppercase tracking-wider text-zinc-500">Per feed</div>
+            <div className="tabular-nums text-[13px] text-zinc-200 leading-tight">{fmtMl(data.per_feed_target_ml)}</div>
           </div>
-          <div className="flex items-baseline justify-between">
-            <div className="text-zinc-500">Per feed</div>
-            <div className="tabular-nums text-zinc-300">{fmtMl(data.per_feed_target_ml)}</div>
-          </div>
-          <div className="flex items-baseline justify-between">
-            <div className="text-zinc-500">Left</div>
-            <div className="tabular-nums text-zinc-300">{data.feeds_remaining}</div>
+          <div className="rounded-md bg-zinc-900/50 px-2 py-1.5 text-center">
+            <div className="text-[9px] uppercase tracking-wider text-zinc-500">Left</div>
+            <div className="tabular-nums text-[13px] text-zinc-200 leading-tight">{data.feeds_remaining}</div>
           </div>
         </div>
       </div>
