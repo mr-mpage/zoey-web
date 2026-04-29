@@ -124,6 +124,13 @@ def _rolling_gain_g_per_kg_per_day(window_days: int = 7) -> Optional[float]:
 
 
 def _diapers_per_day_last_n(n: int) -> tuple[Optional[float], int]:
+    """Average wet diapers/day over the last `n` *completed* days.
+
+    Only counts days where any diaper was logged. Days with no records
+    are treated as 'not tracked' rather than as zero, so the average
+    isn't silently dragged down by historical days from before the
+    feature was being used. If no day has data, returns (None, 0).
+    """
     s = repo.get_settings()
     anchor_h = int(s.get("day_start_hour", "2"))
     anchor_m = int(s.get("day_start_minute", "30"))
@@ -135,12 +142,10 @@ def _diapers_per_day_last_n(n: int) -> tuple[Optional[float], int]:
         d_start, d_end = feeding_day_bounds(d, anchor_h, anchor_m)
         rows = repo.list_diapers_between(d_start.isoformat(), d_end.isoformat())
         if not rows:
-            counts.append(0)
-            continue
+            continue  # day with no logged diapers — skip rather than count as 0
         wet = sum(1 for r in rows if r["kind"] == "wet")
         counts.append(wet)
-    # Only return non-empty if we have at least one day with any data
-    if not counts or all(c == 0 for c in counts):
+    if not counts:
         return None, 0
     return sum(counts) / len(counts), len(counts)
 
@@ -316,7 +321,7 @@ def compute_overview() -> Overview:
         detail = "First feed of today coming up."
     inds.append(OverviewIndicator(key="today_pace", title="Today's pace", status=status, headline=headline, detail=detail))
 
-    # Hydration — wet diapers/day average over last 3 completed days
+    # Hydration — wet diapers/day average over last 3 completed days that had data
     diaper_avg, dd = _diapers_per_day_last_n(3)
     if diaper_avg is None:
         inds.append(OverviewIndicator(
@@ -327,15 +332,17 @@ def compute_overview() -> Overview:
             detail="Log wet diapers from the Today screen for a few days to see this.",
         ))
     else:
+        avg_int = round(diaper_avg)
+        day_word = "day" if dd == 1 else "days"
         if diaper_avg >= 6:
             status, headline = "good", "Healthy"
-            detail = f"Averaging {diaper_avg:.1f} wet diapers/day over the last {dd} day(s) — comfortable hydration."
+            detail = f"Averaging {avg_int} wet diapers/day over the last {dd} {day_word} — comfortable hydration."
         elif diaper_avg >= 4:
             status, headline = "watch", "Lower end"
-            detail = f"Averaging {diaper_avg:.1f} wet/day — below the usual 6+. Watch tomorrow's count."
+            detail = f"Averaging {avg_int} wet/day over the last {dd} {day_word} — below the usual 6+. Watch tomorrow's count."
         else:
             status, headline = "concern", "Low"
-            detail = f"Averaging {diaper_avg:.1f} wet/day — well under 6. Mention at her next check-in."
+            detail = f"Averaging {avg_int} wet/day over the last {dd} {day_word} — well under 6. Mention at her next check-in."
         inds.append(OverviewIndicator(key="hydration", title="Hydration", status=status, headline=headline, detail=detail))
 
     # Aggregate summary
