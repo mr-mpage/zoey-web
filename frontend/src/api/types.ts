@@ -1,9 +1,13 @@
+export type FeedMethod = 'bottle' | 'breast'
+
 export type Feed = {
   id: number
   fed_at: string
   amount_ml: number
   notes: string | null
   is_extra: boolean
+  method: FeedMethod
+  duration_min: number | null
 }
 
 export type Pump = {
@@ -81,6 +85,9 @@ export type Dashboard = {
   pumps_today_ml: number
   pumps_today_count: number
   diapers_today: DiaperSummary
+  breastfeeds_today_count: number
+  breastfeeds_today_ml_est: number
+  breastfeeds_today_minutes: number
   next_feed: NextFeedHint | null
   weight: WeightStatus
 }

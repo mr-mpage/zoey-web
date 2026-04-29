@@ -65,15 +65,20 @@ def get_dashboard() -> Dashboard:
     for f in todays_feeds:
         idx = f["feed_index"]  # None for extras
         is_extra = bool(f.get("is_extra"))
+        method = f.get("method") or "bottle"
         feed = Feed(
             id=f["id"],
             fed_at=f["fed_at"] if hasattr(f["fed_at"], "isoformat") else f["fed_at"],
             amount_ml=f["amount_ml"],
             notes=f["notes"],
             is_extra=is_extra,
+            method=method,
+            duration_min=f.get("duration_min"),
         )
-        if is_extra or idx is None:
-            feeds_with_cmp.append(FeedWithComparison(**feed.model_dump(), feed_index=None, comparison=None, status="normal"))
+        # Skip volume comparison for breast feeds — the ml is a rough estimate so
+        # comparing it to historical bottle ml at the same slot would be misleading.
+        if is_extra or idx is None or method == "breast":
+            feeds_with_cmp.append(FeedWithComparison(**feed.model_dump(), feed_index=idx, comparison=None, status="normal"))
         else:
             cmp = historical_comparison(by_day, today, idx)
             feeds_with_cmp.append(
@@ -158,6 +163,7 @@ def get_dashboard() -> Dashboard:
 
     _ = extras
 
+    breast_today = [f for f in feeds_with_cmp if f.method == "breast"]
     return Dashboard(
         today_date=today.isoformat(),
         feeding_day_start=today_start,
@@ -176,6 +182,9 @@ def get_dashboard() -> Dashboard:
         pumps_today_ml=round(sum(p["amount_ml"] for p in pump_rows), 1),
         pumps_today_count=len(pump_rows),
         diapers_today=diaper_summary,
+        breastfeeds_today_count=len(breast_today),
+        breastfeeds_today_ml_est=round(sum(f.amount_ml for f in breast_today), 1),
+        breastfeeds_today_minutes=sum(f.duration_min or 0 for f in breast_today),
         next_feed=next_feed,
         weight=weight_status,
     )

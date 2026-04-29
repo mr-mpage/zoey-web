@@ -90,6 +90,26 @@ export function HelpModal({ open, onClose }: Props) {
           </section>
 
           <section>
+            <SectionHeader>Breastfeeding</SectionHeader>
+            <p className="mb-2">
+              In the feed modal, toggle <b>Breast</b> to log a direct breastfeeding session. The ml field
+              becomes an estimate (0 ml is fine for a comfort attempt — Zoey at the breast but not really
+              feeding) and a duration-in-minutes field appears. Breast feeds render in pink with a "breast"
+              tag and "est" next to the ml.
+            </p>
+            <p className="mb-2">
+              Breast feeds <b>don't pollute the bottle averages</b> — comparison badges and the historical
+              avg on the next-feed card only count bottle entries from past days. The volume still adds to
+              the daily total (with the noted uncertainty), so the catch-up math reacts to it.
+            </p>
+            <p className="text-zinc-400 text-[11px]">
+              Tip: if the breastfeed is in addition to a scheduled bottle (Sabrina trying breast between
+              bottles), also toggle <b>Extra (off-schedule)</b> so it doesn't shift the bottle slot
+              numbering. If the breast is replacing a bottle in the rotation, leave Extra off.
+            </p>
+          </section>
+
+          <section>
             <SectionHeader>Extra (off-schedule) feeds</SectionHeader>
             <p>
               If she has an unscheduled top-up between regular feeds (e.g. extra at 11:00 between the 08:30

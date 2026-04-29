@@ -58,7 +58,15 @@ function DiaperCounter({
 }
 
 
-type FeedDraft = { id?: number; amount_ml?: number; fed_at?: string; notes?: string; is_extra?: boolean }
+type FeedDraft = {
+  id?: number
+  amount_ml?: number
+  fed_at?: string
+  notes?: string
+  is_extra?: boolean
+  method?: 'bottle' | 'breast'
+  duration_min?: number | null
+}
 type PumpDraft = { amount_ml?: number; pumped_at?: string; notes?: string }
 
 export function TodayScreen() {
@@ -108,9 +116,18 @@ export function TodayScreen() {
       fed_at: localDatetimeInput(new Date(f.fed_at)),
       notes: f.notes ?? '',
       is_extra: f.is_extra,
+      method: f.method,
+      duration_min: f.duration_min,
     })
 
-  const onSaveFeed = (input: { amount_ml: number; at: string; notes: string; is_extra: boolean }) => {
+  const onSaveFeed = (input: {
+    amount_ml: number
+    at: string
+    notes: string
+    is_extra: boolean
+    method: 'bottle' | 'breast'
+    duration_min: number | null
+  }) => {
     // Always send notes (even ""): on PATCH, an empty string is how the user
     // clears a previously set note. Coercing to undefined hid the field from
     // the JSON, leaving the old note in place.
@@ -119,6 +136,8 @@ export function TodayScreen() {
       fed_at: input.at,
       notes: input.notes,
       is_extra: input.is_extra,
+      method: input.method,
+      duration_min: input.duration_min,
     }
     if (feedDraft?.id) {
       patchFeed.mutate({ id: feedDraft.id, ...body }, { onSuccess: () => setFeedDraft(null) })
@@ -128,6 +147,8 @@ export function TodayScreen() {
   }
 
   const onSavePump = (input: { amount_ml: number; at: string; notes: string }) => {
+    // The shared AmountModal returns method/duration/is_extra fields too;
+    // pumps just ignore them.
     createPump.mutate(
       { amount_ml: input.amount_ml, pumped_at: input.at, notes: input.notes },
       { onSuccess: () => setPumpDraft(null) },
@@ -203,6 +224,14 @@ export function TodayScreen() {
           disabled={createDiaper.isPending || deleteDiaper.isPending}
         />
       </div>
+
+      {data.breastfeeds_today_count > 0 && (
+        <div className="mt-2 text-[11px] text-pink-300/80 text-right">
+          {data.breastfeeds_today_count} breastfeed{data.breastfeeds_today_count === 1 ? '' : 's'} today
+          {data.breastfeeds_today_ml_est > 0 && <> · ~{data.breastfeeds_today_ml_est.toFixed(0)} ml estimated</>}
+          {data.breastfeeds_today_minutes > 0 && <> · {data.breastfeeds_today_minutes} min total</>}
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-2 mt-4 text-center text-sm">
         <div className="rounded-xl bg-zinc-900/60 py-3">
@@ -332,38 +361,55 @@ export function TodayScreen() {
           </div>
         ) : (
           <ul className="space-y-2">
-            {[...data.feeds_today].reverse().map((f) => (
-              <li
-                key={f.id}
-                onClick={() => openEditFeed(f)}
-                className={`rounded-xl p-3 flex items-center gap-3 active:bg-zinc-900 ${
-                  f.is_extra ? 'bg-amber-500/5 border border-amber-500/20' : 'bg-zinc-900/60'
-                }`}
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] ${
-                  f.is_extra ? 'bg-amber-500/15 text-amber-300' : 'bg-zinc-800 text-zinc-400'
-                }`}>
-                  {f.is_extra ? 'EXT' : `#${f.feed_index}`}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="tabular-nums text-lg">{f.amount_ml.toFixed(0)} ml</span>
-                    {f.is_extra ? (
-                      <span className="text-[10px] uppercase tracking-wider text-amber-300/80">extra · off-schedule</span>
-                    ) : (
-                      f.comparison && <StatusBadge status={f.status} sampleDays={f.comparison.sample_days} />
-                    )}
+            {[...data.feeds_today].reverse().map((f) => {
+              const isBreast = f.method === 'breast'
+              return (
+                <li
+                  key={f.id}
+                  onClick={() => openEditFeed(f)}
+                  className={`rounded-xl p-3 flex items-center gap-3 active:bg-zinc-900 ${
+                    f.is_extra ? 'bg-amber-500/5 border border-amber-500/20' :
+                    isBreast ? 'bg-pink-300/5 border border-pink-300/20' :
+                    'bg-zinc-900/60'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] ${
+                    f.is_extra ? 'bg-amber-500/15 text-amber-300' :
+                    isBreast ? 'bg-pink-300/15 text-pink-200' :
+                    'bg-zinc-800 text-zinc-400'
+                  }`}>
+                    {f.is_extra ? 'EXT' : `#${f.feed_index}`}
                   </div>
-                  <div className="text-xs text-zinc-500 mt-0.5">
-                    {fmtTime(f.fed_at)}
-                    {!f.is_extra && f.comparison && f.comparison.avg_ml !== null && (
-                      <> · 7d avg {f.comparison.avg_ml.toFixed(0)} ml ({f.comparison.min_ml?.toFixed(0)}–{f.comparison.max_ml?.toFixed(0)})</>
-                    )}
-                    {f.notes && <> · {f.notes}</>}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="tabular-nums text-lg">
+                        {f.amount_ml.toFixed(0)} ml
+                        {isBreast && <span className="text-[11px] text-pink-300/80 ml-1">est</span>}
+                      </span>
+                      {isBreast && (
+                        <span className="text-[10px] uppercase tracking-wider text-pink-300/80">breast</span>
+                      )}
+                      {f.is_extra && (
+                        <span className="text-[10px] uppercase tracking-wider text-amber-300/80">extra · off-schedule</span>
+                      )}
+                      {!f.is_extra && !isBreast && f.comparison && (
+                        <StatusBadge status={f.status} sampleDays={f.comparison.sample_days} />
+                      )}
+                    </div>
+                    <div className="text-xs text-zinc-500 mt-0.5">
+                      {fmtTime(f.fed_at)}
+                      {isBreast && f.duration_min != null && f.duration_min > 0 && (
+                        <> · {f.duration_min} min</>
+                      )}
+                      {!f.is_extra && !isBreast && f.comparison && f.comparison.avg_ml !== null && (
+                        <> · 7d avg {f.comparison.avg_ml.toFixed(0)} ml ({f.comparison.min_ml?.toFixed(0)}–{f.comparison.max_ml?.toFixed(0)})</>
+                      )}
+                      {f.notes && <> · {f.notes}</>}
+                    </div>
                   </div>
-                </div>
-              </li>
-            ))}
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>
@@ -375,7 +421,10 @@ export function TodayScreen() {
         initialTime={feedDraft?.fed_at}
         initialNotes={feedDraft?.notes}
         initialIsExtra={feedDraft?.is_extra}
+        initialMethod={feedDraft?.method}
+        initialDurationMin={feedDraft?.duration_min}
         showExtraToggle
+        showMethodToggle
         hint={
           !feedDraft?.id && data.next_feed?.historical_avg_ml !== null && data.next_feed?.historical_avg_ml !== undefined
             ? `7-day avg for feed #${data.next_feed.feed_index}: ${data.next_feed.historical_avg_ml.toFixed(0)} ml`
@@ -391,6 +440,7 @@ export function TodayScreen() {
         open={pumpDraft !== null}
         title="Log pump"
         initialAmount={80}
+        defaultSliderMax={300}
         onClose={() => setPumpDraft(null)}
         onSave={onSavePump}
         saving={createPump.isPending}

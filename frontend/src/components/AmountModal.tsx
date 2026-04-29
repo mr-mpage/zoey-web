@@ -13,11 +13,24 @@ export type AmountModalProps = {
   initialTime?: string
   initialNotes?: string
   initialIsExtra?: boolean
+  initialMethod?: 'bottle' | 'breast'
+  initialDurationMin?: number | null
   showExtraToggle?: boolean
+  showMethodToggle?: boolean
   hint?: string | null
   step?: number
+  /** Default upper bound of the slider; the actual max also grows to track
+   *  any value reached via the + button so the slider always stays usable. */
+  defaultSliderMax?: number
   onClose: () => void
-  onSave: (input: { amount_ml: number; at: string; notes: string; is_extra: boolean }) => void
+  onSave: (input: {
+    amount_ml: number
+    at: string
+    notes: string
+    is_extra: boolean
+    method: 'bottle' | 'breast'
+    duration_min: number | null
+  }) => void
   onDelete?: () => void
   saving?: boolean
 }
@@ -29,9 +42,13 @@ export function AmountModal({
   initialTime,
   initialNotes,
   initialIsExtra,
+  initialMethod,
+  initialDurationMin,
   showExtraToggle,
+  showMethodToggle,
   hint,
   step = 1,
+  defaultSliderMax = 150,
   onClose,
   onSave,
   onDelete,
@@ -44,6 +61,10 @@ export function AmountModal({
   const [dateStr, setDateStr] = useState<string>(initSplit.date)
   const [notes, setNotes] = useState<string>(initialNotes ?? '')
   const [isExtra, setIsExtra] = useState<boolean>(initialIsExtra ?? false)
+  const [method, setMethod] = useState<'bottle' | 'breast'>(initialMethod ?? 'bottle')
+  const [durationMin, setDurationMin] = useState<string>(
+    initialDurationMin != null ? String(initialDurationMin) : '',
+  )
 
   useEffect(() => {
     if (open) {
@@ -54,8 +75,10 @@ export function AmountModal({
       setDateStr(s.date)
       setNotes(initialNotes ?? '')
       setIsExtra(initialIsExtra ?? false)
+      setMethod(initialMethod ?? 'bottle')
+      setDurationMin(initialDurationMin != null ? String(initialDurationMin) : '')
     }
-  }, [open, initialAmount, initialTime, initialNotes, initialIsExtra])
+  }, [open, initialAmount, initialTime, initialNotes, initialIsExtra, initialMethod, initialDurationMin])
 
   if (!open) return null
 
@@ -70,9 +93,38 @@ export function AmountModal({
           <button onClick={onClose} className="text-zinc-400 text-2xl leading-none">×</button>
         </div>
 
+        {showMethodToggle && (
+          <div className="grid grid-cols-2 gap-1 bg-zinc-800/60 rounded-lg p-1 mb-4">
+            <button
+              type="button"
+              onClick={() => setMethod('bottle')}
+              className={`py-2 rounded-md text-sm font-medium transition ${
+                method === 'bottle' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400'
+              }`}
+            >
+              Bottle
+            </button>
+            <button
+              type="button"
+              onClick={() => setMethod('breast')}
+              className={`py-2 rounded-md text-sm font-medium transition ${
+                method === 'breast' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400'
+              }`}
+            >
+              Breast
+            </button>
+          </div>
+        )}
+
         <div className="text-center mb-2">
-          <div className="text-5xl font-light tabular-nums">{amount.toFixed(0)}<span className="text-2xl text-zinc-500 ml-1">ml</span></div>
-          {hint && <div className="text-xs text-zinc-500 mt-1">{hint}</div>}
+          <div className="text-5xl font-light tabular-nums">
+            {amount.toFixed(0)}
+            <span className="text-2xl text-zinc-500 ml-1">ml</span>
+          </div>
+          {method === 'breast' && (
+            <div className="text-[11px] text-zinc-500 mt-1">estimated · 0 ml is fine for a comfort attempt</div>
+          )}
+          {hint && method !== 'breast' && <div className="text-xs text-zinc-500 mt-1">{hint}</div>}
         </div>
 
         <div className="flex items-center justify-center gap-3 mb-5">
@@ -83,7 +135,7 @@ export function AmountModal({
           <input
             type="range"
             min={0}
-            max={150}
+            max={Math.max(defaultSliderMax, amount + 20)}
             step={1}
             value={amount}
             onChange={(e) => setAmount(Number(e.target.value))}
@@ -115,6 +167,19 @@ export function AmountModal({
             />
           </div>
         </div>
+
+        {method === 'breast' && (
+          <>
+            <label className="block text-xs text-zinc-500 mb-1">Duration at breast (minutes)</label>
+            <input
+              inputMode="numeric"
+              value={durationMin}
+              onChange={(e) => setDurationMin(e.target.value.replace(/\D/g, ''))}
+              placeholder="e.g. 10"
+              className="w-full bg-zinc-800 rounded-lg px-3 py-2.5 mb-4 tabular-nums"
+            />
+          </>
+        )}
 
         <label className="block text-xs text-zinc-500 mb-1">Notes (optional)</label>
         <input
@@ -159,9 +224,17 @@ export function AmountModal({
           <button
             onClick={() => {
               const at = new Date(`${dateStr}T${timeStr}:00`).toISOString()
-              onSave({ amount_ml: amount, at, notes, is_extra: isExtra })
+              const dm = durationMin ? parseInt(durationMin, 10) : null
+              onSave({
+                amount_ml: amount,
+                at,
+                notes,
+                is_extra: isExtra,
+                method,
+                duration_min: method === 'breast' ? dm : null,
+              })
             }}
-            disabled={saving || amount <= 0 || !timeStr || !dateStr}
+            disabled={saving || (method === 'bottle' && amount <= 0) || amount < 0 || !timeStr || !dateStr}
             className="flex-1 py-3 rounded-xl bg-pink-300 text-zinc-900 font-medium active:scale-[.98] disabled:opacity-40"
           >
             {saving ? 'Saving…' : 'Save'}

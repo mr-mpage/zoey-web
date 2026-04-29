@@ -92,6 +92,22 @@ export function HistoryScreen() {
     return map
   }, [diapers, anchorH, anchorM])
 
+  const breastByDay = useMemo(() => {
+    const map = new Map<string, { count: number; ml: number; min: number }>()
+    for (const f of feeds ?? []) {
+      if (f.method !== 'breast') continue
+      const dt = new Date(f.fed_at)
+      const dayKey = feedingDayKey(dt, anchorH, anchorM)
+      const key = dayKey.toDateString()
+      if (!map.has(key)) map.set(key, { count: 0, ml: 0, min: 0 })
+      const b = map.get(key)!
+      b.count++
+      b.ml += f.amount_ml
+      b.min += f.duration_min ?? 0
+    }
+    return map
+  }, [feeds, anchorH, anchorM])
+
   const sparkPoints = useMemo(
     () => buildSparklinePoints(feeds ?? [], weights, anchorH, anchorM, 30),
     [feeds, weights, anchorH, anchorM],
@@ -169,13 +185,25 @@ export function HistoryScreen() {
               </div>
               {(() => {
                 const dc = diapersByDay.get(row.day.toDateString()) ?? { wet: 0, dirty: 0 }
-                if (dc.wet === 0 && dc.dirty === 0) return null
+                const bf = breastByDay.get(row.day.toDateString())
+                if (dc.wet === 0 && dc.dirty === 0 && !bf) return null
                 const lowWet = !isToday && dc.wet < 6
                 return (
-                  <div className="mt-1.5 text-[11px] text-zinc-500 text-right">
-                    <span className={lowWet ? 'text-amber-400' : 'text-zinc-400'}>{dc.wet} wet</span>
-                    <span className="text-zinc-600"> · </span>
-                    <span className="text-zinc-400">{dc.dirty} dirty</span>
+                  <div className="mt-1.5 text-[11px] text-right space-y-0.5">
+                    {(dc.wet > 0 || dc.dirty > 0) && (
+                      <div>
+                        <span className={lowWet ? 'text-amber-400' : 'text-zinc-400'}>{dc.wet} wet</span>
+                        <span className="text-zinc-600"> · </span>
+                        <span className="text-zinc-400">{dc.dirty} dirty</span>
+                      </div>
+                    )}
+                    {bf && (
+                      <div className="text-pink-300/70">
+                        {bf.count} breastfeed{bf.count === 1 ? '' : 's'}
+                        {bf.ml > 0 && <> · ~{bf.ml.toFixed(0)} ml est</>}
+                        {bf.min > 0 && <> · {bf.min} min</>}
+                      </div>
+                    )}
                   </div>
                 )
               })()}

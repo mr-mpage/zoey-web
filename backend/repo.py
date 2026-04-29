@@ -6,16 +6,24 @@ from typing import Optional
 from .db import get_conn
 
 
-def insert_feed(fed_at: datetime, amount_ml: float, notes: Optional[str], is_extra: bool = False) -> int:
+def insert_feed(fed_at: datetime, amount_ml: float, notes: Optional[str], is_extra: bool = False, method: str = "bottle", duration_min: Optional[int] = None) -> int:
     with get_conn() as c:
         cur = c.execute(
-            "INSERT INTO feeds (fed_at, amount_ml, notes, is_extra) VALUES (?, ?, ?, ?)",
-            (fed_at.isoformat(), amount_ml, notes, 1 if is_extra else 0),
+            "INSERT INTO feeds (fed_at, amount_ml, notes, is_extra, method, duration_min) VALUES (?, ?, ?, ?, ?, ?)",
+            (fed_at.isoformat(), amount_ml, notes, 1 if is_extra else 0, method, duration_min),
         )
         return cur.lastrowid
 
 
-def update_feed(feed_id: int, fed_at: Optional[datetime], amount_ml: Optional[float], notes: Optional[str], is_extra: Optional[bool] = None) -> bool:
+def update_feed(
+    feed_id: int,
+    fed_at: Optional[datetime],
+    amount_ml: Optional[float],
+    notes: Optional[str],
+    is_extra: Optional[bool] = None,
+    method: Optional[str] = None,
+    duration_min: Optional[int] = None,
+) -> bool:
     sets, args = [], []
     if fed_at is not None:
         sets.append("fed_at = ?")
@@ -29,6 +37,12 @@ def update_feed(feed_id: int, fed_at: Optional[datetime], amount_ml: Optional[fl
     if is_extra is not None:
         sets.append("is_extra = ?")
         args.append(1 if is_extra else 0)
+    if method is not None:
+        sets.append("method = ?")
+        args.append(method)
+    if duration_min is not None:
+        sets.append("duration_min = ?")
+        args.append(duration_min)
     if not sets:
         return True
     args.append(feed_id)
@@ -46,7 +60,7 @@ def delete_feed(feed_id: int) -> bool:
 def list_feeds_between(start_iso: str, end_iso: str) -> list[dict]:
     with get_conn() as c:
         rows = c.execute(
-            "SELECT id, fed_at, amount_ml, notes, is_extra FROM feeds WHERE fed_at >= ? AND fed_at < ? ORDER BY fed_at ASC",
+            "SELECT id, fed_at, amount_ml, notes, is_extra, method, duration_min FROM feeds WHERE fed_at >= ? AND fed_at < ? ORDER BY fed_at ASC",
             (start_iso, end_iso),
         ).fetchall()
     return [dict(r) for r in rows]

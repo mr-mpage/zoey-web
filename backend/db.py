@@ -82,6 +82,10 @@ def init_db() -> None:
         cols = {r[1] for r in conn.execute("PRAGMA table_info(feeds)")}
         if "is_extra" not in cols:
             conn.execute("ALTER TABLE feeds ADD COLUMN is_extra INTEGER NOT NULL DEFAULT 0")
+        if "method" not in cols:
+            conn.execute("ALTER TABLE feeds ADD COLUMN method TEXT NOT NULL DEFAULT 'bottle'")
+        if "duration_min" not in cols:
+            conn.execute("ALTER TABLE feeds ADD COLUMN duration_min INTEGER")
 
 
 @contextmanager

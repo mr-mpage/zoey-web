@@ -5,17 +5,21 @@ from pydantic import BaseModel, Field
 
 
 class FeedIn(BaseModel):
-    amount_ml: float = Field(gt=0, le=500)
+    amount_ml: float = Field(ge=0, le=500)  # 0 allowed for breast comfort attempts
     fed_at: Optional[datetime] = None
     notes: Optional[str] = None
     is_extra: bool = False
+    method: str = Field(default="bottle", pattern="^(bottle|breast)$")
+    duration_min: Optional[int] = Field(default=None, ge=0, le=240)
 
 
 class FeedPatch(BaseModel):
-    amount_ml: Optional[float] = Field(default=None, gt=0, le=500)
+    amount_ml: Optional[float] = Field(default=None, ge=0, le=500)
     fed_at: Optional[datetime] = None
     notes: Optional[str] = None
     is_extra: Optional[bool] = None
+    method: Optional[str] = Field(default=None, pattern="^(bottle|breast)$")
+    duration_min: Optional[int] = Field(default=None, ge=0, le=240)
 
 
 class Feed(BaseModel):
@@ -24,6 +28,8 @@ class Feed(BaseModel):
     amount_ml: float
     notes: Optional[str] = None
     is_extra: bool = False
+    method: str = "bottle"
+    duration_min: Optional[int] = None
 
 
 class PumpIn(BaseModel):
@@ -131,6 +137,9 @@ class Dashboard(BaseModel):
     pumps_today_ml: float
     pumps_today_count: int
     diapers_today: DiaperSummary
+    breastfeeds_today_count: int = 0
+    breastfeeds_today_ml_est: float = 0.0
+    breastfeeds_today_minutes: int = 0
     next_feed: Optional[NextFeedHint]
     weight: WeightStatus
 

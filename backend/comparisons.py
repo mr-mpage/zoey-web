@@ -82,11 +82,17 @@ def historical_comparison(
     feed_index: int,
     days_back: int = 7,
 ) -> FeedComparison:
+    """Pulls the same feed-of-day index from the previous days_back days.
+    Only counts bottle feeds — breast feeds have estimated ml and would
+    pollute the historical average."""
     samples: list[float] = []
     for delta in range(1, days_back + 1):
         d = today - timedelta(days=delta)
         feeds = by_day.get(d, [])
-        match = next((f for f in feeds if f["feed_index"] == feed_index), None)
+        match = next(
+            (f for f in feeds if f["feed_index"] == feed_index and (f.get("method") or "bottle") == "bottle"),
+            None,
+        )
         if match is not None:
             samples.append(float(match["amount_ml"]))
     if not samples:

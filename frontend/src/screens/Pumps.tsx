@@ -63,6 +63,7 @@ export function PumpsScreen() {
         initialAmount={editing?.amount_ml}
         initialTime={editing ? localDatetimeInput(new Date(editing.pumped_at)) : undefined}
         initialNotes={editing?.notes ?? ''}
+        defaultSliderMax={300}
         onClose={() => setEditing(null)}
         onSave={(input) => {
           if (!editing) return

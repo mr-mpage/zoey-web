@@ -75,11 +75,19 @@ function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ['diapers'] })
 }
 
+type FeedWriteInput = {
+  amount_ml: number
+  fed_at?: string
+  notes?: string
+  is_extra?: boolean
+  method?: 'bottle' | 'breast'
+  duration_min?: number | null
+}
+
 export function useCreateFeed() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (input: { amount_ml: number; fed_at?: string; notes?: string; is_extra?: boolean }) =>
-      api.post<Feed>('/api/feeds', input),
+    mutationFn: (input: FeedWriteInput) => api.post<Feed>('/api/feeds', input),
     onSuccess: () => invalidateAll(qc),
   })
 }
@@ -87,7 +95,7 @@ export function useCreateFeed() {
 export function usePatchFeed() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, ...rest }: { id: number; amount_ml?: number; fed_at?: string; notes?: string; is_extra?: boolean }) =>
+    mutationFn: ({ id, ...rest }: { id: number } & FeedWriteInput) =>
       api.patch(`/api/feeds/${id}`, rest),
     onSuccess: () => invalidateAll(qc),
   })
