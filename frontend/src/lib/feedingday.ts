@@ -9,3 +9,13 @@ export function feedingDayKey(ts: Date, anchorH: number, anchorM: number): strin
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${day.getFullYear()}-${pad(day.getMonth() + 1)}-${pad(day.getDate())}`
 }
+
+/** Override-aware variant for feed records. */
+export function feedingDayKeyOfFeed(
+  f: { fed_at: string; feeding_day_override?: string | null },
+  anchorH: number,
+  anchorM: number,
+): string {
+  if (f.feeding_day_override) return f.feeding_day_override
+  return feedingDayKey(new Date(f.fed_at), anchorH, anchorM)
+}

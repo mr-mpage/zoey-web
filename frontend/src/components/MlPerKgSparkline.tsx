@@ -71,9 +71,11 @@ export function MlPerKgSparkline({ points, bands, width = 320, height = 56 }: Pr
   )
 }
 
-/** Helper: build per-day points from raw feeds + weights, anchored to feeding-day. */
+/** Helper: build per-day points from raw feeds + weights, anchored to feeding-day.
+ *  Respects per-feed feeding_day_override so off-by-one overrides land in the
+ *  correct day's total. */
 export function buildSparklinePoints(
-  feeds: { fed_at: string; amount_ml: number }[],
+  feeds: { fed_at: string; amount_ml: number; feeding_day_override?: string | null }[],
   weights: Weight[],
   anchorH: number,
   anchorM: number,
@@ -82,11 +84,16 @@ export function buildSparklinePoints(
   const anchorMin = anchorH * 60 + anchorM
   const totalsByDay = new Map<string, number>()
   for (const f of feeds) {
-    const d = new Date(f.fed_at)
-    const minutes = d.getHours() * 60 + d.getMinutes()
-    const day = new Date(d.getFullYear(), d.getMonth(), d.getDate())
-    if (minutes < anchorMin) day.setDate(day.getDate() - 1)
-    const key = day.toISOString().slice(0, 10)
+    let key: string
+    if (f.feeding_day_override) {
+      key = f.feeding_day_override
+    } else {
+      const d = new Date(f.fed_at)
+      const minutes = d.getHours() * 60 + d.getMinutes()
+      const day = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+      if (minutes < anchorMin) day.setDate(day.getDate() - 1)
+      key = day.toISOString().slice(0, 10)
+    }
     totalsByDay.set(key, (totalsByDay.get(key) ?? 0) + f.amount_ml)
   }
 

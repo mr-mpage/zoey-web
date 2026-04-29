@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useAppSettings, useDiapers, useFeeds, useWeight } from '../api/hooks'
 import { MlPerKgSparkline, buildSparklinePoints } from '../components/MlPerKgSparkline'
+import { feedingDayKeyOfFeed } from '../lib/feedingday'
 import { fmtDate } from '../lib/format'
 import type { Weight } from '../api/types'
 
@@ -63,11 +64,15 @@ export function HistoryScreen() {
     type Bucket = { day: Date; entries: { time: number; amount: number }[] }
     const byDay = new Map<string, Bucket>()
     for (const f of feeds ?? []) {
-      const d = new Date(f.fed_at)
-      const dayKey = feedingDayKey(d, anchorH, anchorM)
-      const key = dayKey.toDateString()
-      if (!byDay.has(key)) byDay.set(key, { day: dayKey, entries: [] })
-      byDay.get(key)!.entries.push({ time: +d, amount: f.amount_ml })
+      // Honour per-feed feeding_day_override so a feed that was logged at
+      // 02:20 but tagged as 'first of today' shows up under today, not
+      // under yesterday's calendar date.
+      const dayIso = feedingDayKeyOfFeed(f, anchorH, anchorM)
+      const dayDate = new Date(dayIso + 'T00:00:00')
+      const key = dayDate.toDateString()
+      const time = new Date(f.fed_at).getTime()
+      if (!byDay.has(key)) byDay.set(key, { day: dayDate, entries: [] })
+      byDay.get(key)!.entries.push({ time, amount: f.amount_ml })
     }
     return Array.from(byDay.values())
       .map((b) => {
@@ -96,9 +101,8 @@ export function HistoryScreen() {
     const map = new Map<string, { count: number; ml: number; min: number }>()
     for (const f of feeds ?? []) {
       if (f.method !== 'breast') continue
-      const dt = new Date(f.fed_at)
-      const dayKey = feedingDayKey(dt, anchorH, anchorM)
-      const key = dayKey.toDateString()
+      const dayIso = feedingDayKeyOfFeed(f, anchorH, anchorM)
+      const key = new Date(dayIso + 'T00:00:00').toDateString()
       if (!map.has(key)) map.set(key, { count: 0, ml: 0, min: 0 })
       const b = map.get(key)!
       b.count++
