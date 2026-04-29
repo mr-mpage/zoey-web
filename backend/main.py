@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .db import init_db
-from .routers import auth, dashboard, diapers, feeds, overview, pumps, push, settings, weight
+from .routers import auth, dashboard, diapers, feeds, overview, pumps, push, report, settings, weight
 from .scheduler import reminder_loop
 
 logging.basicConfig(level=logging.INFO)
@@ -40,6 +40,7 @@ app.include_router(settings.router)
 app.include_router(diapers.router)
 app.include_router(push.router)
 app.include_router(overview.router)
+app.include_router(report.router)
 
 
 @app.get("/api/health")

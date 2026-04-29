@@ -311,6 +311,22 @@ export function SettingsScreen() {
 
       <PushSection />
 
+      <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">
+        <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Doctor visit</div>
+        <p className="text-xs text-zinc-500 mb-3">
+          Printable summary of the last 14 days: weights with gains, daily intake + ml/kg/day,
+          diaper counts and feed notes. Open in a new tab, then "Save to Files → PDF" from Safari.
+        </p>
+        <a
+          href="/api/report?days=14"
+          target="_blank"
+          rel="noopener"
+          className="block w-full text-center py-3 rounded-xl bg-pink-300 text-zinc-900 font-medium"
+        >
+          Open report (last 14 days)
+        </a>
+      </div>
+
       <button
         onClick={() => logout.mutate()}
         className="w-full py-3 rounded-xl bg-zinc-800 text-zinc-300 text-sm"
