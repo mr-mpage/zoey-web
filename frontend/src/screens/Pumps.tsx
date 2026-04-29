@@ -1,18 +1,31 @@
 import { useMemo, useState } from 'react'
 import { useDeletePump, usePatchPump, usePumps } from '../api/hooks'
 import { AmountModal } from '../components/AmountModal'
+import { PumpDailyChart } from '../components/PumpDailyChart'
 import { fmtDate, fmtTime, localDatetimeInput } from '../lib/format'
 import type { Pump } from '../api/types'
 
+const DETAIL_DAYS = 7
+const CHART_DAYS = 30
+
 export function PumpsScreen() {
-  const { data, isLoading } = usePumps(7)
+  const { data, isLoading } = usePumps(CHART_DAYS)
   const patch = usePatchPump()
   const del = useDeletePump()
   const [editing, setEditing] = useState<Pump | null>(null)
 
+  const pumps = data ?? []
+
+  const recent = useMemo(() => {
+    const cutoff = new Date()
+    cutoff.setHours(0, 0, 0, 0)
+    cutoff.setDate(cutoff.getDate() - (DETAIL_DAYS - 1))
+    return pumps.filter((p) => new Date(p.pumped_at) >= cutoff)
+  }, [pumps])
+
   const grouped = useMemo(() => {
     const out = new Map<string, { day: string; total: number; items: Pump[] }>()
-    for (const p of data ?? []) {
+    for (const p of recent) {
       const day = new Date(p.pumped_at).toDateString()
       if (!out.has(day)) out.set(day, { day, total: 0, items: [] })
       const bucket = out.get(day)!
@@ -20,13 +33,22 @@ export function PumpsScreen() {
       bucket.items.push(p)
     }
     return Array.from(out.values()).sort((a, b) => +new Date(b.day) - +new Date(a.day))
-  }, [data])
+  }, [recent])
 
   if (isLoading) return <div className="p-8 text-center text-zinc-500">Loading…</div>
 
   return (
     <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
-      <div className="text-center text-zinc-500 text-sm mb-4">Last 7 days of pumping</div>
+      {pumps.length > 0 && (
+        <div className="rounded-xl bg-zinc-900/60 p-3 mb-4">
+          <div className="text-[11px] uppercase tracking-wider text-zinc-500 mb-2">
+            Pump supply · last {CHART_DAYS} days
+          </div>
+          <PumpDailyChart pumps={pumps} days={CHART_DAYS} />
+        </div>
+      )}
+
+      <div className="text-center text-zinc-500 text-sm mb-4">Last {DETAIL_DAYS} days of pumping</div>
       {grouped.length === 0 && (
         <div className="rounded-xl bg-zinc-900/40 p-6 text-center text-zinc-500 text-sm">No pumps logged yet.</div>
       )}
