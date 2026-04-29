@@ -28,20 +28,26 @@ def write_csv(name, rows, headers):
         for r in rows:
             w.writerow([r[h] for h in headers])
 
-feeds = list(db.execute("SELECT id, fed_at, amount_ml, notes FROM feeds ORDER BY fed_at"))
+feeds = list(db.execute(
+    "SELECT id, fed_at, amount_ml, notes, is_extra, method, duration_min, feeding_day_override "
+    "FROM feeds ORDER BY fed_at"
+))
 pumps = list(db.execute("SELECT id, pumped_at, amount_ml, notes FROM pumps ORDER BY pumped_at"))
 weights = list(db.execute("SELECT id, recorded_at, weight_grams, ml_per_kg_per_day, notes FROM weight_entries ORDER BY recorded_at"))
+diapers = list(db.execute("SELECT id, recorded_at, kind, notes FROM diapers ORDER BY recorded_at"))
 settings = {r["key"]: r["value"] for r in db.execute("SELECT key, value FROM app_settings")}
 
-write_csv("feeds", feeds, ["id", "fed_at", "amount_ml", "notes"])
+write_csv("feeds", feeds, ["id", "fed_at", "amount_ml", "notes", "is_extra", "method", "duration_min", "feeding_day_override"])
 write_csv("pumps", pumps, ["id", "pumped_at", "amount_ml", "notes"])
 write_csv("weights", weights, ["id", "recorded_at", "weight_grams", "ml_per_kg_per_day", "notes"])
+write_csv("diapers", diapers, ["id", "recorded_at", "kind", "notes"])
 (out / "settings.json").write_text(json.dumps(settings, indent=2, sort_keys=True) + "\n")
 
 snapshot = {
     "feeds": [dict(r) for r in feeds],
     "pumps": [dict(r) for r in pumps],
     "weights": [dict(r) for r in weights],
+    "diapers": [dict(r) for r in diapers],
     "settings": settings,
 }
 (out / "snapshot.json").write_text(json.dumps(snapshot, indent=2, default=str) + "\n")
@@ -64,6 +70,7 @@ lines = [
     f"- Feeds: {len(feeds)} ({total_feeds:.0f} ml total)",
     f"- Pumps: {len(pumps)} ({total_pumps:.0f} ml total)",
     f"- Weight entries: {len(weights)}",
+    f"- Diapers: {len(diapers)}",
 ]
 if latest_w:
     lines.append(
@@ -73,11 +80,13 @@ if latest_w:
 lines += [
     "",
     "## Files",
-    "- feeds.csv / pumps.csv / weights.csv — append-only history, line-oriented for clean diffs",
-    "- settings.json — current app settings (day anchor, ml/kg/day band)",
-    "- snapshot.json — combined snapshot of all four",
+    "- feeds.csv / pumps.csv / weights.csv / diapers.csv — append-only history, line-oriented for clean diffs",
+    "- settings.json — current app settings (day anchor, ml/kg/day bands, etc.)",
+    "- snapshot.json — combined lossless snapshot, suitable for restore",
     "",
-    "To restore from this backup, load the rows back into the SQLite tables `feeds`, `pumps`, `weight_entries`, `app_settings`.",
+    "## Restore",
+    "From the main repo: `python scripts/restore-from-snapshot.py <snapshot.json> --db <path/to/zoey.db>`",
+    "Run against an empty DB. Pass `--force` to wipe and replace an existing DB.",
     "",
 ]
 (out / "README.md").write_text("\n".join(lines))
@@ -85,7 +94,6 @@ print("export complete")
 PY
 
 if git diff --quiet && git diff --staged --quiet; then
-    # No tracked changes; check for untracked (first run case)
     if [ -z "$(git status --porcelain)" ]; then
         echo "no changes since last export"
         exit 0

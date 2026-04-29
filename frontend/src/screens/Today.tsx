@@ -13,6 +13,7 @@ import {
   useWeight,
 } from '../api/hooks'
 import { AmountModal } from '../components/AmountModal'
+import { DiaperListModal } from '../components/DiaperListModal'
 import { EncouragementCard } from '../components/EncouragementCard'
 import { PaceChip } from '../components/PaceChip'
 import { ProgressRing } from '../components/ProgressRing'
@@ -24,17 +25,30 @@ import { feedingDayKey } from '../lib/feedingday'
 import { gainTone, pmaAndPostnatal, rollingGainRate } from '../lib/growth'
 import type { Diaper, FeedWithComparison } from '../api/types'
 
+function DiaperLastLine({ at }: { at: string | null }) {
+  if (!at) {
+    return <div className="text-[10px] text-zinc-600 text-center mt-1">none today</div>
+  }
+  return (
+    <div className="text-[10px] text-zinc-500 text-center mt-1 tabular-nums">
+      last {fmtTime(at)} · {fmtRelative(at)}
+    </div>
+  )
+}
+
 function DiaperCounter({
   label,
   count,
   onAdd,
   onUndo,
+  onOpenList,
   disabled,
 }: {
   label: string
   count: number
   onAdd: () => void
   onUndo: () => void
+  onOpenList: () => void
   disabled?: boolean
 }) {
   return (
@@ -42,10 +56,17 @@ function DiaperCounter({
       <button
         onClick={onAdd}
         disabled={disabled}
-        className="flex-1 px-2 py-2 text-sm flex items-center justify-between gap-2 active:bg-zinc-700/40 disabled:opacity-50"
+        className="flex-1 px-2 py-2 text-sm active:bg-zinc-700/40 disabled:opacity-50 text-left"
       >
         <span className="text-zinc-400">+ {label}</span>
-        <span className="tabular-nums text-zinc-100">{count}</span>
+      </button>
+      <button
+        onClick={onOpenList}
+        disabled={disabled || count === 0}
+        aria-label={`Edit today's ${label.toLowerCase()} diapers`}
+        className="px-3 py-2 text-sm tabular-nums text-zinc-100 border-l border-zinc-900/60 active:bg-zinc-700/40 disabled:opacity-30"
+      >
+        {count}
       </button>
       <button
         onClick={onUndo}
@@ -106,6 +127,7 @@ export function TodayScreen() {
   const [feedDraft, setFeedDraft] = useState<FeedDraft | null>(null)
   const [pumpDraft, setPumpDraft] = useState<PumpDraft | null>(null)
   const [boundaryPrompt, setBoundaryPrompt] = useState<BoundaryPrompt | null>(null)
+  const [diaperList, setDiaperList] = useState<'wet' | 'dirty' | null>(null)
 
   if (isLoading || !data) {
     return <div className="p-8 text-center text-zinc-500">Loading…</div>
@@ -262,22 +284,47 @@ export function TodayScreen() {
         </button>
       </div>
 
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        <DiaperCounter
-          label="Wet"
-          count={data.diapers_today.wet}
-          onAdd={() => createDiaper.mutate({ kind: 'wet' })}
-          onUndo={() => removeLatestDiaper('wet')}
-          disabled={createDiaper.isPending || deleteDiaper.isPending}
-        />
-        <DiaperCounter
-          label="Dirty"
-          count={data.diapers_today.dirty}
-          onAdd={() => createDiaper.mutate({ kind: 'dirty' })}
-          onUndo={() => removeLatestDiaper('dirty')}
-          disabled={createDiaper.isPending || deleteDiaper.isPending}
-        />
-      </div>
+      {(() => {
+        const lastOf = (kind: 'wet' | 'dirty') => {
+          const last = todayDiapers
+            .filter((d) => d.kind === kind)
+            .sort((a, b) => +new Date(b.recorded_at) - +new Date(a.recorded_at))[0]
+          return last ? last.recorded_at : null
+        }
+        return (
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <div>
+              <DiaperCounter
+                label="Wet"
+                count={data.diapers_today.wet}
+                onAdd={() => createDiaper.mutate({ kind: 'wet' })}
+                onUndo={() => removeLatestDiaper('wet')}
+                onOpenList={() => setDiaperList('wet')}
+                disabled={createDiaper.isPending || deleteDiaper.isPending}
+              />
+              <DiaperLastLine at={lastOf('wet')} />
+            </div>
+            <div>
+              <DiaperCounter
+                label="Dirty"
+                count={data.diapers_today.dirty}
+                onAdd={() => createDiaper.mutate({ kind: 'dirty' })}
+                onUndo={() => removeLatestDiaper('dirty')}
+                onOpenList={() => setDiaperList('dirty')}
+                disabled={createDiaper.isPending || deleteDiaper.isPending}
+              />
+              <DiaperLastLine at={lastOf('dirty')} />
+            </div>
+          </div>
+        )
+      })()}
+
+      <DiaperListModal
+        open={diaperList !== null}
+        kind={diaperList ?? 'wet'}
+        entries={todayDiapers.filter((d) => d.kind === (diaperList ?? 'wet'))}
+        onClose={() => setDiaperList(null)}
+      />
 
       {data.breastfeeds_today_count > 0 && (
         <div className="mt-2 text-[11px] text-zinc-500 text-center">

@@ -99,13 +99,31 @@ Verify with `ssh your-server 'docker logs --tail 30 zoey-tracker'` and
 `curl -s -o /dev/null -w "%{http_code}\n" https://zoey.example.com/api/auth/me`
 (should return `401` without a session cookie).
 
-## Off-server backup
+## Off-server backup & restore
 
 `scripts/export-to-github.sh` runs daily via cron (`0 6 * * *`), exporting feeds,
 pumps, weights, diapers, and settings as CSV + JSON, committing to a private
 GitHub repo (`mr-mpage/your-data-backup`) over a deploy-key SSH key. Combined
 with the appdata sweep to the Hetzner Storage Box, the database has two
 independent off-host copies.
+
+To restore from the GitHub snapshot — e.g. after migrating to a new server or
+recovering from a corrupted DB:
+
+```bash
+git clone git@github.com:mr-mpage/your-data-backup.git
+docker compose up -d                     # one boot cycle so init_db() creates the schema
+docker compose stop
+python scripts/restore-from-snapshot.py \
+  your-data-backup/snapshot.json \
+  --db /srv/zoey-tracker/data/zoey.db --force
+docker compose start
+```
+
+`--force` wipes the destination tables before restoring; without it the script
+refuses if any of the five tables is non-empty (since `init_db()` seeds the
+default settings, you'll always need `--force` after a fresh boot). Round-trip
+verified — every column the export covers is restored.
 
 ## Auth
 

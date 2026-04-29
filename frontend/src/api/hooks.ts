@@ -267,6 +267,19 @@ export function useCreateDiaper() {
   })
 }
 
+export function usePatchDiaper() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: ({ id, ...rest }: { id: number; recorded_at?: string; kind?: 'wet' | 'dirty'; notes?: string }) =>
+      api.patch(`/api/diapers/${id}`, rest),
+    onSuccess: () => {
+      invalidateAll(qc)
+      toast.success('Diaper updated')
+    },
+  })
+}
+
 export function useDeleteDiaper() {
   const qc = useQueryClient()
   const toast = useToast()
