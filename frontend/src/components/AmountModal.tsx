@@ -93,28 +93,40 @@ export function AmountModal({
           <button onClick={onClose} className="text-zinc-400 text-2xl leading-none">×</button>
         </div>
 
-        {showMethodToggle && (
-          <div className="grid grid-cols-2 gap-1 bg-zinc-800/60 rounded-lg p-1 mb-4">
-            <button
-              type="button"
-              onClick={() => setMethod('bottle')}
-              className={`py-2 rounded-md text-sm font-medium transition ${
-                method === 'bottle' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400'
-              }`}
-            >
-              Bottle
-            </button>
-            <button
-              type="button"
-              onClick={() => setMethod('breast')}
-              className={`py-2 rounded-md text-sm font-medium transition ${
-                method === 'breast' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400'
-              }`}
-            >
-              Breast
-            </button>
-          </div>
-        )}
+        {showMethodToggle && (() => {
+          const bottleDefault = initialAmount ?? 50
+          // When toggling method, reset amount to method-appropriate default
+          // ONLY if the user hasn't manually adjusted it (amount equals the
+          // current method's default). Preserves typed values across toggles.
+          const switchTo = (newMethod: 'bottle' | 'breast') => {
+            if (newMethod === method) return
+            if (newMethod === 'breast' && amount === bottleDefault) setAmount(0)
+            else if (newMethod === 'bottle' && amount === 0) setAmount(bottleDefault)
+            setMethod(newMethod)
+          }
+          return (
+            <div className="grid grid-cols-2 gap-1 bg-zinc-800/60 rounded-lg p-1 mb-4">
+              <button
+                type="button"
+                onClick={() => switchTo('bottle')}
+                className={`py-2 rounded-md text-sm font-medium transition ${
+                  method === 'bottle' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400'
+                }`}
+              >
+                Bottle
+              </button>
+              <button
+                type="button"
+                onClick={() => switchTo('breast')}
+                className={`py-2 rounded-md text-sm font-medium transition ${
+                  method === 'breast' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400'
+                }`}
+              >
+                Breast
+              </button>
+            </div>
+          )
+        })()}
 
         <div className="text-center mb-2">
           <div className="text-5xl font-light tabular-nums">

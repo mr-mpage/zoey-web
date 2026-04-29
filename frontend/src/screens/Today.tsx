@@ -433,7 +433,7 @@ export function TodayScreen() {
       <AmountModal
         open={feedDraft !== null}
         title={feedDraft?.id ? 'Edit feed' : 'Log feed'}
-        initialAmount={feedDraft?.amount_ml ?? 0}
+        initialAmount={feedDraft?.amount_ml ?? data.next_feed?.target_ml ?? data.per_feed_target_ml ?? 0}
         initialTime={feedDraft?.fed_at}
         initialNotes={feedDraft?.notes}
         initialIsExtra={feedDraft?.is_extra}
