@@ -264,6 +264,48 @@ def update_push_last_notified(sub_id: int, expected_iso: str) -> None:
         )
 
 
+def list_viewer_passcodes() -> list[dict]:
+    with get_conn() as c:
+        rows = c.execute(
+            "SELECT id, label, passcode_hash, last_seen_at, created_at "
+            "FROM viewer_passcodes ORDER BY label"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_viewer_passcode_by_label(label: str) -> Optional[dict]:
+    with get_conn() as c:
+        row = c.execute(
+            "SELECT id, label, passcode_hash, last_seen_at, created_at "
+            "FROM viewer_passcodes WHERE label = ?",
+            (label,),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def create_viewer_passcode(label: str, passcode_hash: str, created_at: datetime) -> int:
+    with get_conn() as c:
+        cur = c.execute(
+            "INSERT INTO viewer_passcodes (label, passcode_hash, created_at) VALUES (?, ?, ?)",
+            (label, passcode_hash, created_at.isoformat()),
+        )
+        return cur.lastrowid
+
+
+def delete_viewer_passcode(viewer_id: int) -> bool:
+    with get_conn() as c:
+        cur = c.execute("DELETE FROM viewer_passcodes WHERE id = ?", (viewer_id,))
+        return cur.rowcount > 0
+
+
+def update_viewer_last_seen(label: str, when: datetime) -> None:
+    with get_conn() as c:
+        c.execute(
+            "UPDATE viewer_passcodes SET last_seen_at = ? WHERE label = ?",
+            (when.isoformat(), label),
+        )
+
+
 def get_settings() -> dict[str, str]:
     with get_conn() as c:
         rows = c.execute("SELECT key, value FROM app_settings").fetchall()

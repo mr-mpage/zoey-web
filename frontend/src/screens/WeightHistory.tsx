@@ -10,6 +10,7 @@ import { FentonChart } from '../components/FentonChart'
 import { WeightModal } from '../components/WeightModal'
 import { WeightNarrativeCard } from '../components/WeightNarrativeCard'
 import { WeightSparkline } from '../components/WeightSparkline'
+import { useIsReadOnly } from '../lib/authMode'
 import { buildWeightNarrative } from '../lib/weightNarrative'
 import { fmtDate } from '../lib/format'
 import { expectedGainRange, gainTone, gainsBetweenEntries, rollingGainRate } from '../lib/growth'
@@ -23,6 +24,7 @@ function pmaAtDate(dateIso: string, birthDateIso: string, gaWeeks: number): { pm
 }
 
 export function WeightHistorySection() {
+  const readOnly = useIsReadOnly()
   const { data: weight } = useWeight()
   const { data: appSettings } = useAppSettings()
   const setWeight = useSetWeight()
@@ -125,12 +127,14 @@ export function WeightHistorySection() {
       })()}
 
       {/* Add weight button */}
-      <button
-        onClick={() => setAdding(true)}
-        className="w-full mb-4 py-3 rounded-xl bg-pink-300 text-zinc-900 font-medium active:scale-[.98]"
-      >
-        + Add weight
-      </button>
+      {!readOnly && (
+        <button
+          onClick={() => setAdding(true)}
+          className="w-full mb-4 py-3 rounded-xl bg-pink-300 text-zinc-900 font-medium active:scale-[.98]"
+        >
+          + Add weight
+        </button>
+      )}
 
       {/* History list */}
       <div className="rounded-2xl bg-zinc-900/60 p-4 mb-4">
@@ -145,8 +149,8 @@ export function WeightHistorySection() {
               return (
                 <li
                   key={w.id}
-                  onClick={() => setEditing(w)}
-                  className="rounded-lg p-2 -mx-2 active:bg-zinc-800/60"
+                  onClick={readOnly ? undefined : () => setEditing(w)}
+                  className={`rounded-lg p-2 -mx-2 ${readOnly ? '' : 'active:bg-zinc-800/60'}`}
                 >
                   <div className="flex justify-between text-sm">
                     <span className="text-zinc-400">{fmtDate(w.recorded_at)}</span>

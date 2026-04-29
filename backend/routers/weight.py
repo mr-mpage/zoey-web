@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from .. import repo
-from ..auth import require_auth
+from ..auth import require_auth, require_edit
 from ..comparisons import TZ, now_local
 from ..models import Weight, WeightIn, WeightStatus
 
@@ -49,7 +49,7 @@ def get_weight() -> WeightStatus:
     return compute_status()
 
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, dependencies=[Depends(require_edit)])
 def post_weight(payload: WeightIn) -> Weight:
     recorded_at = now_local()
     new_id = repo.insert_weight(recorded_at, payload.weight_grams, payload.ml_per_kg_per_day, payload.notes)
@@ -62,7 +62,7 @@ def post_weight(payload: WeightIn) -> Weight:
     )
 
 
-@router.patch("/{weight_id}")
+@router.patch("/{weight_id}", dependencies=[Depends(require_edit)])
 def patch_weight(weight_id: int, payload: WeightPatch) -> dict:
     recorded_at = payload.recorded_at
     if recorded_at is not None and recorded_at.tzinfo is None:
@@ -73,7 +73,7 @@ def patch_weight(weight_id: int, payload: WeightPatch) -> dict:
     return {"ok": True}
 
 
-@router.delete("/{weight_id}")
+@router.delete("/{weight_id}", dependencies=[Depends(require_edit)])
 def delete_weight(weight_id: int) -> dict:
     ok = repo.delete_weight(weight_id)
     if not ok:

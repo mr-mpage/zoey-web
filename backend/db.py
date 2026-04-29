@@ -51,6 +51,14 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
     created_at TEXT NOT NULL,
     last_notified_for TEXT
 );
+
+CREATE TABLE IF NOT EXISTS viewer_passcodes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    label TEXT NOT NULL UNIQUE,
+    passcode_hash TEXT NOT NULL,
+    last_seen_at TEXT,
+    created_at TEXT NOT NULL
+);
 """
 
 DEFAULTS = {

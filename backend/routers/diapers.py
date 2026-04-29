@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from .. import repo
-from ..auth import require_auth
+from ..auth import require_auth, require_edit
 from ..comparisons import TZ, now_local
 from ..models import Diaper, DiaperIn, DiaperPatch
 
@@ -39,14 +39,14 @@ def list_diapers(days: int = Query(default=7, ge=1, le=730)) -> list[Diaper]:
     return [_row_to_diaper(r) for r in rows]
 
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, dependencies=[Depends(require_edit)])
 def create_diaper(payload: DiaperIn) -> Diaper:
     recorded_at = _normalize_time(payload.recorded_at) or now_local()
     new_id = repo.insert_diaper(recorded_at, payload.kind, payload.notes)
     return Diaper(id=new_id, recorded_at=recorded_at, kind=payload.kind, notes=payload.notes)
 
 
-@router.patch("/{diaper_id}")
+@router.patch("/{diaper_id}", dependencies=[Depends(require_edit)])
 def patch_diaper(diaper_id: int, payload: DiaperPatch) -> dict:
     recorded_at = _normalize_time(payload.recorded_at)
     ok = repo.update_diaper(diaper_id, recorded_at, payload.kind, payload.notes)
@@ -55,7 +55,7 @@ def patch_diaper(diaper_id: int, payload: DiaperPatch) -> dict:
     return {"ok": True}
 
 
-@router.delete("/{diaper_id}")
+@router.delete("/{diaper_id}", dependencies=[Depends(require_edit)])
 def delete_diaper(diaper_id: int) -> dict:
     ok = repo.delete_diaper(diaper_id)
     if not ok:

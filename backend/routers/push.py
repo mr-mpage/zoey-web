@@ -4,7 +4,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 
 from .. import repo
-from ..auth import require_auth
+from ..auth import require_auth, require_edit
 from ..comparisons import now_local
 from ..config import settings
 from ..models import PushSubscriptionIn, PushSubscriptionOut, VapidKeyOut
@@ -20,7 +20,7 @@ def vapid_key() -> VapidKeyOut:
     return VapidKeyOut(vapid_public_key=settings.vapid_public_key)
 
 
-@router.post("/subscribe", status_code=201)
+@router.post("/subscribe", status_code=201, dependencies=[Depends(require_edit)])
 def subscribe(payload: PushSubscriptionIn) -> dict:
     new_id = repo.insert_push_subscription(
         endpoint=payload.endpoint,
@@ -32,7 +32,7 @@ def subscribe(payload: PushSubscriptionIn) -> dict:
     return {"id": new_id}
 
 
-@router.delete("/subscribe/{sub_id}")
+@router.delete("/subscribe/{sub_id}", dependencies=[Depends(require_edit)])
 def unsubscribe(sub_id: int) -> dict:
     ok = repo.delete_push_subscription(sub_id)
     if not ok:
@@ -40,7 +40,7 @@ def unsubscribe(sub_id: int) -> dict:
     return {"ok": True}
 
 
-@router.post("/unsubscribe")
+@router.post("/unsubscribe", dependencies=[Depends(require_edit)])
 def unsubscribe_by_endpoint(payload: dict) -> dict:
     """Allow client to unsubscribe by endpoint when it doesn't know the id."""
     endpoint = payload.get("endpoint")
@@ -65,7 +65,7 @@ def list_subs() -> list[PushSubscriptionOut]:
     return out
 
 
-@router.post("/test")
+@router.post("/test", dependencies=[Depends(require_edit)])
 def send_test() -> dict:
     """Send a test notification to all registered devices — useful for debugging."""
     subs = repo.list_push_subscriptions()

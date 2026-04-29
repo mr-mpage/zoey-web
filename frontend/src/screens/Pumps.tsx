@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useDeletePump, useFeeds, usePatchPump, usePumps } from '../api/hooks'
 import { AmountModal } from '../components/AmountModal'
 import { PumpDailyChart } from '../components/PumpDailyChart'
+import { useIsReadOnly } from '../lib/authMode'
 import { fmtDate, fmtTime, localDatetimeInput } from '../lib/format'
 import type { Pump } from '../api/types'
 
@@ -9,6 +10,7 @@ const DETAIL_DAYS = 7
 const CHART_DAYS = 7
 
 export function PumpsScreen() {
+  const readOnly = useIsReadOnly()
   const { data, isLoading } = usePumps(CHART_DAYS)
   const { data: feeds } = useFeeds(CHART_DAYS)
   const patch = usePatchPump()
@@ -72,8 +74,10 @@ export function PumpsScreen() {
               .map((p) => (
                 <li
                   key={p.id}
-                  onClick={() => setEditing(p)}
-                  className="rounded-lg bg-zinc-900/60 p-3 flex justify-between items-center active:bg-zinc-900"
+                  onClick={readOnly ? undefined : () => setEditing(p)}
+                  className={`rounded-lg bg-zinc-900/60 p-3 flex justify-between items-center ${
+                    readOnly ? '' : 'active:bg-zinc-900'
+                  }`}
                 >
                   <div>
                     <div className="tabular-nums">{p.amount_ml.toFixed(0)} ml</div>

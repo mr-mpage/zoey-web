@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from .. import repo
-from ..auth import require_auth
+from ..auth import require_auth, require_edit
 from ..comparisons import TZ, now_local
 from ..models import Pump, PumpIn, PumpPatch
 
@@ -39,14 +39,14 @@ def list_pumps(days: int = Query(default=7, ge=1, le=730)) -> list[Pump]:
     return [_row_to_pump(r) for r in rows]
 
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, dependencies=[Depends(require_edit)])
 def create_pump(payload: PumpIn) -> Pump:
     pumped_at = _normalize_time(payload.pumped_at) or now_local()
     new_id = repo.insert_pump(pumped_at, payload.amount_ml, payload.notes)
     return Pump(id=new_id, pumped_at=pumped_at, amount_ml=payload.amount_ml, notes=payload.notes)
 
 
-@router.patch("/{pump_id}")
+@router.patch("/{pump_id}", dependencies=[Depends(require_edit)])
 def patch_pump(pump_id: int, payload: PumpPatch) -> dict:
     pumped_at = _normalize_time(payload.pumped_at)
     ok = repo.update_pump(pump_id, pumped_at, payload.amount_ml, payload.notes)
@@ -55,7 +55,7 @@ def patch_pump(pump_id: int, payload: PumpPatch) -> dict:
     return {"ok": True}
 
 
-@router.delete("/{pump_id}")
+@router.delete("/{pump_id}", dependencies=[Depends(require_edit)])
 def delete_pump(pump_id: int) -> dict:
     ok = repo.delete_pump(pump_id)
     if not ok:

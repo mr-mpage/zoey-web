@@ -62,11 +62,23 @@ const TABS: { id: Tab; label: string; Icon: (p: IconProps) => React.ReactElement
   { id: 'settings', label: 'Settings', Icon: SettingsIcon },
 ]
 
-export function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
+export function TabBar({
+  active,
+  onChange,
+  hideSettings = false,
+}: {
+  active: Tab
+  onChange: (t: Tab) => void
+  hideSettings?: boolean
+}) {
+  const visible = hideSettings ? TABS.filter((t) => t.id !== 'settings') : TABS
   return (
     <nav className="fixed bottom-0 inset-x-0 bg-zinc-950/95 backdrop-blur border-t border-zinc-900 pb-[env(safe-area-inset-bottom)]">
-      <div className="max-w-xl mx-auto grid grid-cols-5">
-        {TABS.map((t) => (
+      <div
+        className="max-w-xl mx-auto grid"
+        style={{ gridTemplateColumns: `repeat(${visible.length}, minmax(0, 1fr))` }}
+      >
+        {visible.map((t) => (
           <button
             key={t.id}
             onClick={() => onChange(t.id)}

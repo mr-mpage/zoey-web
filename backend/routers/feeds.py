@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from .. import repo
-from ..auth import require_auth
+from ..auth import require_auth, require_edit
 from ..comparisons import TZ, now_local
 from ..models import Feed, FeedIn, FeedPatch
 
@@ -45,7 +45,7 @@ def list_feeds(
     return [_row_to_feed(r) for r in rows]
 
 
-@router.post("", status_code=201)
+@router.post("", status_code=201, dependencies=[Depends(require_edit)])
 def create_feed(payload: FeedIn) -> Feed:
     fed_at = _normalize_time(payload.fed_at) or now_local()
     new_id = repo.insert_feed(
@@ -64,7 +64,7 @@ def create_feed(payload: FeedIn) -> Feed:
     )
 
 
-@router.patch("/{feed_id}")
+@router.patch("/{feed_id}", dependencies=[Depends(require_edit)])
 def patch_feed(feed_id: int, payload: FeedPatch) -> dict:
     fed_at = _normalize_time(payload.fed_at)
     # Treat empty-string feeding_day_override as 'clear'; non-empty as 'set'.
@@ -80,7 +80,7 @@ def patch_feed(feed_id: int, payload: FeedPatch) -> dict:
     return {"ok": True}
 
 
-@router.delete("/{feed_id}")
+@router.delete("/{feed_id}", dependencies=[Depends(require_edit)])
 def delete_feed(feed_id: int) -> dict:
     ok = repo.delete_feed(feed_id)
     if not ok:

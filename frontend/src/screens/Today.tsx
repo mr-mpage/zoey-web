@@ -19,6 +19,8 @@ import { EncouragementCard } from '../components/EncouragementCard'
 import { PaceChip } from '../components/PaceChip'
 import { ProgressRing } from '../components/ProgressRing'
 import { StatusBadge } from '../components/StatusBadge'
+import { ViewModeBadge } from '../components/ViewModeBadge'
+import { useIsReadOnly } from '../lib/authMode'
 import { ZOEY_BIRTH_ISO } from '../lib/constants'
 import { buildEncouragement } from '../lib/encouragement'
 import { fmtClock, fmtDateLong, fmtMl, fmtRelative, fmtTime, friendlyAge, localDatetimeInput } from '../lib/format'
@@ -113,6 +115,7 @@ type BoundaryPrompt = {
 type PumpDraft = { amount_ml?: number; pumped_at?: string; notes?: string }
 
 export function TodayScreen() {
+  const readOnly = useIsReadOnly()
   const { data, isLoading } = useDashboard()
   const { data: weight } = useWeight()
   const { data: appSettings } = useAppSettings()
@@ -270,6 +273,7 @@ export function TodayScreen() {
             </span>
           )}
         </div>
+        <ViewModeBadge />
       </div>
 
       <div className="relative flex justify-center mt-4">
@@ -318,28 +322,30 @@ export function TodayScreen() {
 
       <EncouragementCard enc={buildEncouragement(data)} />
 
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <button
-          onClick={() => setPumpDraft({})}
-          className="col-span-1 py-3.5 rounded-xl bg-zinc-800 text-zinc-100 font-medium active:scale-[.98]"
-        >
-          + Pump
-        </button>
-        <button
-          onClick={() => setFeedDraft({})}
-          className="col-span-2 py-3.5 rounded-xl bg-pink-300 text-zinc-900 font-medium active:scale-[.98] flex items-center justify-center gap-2"
-        >
-          <span>+ Feed</span>
-          {(() => {
-            const suggest = data.next_feed?.target_ml ?? (data.daily_target_ml > 0 ? data.per_feed_target_ml : null)
-            return suggest !== null && suggest > 0 ? (
-              <span className="text-zinc-900/60 font-normal tabular-nums">
-                · suggest {suggest.toFixed(0)} ml
-              </span>
-            ) : null
-          })()}
-        </button>
-      </div>
+      {!readOnly && (
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <button
+            onClick={() => setPumpDraft({})}
+            className="col-span-1 py-3.5 rounded-xl bg-zinc-800 text-zinc-100 font-medium active:scale-[.98]"
+          >
+            + Pump
+          </button>
+          <button
+            onClick={() => setFeedDraft({})}
+            className="col-span-2 py-3.5 rounded-xl bg-pink-300 text-zinc-900 font-medium active:scale-[.98] flex items-center justify-center gap-2"
+          >
+            <span>+ Feed</span>
+            {(() => {
+              const suggest = data.next_feed?.target_ml ?? (data.daily_target_ml > 0 ? data.per_feed_target_ml : null)
+              return suggest !== null && suggest > 0 ? (
+                <span className="text-zinc-900/60 font-normal tabular-nums">
+                  · suggest {suggest.toFixed(0)} ml
+                </span>
+              ) : null
+            })()}
+          </button>
+        </div>
+      )}
 
       {(() => {
         const lastOf = (kind: 'wet' | 'dirty') => {
@@ -347,6 +353,22 @@ export function TodayScreen() {
             .filter((d) => d.kind === kind)
             .sort((a, b) => +new Date(b.recorded_at) - +new Date(a.recorded_at))[0]
           return last ? last.recorded_at : null
+        }
+        if (readOnly) {
+          return (
+            <div className="mt-3 rounded-lg bg-zinc-900/50 p-3 grid grid-cols-2 gap-3 text-center">
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-zinc-500">Wet</div>
+                <div className="tabular-nums text-zinc-100">{data.diapers_today.wet}</div>
+                <DiaperLastLine at={lastOf('wet')} />
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-zinc-500">Dirty</div>
+                <div className="tabular-nums text-zinc-100">{data.diapers_today.dirty}</div>
+                <DiaperLastLine at={lastOf('dirty')} />
+              </div>
+            </div>
+          )
         }
         return (
           <div className="mt-2 grid grid-cols-2 gap-2">
@@ -541,8 +563,10 @@ export function TodayScreen() {
               return (
                 <li
                   key={f.id}
-                  onClick={() => openEditFeed(f)}
-                  className={`rounded-xl p-3 flex items-center gap-3 active:bg-zinc-900 ${
+                  onClick={readOnly ? undefined : () => openEditFeed(f)}
+                  className={`rounded-xl p-3 flex items-center gap-3 ${
+                    readOnly ? '' : 'active:bg-zinc-900'
+                  } ${
                     f.is_extra ? 'bg-amber-500/5 border border-amber-500/20' : 'bg-zinc-900/60'
                   } ${i === 0 ? 'animate-feed-fade-in' : ''}`}
                 >

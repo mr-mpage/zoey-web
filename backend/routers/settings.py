@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from .. import repo
-from ..auth import require_auth
+from ..auth import require_auth, require_edit
 from ..models import AppSettings, AppSettingsPatch
 
 router = APIRouter(prefix="/api/settings", tags=["settings"], dependencies=[Depends(require_auth)])
@@ -28,7 +28,7 @@ def get_settings() -> AppSettings:
     return _current()
 
 
-@router.patch("")
+@router.patch("", dependencies=[Depends(require_edit)])
 def patch_settings(payload: AppSettingsPatch) -> AppSettings:
     updates: dict[str, str] = {}
     if payload.day_start_hour is not None:

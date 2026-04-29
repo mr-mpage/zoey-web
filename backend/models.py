@@ -151,6 +151,18 @@ class LoginIn(BaseModel):
     passcode: str
 
 
+class ViewerPasscodeIn(BaseModel):
+    label: str = Field(min_length=1, max_length=40)
+    passcode: str = Field(min_length=4, max_length=64)
+
+
+class ViewerPasscode(BaseModel):
+    id: int
+    label: str
+    last_seen_at: Optional[str] = None
+    created_at: str
+
+
 class PushSubscriptionKeys(BaseModel):
     p256dh: str
     auth: str

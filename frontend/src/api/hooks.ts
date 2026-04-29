@@ -4,10 +4,16 @@ import { useToast } from '../lib/toast'
 import { fmtClock } from '../lib/format'
 import type { AppSettings, Dashboard, Diaper, Feed, Overview, Pump, Weight, WeightStatus } from './types'
 
+export type AuthState = {
+  authenticated: boolean
+  mode?: 'edit' | 'view'
+  label?: string | null
+}
+
 export function useAuthStatus() {
   return useQuery({
     queryKey: ['auth'],
-    queryFn: () => api.get<{ authenticated: boolean }>('/api/auth/me'),
+    queryFn: () => api.get<AuthState>('/api/auth/me'),
     staleTime: 30_000,
   })
 }
@@ -15,8 +21,48 @@ export function useAuthStatus() {
 export function useLogin() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (passcode: string) => api.post<{ authenticated: boolean }>('/api/auth/login', { passcode }),
+    mutationFn: (passcode: string) => api.post<AuthState>('/api/auth/login', { passcode }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['auth'] }),
+  })
+}
+
+export type ViewerPasscode = {
+  id: number
+  label: string
+  last_seen_at: string | null
+  created_at: string
+}
+
+export function useViewerPasscodes() {
+  return useQuery({
+    queryKey: ['viewer-passcodes'],
+    queryFn: () => api.get<ViewerPasscode[]>('/api/auth/viewer-passcodes'),
+    refetchInterval: 60_000,
+  })
+}
+
+export function useCreateViewerPasscode() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: (input: { label: string; passcode: string }) =>
+      api.post<ViewerPasscode>('/api/auth/viewer-passcodes', input),
+    onSuccess: (v) => {
+      qc.invalidateQueries({ queryKey: ['viewer-passcodes'] })
+      toast.success(`Viewer "${v.label}" added`)
+    },
+  })
+}
+
+export function useDeleteViewerPasscode() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: (v: ViewerPasscode) => api.del(`/api/auth/viewer-passcodes/${v.id}`).then(() => v),
+    onSuccess: (v) => {
+      qc.invalidateQueries({ queryKey: ['viewer-passcodes'] })
+      toast.success(`Viewer "${v.label}" removed`)
+    },
   })
 }
 

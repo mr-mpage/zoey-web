@@ -1,7 +1,98 @@
 import { useEffect, useState } from 'react'
-import { useAppSettings, useLogout, useUpdateAppSettings } from '../api/hooks'
+import {
+  useAppSettings,
+  useCreateViewerPasscode,
+  useDeleteViewerPasscode,
+  useLogout,
+  useUpdateAppSettings,
+  useViewerPasscodes,
+  type ViewerPasscode,
+} from '../api/hooks'
 import { api, ApiError } from '../api/client'
 import { disablePush, enablePush, getState as getPushState, isStandalone } from '../lib/push'
+import { fmtDate, fmtTime } from '../lib/format'
+
+function ViewerPasscodesSection() {
+  const { data: viewers } = useViewerPasscodes()
+  const create = useCreateViewerPasscode()
+  const del = useDeleteViewerPasscode()
+  const [label, setLabel] = useState('')
+  const [passcode, setPasscode] = useState('')
+
+  const submit = () => {
+    const l = label.trim().toLowerCase()
+    if (!l || passcode.length < 4) return
+    create.mutate(
+      { label: l, passcode },
+      {
+        onSuccess: () => {
+          setLabel('')
+          setPasscode('')
+        },
+      },
+    )
+  }
+
+  const lastSeen = (v: ViewerPasscode) => {
+    if (!v.last_seen_at) return 'never opened'
+    return `last seen ${fmtDate(v.last_seen_at)} at ${fmtTime(v.last_seen_at)}`
+  }
+
+  return (
+    <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">
+      <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Read-only viewers</div>
+      <p className="text-xs text-zinc-500 mb-3">
+        Each viewer gets their own passcode and a label so you can tell who's looked.
+        Read-only sessions can't add or edit anything and last 7 days before requiring a fresh sign-in.
+      </p>
+
+      {(viewers ?? []).length === 0 && (
+        <div className="text-[12px] text-zinc-600 italic mb-3">No viewers yet.</div>
+      )}
+      <ul className="space-y-1.5 mb-3">
+        {(viewers ?? []).map((v) => (
+          <li key={v.id} className="flex items-center justify-between rounded-lg bg-zinc-800/60 px-3 py-2">
+            <div className="min-w-0">
+              <div className="text-sm capitalize">{v.label}</div>
+              <div className="text-[11px] text-zinc-500 truncate">{lastSeen(v)}</div>
+            </div>
+            <button
+              onClick={() => del.mutate(v)}
+              disabled={del.isPending}
+              className="text-rose-300 text-xs px-2 py-1 rounded bg-rose-950/60 disabled:opacity-40"
+            >
+              Remove
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <div className="space-y-2">
+        <input
+          type="text"
+          placeholder="Label (e.g. granny, doctor)"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          className="w-full bg-zinc-800 rounded-lg px-3 py-2 text-sm"
+        />
+        <input
+          inputMode="numeric"
+          placeholder="Passcode (≥ 4 chars)"
+          value={passcode}
+          onChange={(e) => setPasscode(e.target.value)}
+          className="w-full bg-zinc-800 rounded-lg px-3 py-2 text-sm tabular-nums"
+        />
+        <button
+          onClick={submit}
+          disabled={create.isPending || !label.trim() || passcode.length < 4}
+          className="w-full py-2.5 rounded-lg bg-pink-300 text-zinc-900 text-sm font-medium disabled:opacity-40"
+        >
+          {create.isPending ? 'Adding…' : 'Add viewer'}
+        </button>
+      </div>
+    </div>
+  )
+}
 
 function PushSection() {
   const [state, setState] = useState<'unsupported' | 'denied' | 'available' | 'enabled' | 'loading'>('loading')
@@ -379,6 +470,8 @@ export function SettingsScreen() {
       </div>
 
       <PushSection />
+
+      <ViewerPasscodesSection />
 
       <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">
         <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Doctor visit</div>

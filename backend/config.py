@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     # multiple feeds.
     pace_threshold_pct: float = 10.0
     session_max_age_days: int = 90
+    viewer_session_max_age_days: int = 7
     rate_limit_window_min: int = 15
     rate_limit_max_attempts: int = 5
     vapid_public_key: str = ""
