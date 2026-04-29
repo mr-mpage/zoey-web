@@ -2,10 +2,14 @@ import { useState } from 'react'
 
 type Props = { open: boolean; onClose: () => void }
 
+type Tone = 'emerald' | 'pink' | 'amber' | 'sky' | 'lime' | 'violet' | 'rose'
+
 type Section = {
   id: string
   title: string
   blurb: string
+  tone: Tone
+  icon: React.ReactNode
   body: React.ReactNode
 }
 
@@ -13,11 +17,51 @@ function H({ children }: { children: React.ReactNode }) {
   return <div className="text-pink-200 font-medium mb-1.5 mt-3 first:mt-0">{children}</div>
 }
 
+/** Per-tone classNames. Tailwind needs the literal class strings to be present
+ *  in source for the JIT to keep them, hence this static lookup. */
+const TONES: Record<Tone, { iconBg: string; iconFg: string; openBorder: string; openBg: string }> = {
+  emerald: { iconBg: 'bg-emerald-300/15', iconFg: 'text-emerald-300', openBorder: 'border-emerald-400/40', openBg: 'bg-emerald-300/[0.04]' },
+  pink:    { iconBg: 'bg-pink-300/15',    iconFg: 'text-pink-300',    openBorder: 'border-pink-400/40',    openBg: 'bg-pink-300/[0.04]' },
+  amber:   { iconBg: 'bg-amber-300/15',   iconFg: 'text-amber-300',   openBorder: 'border-amber-400/40',   openBg: 'bg-amber-300/[0.04]' },
+  sky:     { iconBg: 'bg-sky-300/15',     iconFg: 'text-sky-300',     openBorder: 'border-sky-400/40',     openBg: 'bg-sky-300/[0.04]' },
+  lime:    { iconBg: 'bg-lime-300/15',    iconFg: 'text-lime-300',    openBorder: 'border-lime-400/40',    openBg: 'bg-lime-300/[0.04]' },
+  violet:  { iconBg: 'bg-violet-300/15',  iconFg: 'text-violet-300',  openBorder: 'border-violet-400/40',  openBg: 'bg-violet-300/[0.04]' },
+  rose:    { iconBg: 'bg-rose-300/15',    iconFg: 'text-rose-300',    openBorder: 'border-rose-400/40',    openBg: 'bg-rose-300/[0.04]' },
+}
+
+const ICON_PROPS = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+
+const Icons = {
+  today: (
+    <svg {...ICON_PROPS}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+  ),
+  bottle: (
+    <svg {...ICON_PROPS}><path d="M9 3h6" /><path d="M10 3v3.5a3 3 0 0 1-.4 1.5l-1.2 2a4 4 0 0 0-.4 1.7V19a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-7.3a4 4 0 0 0-.4-1.7l-1.2-2A3 3 0 0 1 14 6.5V3" /><path d="M8 13h8" /></svg>
+  ),
+  diaper: (
+    <svg {...ICON_PROPS}><path d="M3 7c4 6 14 6 18 0" /><path d="M3 7l2 9a3 3 0 0 0 3 2.5h8a3 3 0 0 0 3-2.5l2-9" /><path d="M9 12c1 1 5 1 6 0" /></svg>
+  ),
+  pump: (
+    <svg {...ICON_PROPS}><path d="M12 3c3 4 5 7 5 10a5 5 0 1 1-10 0c0-3 2-6 5-10z" /></svg>
+  ),
+  growth: (
+    <svg {...ICON_PROPS}><path d="M4 19V5" /><path d="M4 19h16" /><path d="M7 16l4-5 3 3 5-7" /></svg>
+  ),
+  bell: (
+    <svg {...ICON_PROPS}><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6z" /><path d="M10 19a2 2 0 0 0 4 0" /></svg>
+  ),
+  shield: (
+    <svg {...ICON_PROPS}><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z" /><path d="M9 12l2 2 4-4" /></svg>
+  ),
+}
+
 const SECTIONS: Section[] = [
   {
     id: 'today',
     title: 'The Today screen',
     blurb: 'Progress ring, pace chip, status card, next feed.',
+    tone: 'emerald',
+    icon: Icons.today,
     body: (
       <>
         <H>What you see on Today</H>
@@ -56,6 +100,8 @@ const SECTIONS: Section[] = [
     id: 'feeds',
     title: 'Logging feeds',
     blurb: 'Comparison badges, breastfeeding, extras, day boundary.',
+    tone: 'pink',
+    icon: Icons.bottle,
     body: (
       <>
         <H>Comparison badges (↓ ≈ ↑)</H>
@@ -111,6 +157,8 @@ const SECTIONS: Section[] = [
     id: 'diapers',
     title: 'Diapers',
     blurb: 'Tap +Wet / +Dirty; tap the count to edit notes.',
+    tone: 'amber',
+    icon: Icons.diaper,
     body: (
       <p>
         Tap <span className="bg-zinc-800 text-zinc-100 px-1.5 rounded">+ Wet</span> or{' '}
@@ -126,6 +174,8 @@ const SECTIONS: Section[] = [
     id: 'pumps',
     title: 'Pumps',
     blurb: '30-day supply chart + 7-day detail, edit on tap.',
+    tone: 'sky',
+    icon: Icons.pump,
     body: (
       <p>
         The Pumps tab opens with a 30-day daily-totals chart. Today's bar is highlighted; a dashed line
@@ -139,6 +189,8 @@ const SECTIONS: Section[] = [
     id: 'weight',
     title: 'Weight & growth',
     blurb: 'Fenton 2025 chart, PMA-aware bands, history colours.',
+    tone: 'lime',
+    icon: Icons.growth,
     body: (
       <>
         <H>Updating her weight</H>
@@ -194,6 +246,8 @@ const SECTIONS: Section[] = [
     id: 'schedule',
     title: 'Schedule, reminders, reports',
     blurb: 'Anchor time, push notifications, doctor PDF.',
+    tone: 'violet',
+    icon: Icons.bell,
     body: (
       <>
         <H>Feeding schedule</H>
@@ -228,6 +282,8 @@ const SECTIONS: Section[] = [
     id: 'flags',
     title: 'What to watch for & privacy',
     blurb: 'Patterns worth raising; backup model.',
+    tone: 'rose',
+    icon: Icons.shield,
     body: (
       <>
         <H>What to watch for</H>
@@ -302,17 +358,21 @@ export function HelpModal({ open, onClose }: Props) {
           <div className="space-y-2">
             {SECTIONS.map((s) => {
               const isOpen = openId === s.id
+              const t = TONES[s.tone]
               return (
                 <div
                   key={s.id}
-                  className={`rounded-xl border ${isOpen ? 'bg-zinc-800/40 border-zinc-700' : 'bg-zinc-900/50 border-zinc-800'}`}
+                  className={`rounded-xl border ${isOpen ? `${t.openBorder} ${t.openBg}` : 'bg-zinc-900/50 border-zinc-800'}`}
                 >
                   <button
                     onClick={() => setOpenId(isOpen ? null : s.id)}
-                    className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left active:bg-zinc-800/60 rounded-xl"
+                    className="w-full flex items-center gap-3 px-3 py-3 text-left active:bg-zinc-800/60 rounded-xl"
                     aria-expanded={isOpen}
                   >
-                    <div className="min-w-0">
+                    <div className={`w-9 h-9 rounded-lg ${t.iconBg} ${t.iconFg} flex items-center justify-center shrink-0`}>
+                      {s.icon}
+                    </div>
+                    <div className="min-w-0 flex-1">
                       <div className="font-medium text-zinc-100">{s.title}</div>
                       <div className="text-[11px] text-zinc-500 truncate">{s.blurb}</div>
                     </div>
@@ -321,7 +381,7 @@ export function HelpModal({ open, onClose }: Props) {
                     </span>
                   </button>
                   {isOpen && (
-                    <div className="px-4 pb-4 pt-1 text-[13px] leading-relaxed border-t border-zinc-800">
+                    <div className="px-4 pb-4 pt-1 text-[13px] leading-relaxed border-t border-zinc-800/60">
                       {s.body}
                     </div>
                   )}
