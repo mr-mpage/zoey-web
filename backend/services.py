@@ -306,12 +306,17 @@ def compute_overview() -> Overview:
 
     # Today's pace — quick look at where today sits
     nf = compute_next_feed()
-    # We compute pace inline rather than depending on dashboard router
+    # We compute pace inline rather than depending on dashboard router.
+    # Pad the SQL window by one day on each side so feeds whose raw fed_at
+    # sits just before the anchor but carry a feeding_day_override for
+    # today still get pulled in. index_feeds_by_feeding_day then buckets
+    # them under the override day, matching the dashboard's totals.
     s_anchor_h = int(s.get("day_start_hour", "2"))
     s_anchor_m = int(s.get("day_start_minute", "30"))
     today = feeding_day_for(now_local(), s_anchor_h, s_anchor_m)
-    today_start, today_end = feeding_day_bounds(today, s_anchor_h, s_anchor_m)
-    feed_rows = repo.list_feeds_between(today_start.isoformat(), today_end.isoformat())
+    pad_start, _ = feeding_day_bounds(today - timedelta(days=1), s_anchor_h, s_anchor_m)
+    _, pad_end = feeding_day_bounds(today + timedelta(days=1), s_anchor_h, s_anchor_m)
+    feed_rows = repo.list_feeds_between(pad_start.isoformat(), pad_end.isoformat())
     by_day = index_feeds_by_feeding_day(feed_rows, s_anchor_h, s_anchor_m)
     todays = sorted(by_day.get(today, []), key=lambda r: r["fed_at"])
     scheduled_today = [f for f in todays if not f.get("is_extra")]
