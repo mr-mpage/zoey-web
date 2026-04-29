@@ -7,21 +7,21 @@ export type Encouragement = {
   text: string
 }
 
-/** Stable per-day rotation: same branch+day picks the same phrasing all day. */
-function pickStable(dayKey: string, branch: string, options: string[]): string {
+/** Stable per (day + branch + recent activity) rotation. Including feedsDone
+ *  and the last feed's id means the phrase changes after every new feed,
+ *  giving variety without flicker mid-glance. */
+function pickStable(seed: string, options: string[]): string {
   let h = 0
-  const seed = `${dayKey}|${branch}`
   for (let i = 0; i < seed.length; i++) {
     h = (h * 31 + seed.charCodeAt(i)) | 0
   }
   return options[Math.abs(h) % options.length]
 }
 
-/** Plain-language status line for the Today screen. Branches off pace_status
- * (the single source of truth from the backend) so the verdict can never
- * disagree with the pace chip. Magnitude-based sub-tiering within each pace
- * state uses the gap relative to per-feed target (a "big" deviation is more
- * than ~1.5 feeds' worth). */
+/** Plain language status line for the Today screen. Tone calibrated by
+ *  pace tier so it matches the chip below: warm and celebratory when on
+ *  track or ahead, gently encouraging when slightly under, firm but kind
+ *  when well behind, and never punitive at end of day. */
 export function buildEncouragement(d: Dashboard): Encouragement {
   const feedsDone = d.feeds_today.filter((f) => !f.is_extra).length
   const remaining = d.feeds_remaining
@@ -33,22 +33,25 @@ export function buildEncouragement(d: Dashboard): Encouragement {
   const nf = d.next_feed
   const next = nf?.target_ml ?? d.per_feed_target_ml
   const last = feedsDone > 0 ? d.feeds_today[feedsDone - 1] : null
-  const dayKey = d.today_date
+  const lastId = last?.id ?? 0
 
-  const perFeed = d.per_feed_target_ml || 1
-  const bigDeviation = absGap > perFeed * 1.5
+  const seedBase = `${d.today_date}|${feedsDone}|${lastId}`
+  const seedFor = (branch: string) => `${seedBase}|${branch}`
 
   if (target === 0) {
-    return { tone: 'neutral', text: 'Set her current weight in Settings to unlock the daily target.' }
+    return { tone: 'neutral', text: 'Add her current weight in Settings to unlock the daily target.' }
   }
 
   if (feedsDone === 0) {
     return {
       tone: 'neutral',
-      text: pickStable(dayKey, 'start', [
-        `Day's just starting. Aim for around ${next.toFixed(0)} ml on her first feed.`,
-        `Fresh day. ${next.toFixed(0)} ml is a good first-feed target.`,
-        `Morning. Around ${next.toFixed(0)} ml to get going.`,
+      text: pickStable(seedFor('start'), [
+        `Fresh start. About ${next.toFixed(0)} ml is a nice first feed.`,
+        `Good morning. Aim for around ${next.toFixed(0)} ml to kick things off.`,
+        `New day, new feeds. ${next.toFixed(0)} ml is a good opener.`,
+        `Hello, day! ${next.toFixed(0)} ml or so on her first bottle.`,
+        `Let's go. Around ${next.toFixed(0)} ml to start the rhythm.`,
+        `Off we go. ${next.toFixed(0)} ml is a comfortable first target.`,
       ]),
     }
   }
@@ -57,134 +60,193 @@ export function buildEncouragement(d: Dashboard): Encouragement {
     if (total >= target) {
       return {
         tone: 'celebrate',
-        text: pickStable(dayKey, 'done-hit', [
-          `All ${feedsDone} feeds done, target reached. Great work today.`,
-          `Target hit, all feeds in. Lovely job.`,
-          `Day complete and over the line. Nicely done.`,
+        text: pickStable(seedFor('done-hit'), [
+          `All ${feedsDone} feeds done and target hit. Beautiful work today.`,
+          `Day complete and over the line. Great job, both of you.`,
+          `Target reached, every feed in. Lovely day.`,
+          `Done and dusted, comfortably past target. Well done.`,
+          `${feedsDone} feeds, target met. She did brilliantly.`,
+          `Closing the day strong. Well fed, well done.`,
         ]),
       }
     }
     if (absGap <= target * 0.05) {
       return {
         tone: 'positive',
-        text: pickStable(dayKey, 'done-close', [
-          `All feeds done — landed right on target. Nicely paced day.`,
-          `Day complete, basically on target. Well paced.`,
+        text: pickStable(seedFor('done-close'), [
+          `All feeds in and basically right on target. Lovely paced day.`,
+          `Day's wrapped, landed almost exactly on target. Nicely done.`,
+          `Done, and within a whisker of target. Great pacing.`,
+          `Final feed in. Within a few ml of target, that counts.`,
         ]),
       }
     }
     return {
       tone: 'neutral',
-      text: pickStable(dayKey, 'done-under', [
-        `All feeds done. ${absGap.toFixed(0)} ml under target — tomorrow's a fresh start.`,
-        `Day's wrapped, ${absGap.toFixed(0)} ml short of target. Reset and go again tomorrow.`,
+      text: pickStable(seedFor('done-under'), [
+        `That's the day done. ${absGap.toFixed(0)} ml shy of target, fresh start tomorrow.`,
+        `All feeds in. ${absGap.toFixed(0)} ml under, but she ate what she could.`,
+        `Day's wrapped. A little under today, no drama, reset tomorrow.`,
+        `Done. ${absGap.toFixed(0)} ml short, but every feed counted. Onward.`,
       ]),
     }
   }
 
-  // Normalise the 7-tier pace into 3 buckets for messaging:
-  //  big behind = behind/well_behind ; small behind = slightly_behind
-  //  big ahead = ahead/well_ahead ; small ahead = slightly_ahead
-  const isBigBehind = pace === 'behind' || pace === 'well_behind'
-  const isSmallBehind = pace === 'slightly_behind'
-  const isBigAhead = pace === 'ahead' || pace === 'well_ahead'
-  const isSmallAhead = pace === 'slightly_ahead'
-  void bigDeviation // retained for future use; tier already encodes magnitude
+  // Pace tier buckets
+  const isWellBehind = pace === 'well_behind'
+  const isBehind = pace === 'behind'
+  const isSlightlyBehind = pace === 'slightly_behind'
+  const isWellAhead = pace === 'well_ahead'
+  const isAhead = pace === 'ahead'
+  const isSlightlyAhead = pace === 'slightly_ahead'
 
-  // Last feed — special-case so the wording reflects "this is the closer"
+  // Last feed of the day
   if (remaining === 1) {
-    if (isBigBehind || isSmallBehind) {
+    if (isWellBehind) {
       return {
-        tone: isBigBehind ? 'concern' : 'neutral',
-        text: pickStable(dayKey, 'last-behind', [
-          `Last feed of the day. She's ${absGap.toFixed(0)} ml short — try ${next.toFixed(0)} ml, but don't force it if she's done.`,
-          `One feed left. ${absGap.toFixed(0)} ml behind — aim for ${next.toFixed(0)} ml, ok to let her stop when full.`,
+        tone: 'concern',
+        text: pickStable(seedFor('last-well-behind'), [
+          `Last feed and ${absGap.toFixed(0)} ml short. Aim for ${next.toFixed(0)} ml, gently. Never force her.`,
+          `One feed to go, ${absGap.toFixed(0)} ml under. Try ${next.toFixed(0)} ml, but only what she'll take.`,
+          `Closing feed. She's well behind today. ${next.toFixed(0)} ml is the goal, ease into it.`,
         ]),
       }
     }
-    if (isBigAhead || isSmallAhead) {
+    if (isBehind || isSlightlyBehind) {
+      return {
+        tone: isBehind ? 'concern' : 'neutral',
+        text: pickStable(seedFor('last-behind'), [
+          `Last feed of the day. She's ${absGap.toFixed(0)} ml short, ${next.toFixed(0)} ml would be lovely if she'll take it.`,
+          `One to go. ${absGap.toFixed(0)} ml behind, try ${next.toFixed(0)} ml and let her tell you when she's done.`,
+          `Final feed. Aim for around ${next.toFixed(0)} ml, no pressure if she stops earlier.`,
+          `Almost there. ${next.toFixed(0)} ml on this last one, she'll do what she can.`,
+        ]),
+      }
+    }
+    if (isWellAhead || isAhead || isSlightlyAhead) {
       return {
         tone: 'positive',
-        text: pickStable(dayKey, 'last-ahead', [
-          `Last feed — she's already ahead. ${next.toFixed(0)} ml is plenty to close out.`,
-          `One to go and you're already past target. ${next.toFixed(0)} ml will do it.`,
+        text: pickStable(seedFor('last-ahead'), [
+          `Last feed and she's already ahead! ${next.toFixed(0)} ml is plenty to close out.`,
+          `One to go and target's already in the bag. ${next.toFixed(0)} ml is fine.`,
+          `Final feed of a strong day. ${next.toFixed(0)} ml will do it nicely.`,
+          `Closing feed. She crushed today, ${next.toFixed(0)} ml is comfortable.`,
         ]),
       }
     }
     return {
       tone: 'positive',
-      text: pickStable(dayKey, 'last-on', [
-        `Last feed coming up. About ${next.toFixed(0)} ml will land her on target.`,
+      text: pickStable(seedFor('last-on'), [
+        `Last feed coming up. About ${next.toFixed(0)} ml lands her right on target.`,
         `One to go. ${next.toFixed(0)} ml gets her there.`,
+        `Final feed of a well paced day. Around ${next.toFixed(0)} ml.`,
+        `Almost done. ${next.toFixed(0)} ml on this one closes it out.`,
       ]),
     }
   }
 
-  // Mid-day — branch off pace_status so we can't contradict the pace chip
-  if (isBigBehind) {
+  // Mid day, by pace tier
+  if (isWellBehind) {
     return {
       tone: 'concern',
-      text: pickStable(dayKey, 'behind-big', [
-        `Behind by ${absGap.toFixed(0)} ml. Aim for ${next.toFixed(0)} ml on the next feed and see how she takes it — never force.`,
-        `${absGap.toFixed(0)} ml short. Try ${next.toFixed(0)} ml next, but only what she'll take comfortably.`,
+      text: pickStable(seedFor('mid-well-behind'), [
+        `She's ${absGap.toFixed(0)} ml behind right now. Let's nudge the next feed up to ${next.toFixed(0)} ml if she'll take it. Never force.`,
+        `Quite a gap today, ${absGap.toFixed(0)} ml short. Aim for ${next.toFixed(0)} ml next and watch how she handles it.`,
+        `${absGap.toFixed(0)} ml under pace. Try ${next.toFixed(0)} ml on the next bottle, but only what's comfortable.`,
+        `She needs to catch up a bit. ${next.toFixed(0)} ml on the next feed if she's willing.`,
       ]),
     }
   }
-  if (isSmallBehind) {
+  if (isBehind) {
+    return {
+      tone: 'concern',
+      text: pickStable(seedFor('mid-behind'), [
+        `A bit behind, ${absGap.toFixed(0)} ml under. ${next.toFixed(0)} ml next will start to bring her back.`,
+        `She's ${absGap.toFixed(0)} ml short of pace. Aim for ${next.toFixed(0)} ml and see how it goes.`,
+        `Falling slightly behind. ${next.toFixed(0)} ml on the next one should help.`,
+        `${absGap.toFixed(0)} ml under, totally fine to make up. Try ${next.toFixed(0)} ml next.`,
+      ]),
+    }
+  }
+  if (isSlightlyBehind) {
     return {
       tone: 'neutral',
-      text: pickStable(dayKey, 'behind-small', [
-        `A bit behind pace. About ${next.toFixed(0)} ml next will help close the gap.`,
-        `Slightly under pace. ${next.toFixed(0)} ml next should bring her back.`,
+      text: pickStable(seedFor('mid-slight-behind'), [
+        `Just a touch behind, no worries. ${next.toFixed(0)} ml next should sort it.`,
+        `Tiny gap, easy to close. Around ${next.toFixed(0)} ml next.`,
+        `Slightly under pace, well within range. ${next.toFixed(0)} ml will balance things.`,
+        `A whisker behind. ${next.toFixed(0)} ml next keeps her in rhythm.`,
       ]),
     }
   }
 
-  if (isBigAhead) {
+  if (isWellAhead) {
     return {
       tone: 'positive',
-      text: pickStable(dayKey, 'ahead-big', [
-        `Well ahead of pace — she's eating well today. ${next.toFixed(0)} ml is plenty for the next feed.`,
-        `She's eating strongly. ${next.toFixed(0)} ml is fine, no need to push.`,
+      text: pickStable(seedFor('mid-well-ahead'), [
+        `She's eating brilliantly today, well ahead. ${next.toFixed(0)} ml is plenty next.`,
+        `Going strong, ${absGap.toFixed(0)} ml past pace. ${next.toFixed(0)} ml on the next, no need to push.`,
+        `Big appetite today. ${next.toFixed(0)} ml is more than enough next.`,
+        `Way ahead of pace. ${next.toFixed(0)} ml comfortably gets her to the finish.`,
       ]),
     }
   }
-  if (isSmallAhead) {
+  if (isAhead) {
     return {
       tone: 'positive',
-      text: pickStable(dayKey, 'ahead-small', [
-        `Ahead of pace, doing great. Around ${next.toFixed(0)} ml on the next feed is fine.`,
-        `Slightly ahead. ${next.toFixed(0)} ml next is comfortable.`,
+      text: pickStable(seedFor('mid-ahead'), [
+        `Nicely ahead of pace today. ${next.toFixed(0)} ml is fine next.`,
+        `Eating well, ${absGap.toFixed(0)} ml past target so far. ${next.toFixed(0)} ml next.`,
+        `She's having a strong day. ${next.toFixed(0)} ml on the next is plenty.`,
+        `Ahead and rolling. About ${next.toFixed(0)} ml next.`,
+      ]),
+    }
+  }
+  if (isSlightlyAhead) {
+    return {
+      tone: 'positive',
+      text: pickStable(seedFor('mid-slight-ahead'), [
+        `Just ahead of pace, doing great. Around ${next.toFixed(0)} ml next.`,
+        `Slightly past pace, lovely rhythm. ${next.toFixed(0)} ml next is comfortable.`,
+        `She's a touch ahead. ${next.toFixed(0)} ml next keeps the flow.`,
+        `Right where you'd want her. ${next.toFixed(0)} ml on the next.`,
       ]),
     }
   }
 
-  // pace === 'on_track' — within tolerance. Optionally nuance from last-feed badge.
+  // pace === 'on_track': nuance off the last feed badge if available
   if (last && last.comparison && last.comparison.sample_days > 0 && last.status !== 'normal') {
     if (last.status === 'below') {
       return {
         tone: 'neutral',
-        text: pickStable(dayKey, 'on-pace-low-last', [
-          `On pace overall. Her last feed was a bit small — about ${next.toFixed(0)} ml next would even things out.`,
-          `Pace is fine. Last feed was light, so ${next.toFixed(0)} ml next would balance.`,
+        text: pickStable(seedFor('on-pace-low-last'), [
+          `On pace, last feed was a bit light. ${next.toFixed(0)} ml next would even things out.`,
+          `Pace is fine. Last bottle was small for that slot, ${next.toFixed(0)} ml next would balance.`,
+          `Holding pace. Last feed was on the low side, ${next.toFixed(0)} ml will sort it.`,
+          `Steady so far. Last one was light, around ${next.toFixed(0)} ml next.`,
         ]),
       }
     }
     return {
       tone: 'positive',
-      text: pickStable(dayKey, 'on-pace-high-last', [
-        `On pace and her last feed was strong. About ${next.toFixed(0)} ml next.`,
-        `Solid feed last time and on pace. ${next.toFixed(0)} ml next.`,
+      text: pickStable(seedFor('on-pace-high-last'), [
+        `On pace and her last feed was lovely. About ${next.toFixed(0)} ml next.`,
+        `Solid bottle last time, right on pace. ${next.toFixed(0)} ml on the next.`,
+        `Strong last feed and pace is right. ${next.toFixed(0)} ml next.`,
+        `Pace is good, last feed was strong. Around ${next.toFixed(0)} ml next.`,
       ]),
     }
   }
 
   return {
     tone: 'positive',
-    text: pickStable(dayKey, 'on-pace', [
-      `On pace and in her usual rhythm. Around ${next.toFixed(0)} ml on the next feed.`,
-      `Right on pace. ${next.toFixed(0)} ml next continues the rhythm.`,
-      `Steady progress. ${next.toFixed(0)} ml next.`,
+    text: pickStable(seedFor('on-pace'), [
+      `Right on pace and in her rhythm. About ${next.toFixed(0)} ml next.`,
+      `Steady as she goes. ${next.toFixed(0)} ml on the next feed.`,
+      `Lovely pacing today. Around ${next.toFixed(0)} ml next.`,
+      `Right where she should be. ${next.toFixed(0)} ml next continues it.`,
+      `On track and looking comfortable. ${next.toFixed(0)} ml next.`,
+      `Smooth rhythm today. ${next.toFixed(0)} ml on the next.`,
     ]),
   }
 }
