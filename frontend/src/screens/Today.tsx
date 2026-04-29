@@ -19,7 +19,6 @@ import { EncouragementCard } from '../components/EncouragementCard'
 import { PaceChip } from '../components/PaceChip'
 import { ProgressRing } from '../components/ProgressRing'
 import { StatusBadge } from '../components/StatusBadge'
-import { ViewModeBadge } from '../components/ViewModeBadge'
 import { useIsReadOnly } from '../lib/authMode'
 import { ZOEY_BIRTH_ISO } from '../lib/constants'
 import { buildEncouragement } from '../lib/encouragement'
@@ -273,7 +272,6 @@ export function TodayScreen() {
             </span>
           )}
         </div>
-        <ViewModeBadge />
       </div>
 
       <div className="relative flex justify-center mt-4">
@@ -457,16 +455,20 @@ export function TodayScreen() {
                 suggest <span className="text-zinc-100 tabular-nums">{nextSuggest.toFixed(0)} ml</span>
               </div>
             </div>
-            <button
-              onClick={startNewDayNow}
-              disabled={updateSettings.isPending}
-              className="mt-3 w-full py-2.5 rounded-lg bg-zinc-800 text-zinc-200 text-sm active:scale-[.98] disabled:opacity-40"
-            >
-              {updateSettings.isPending ? 'Rolling over…' : 'Start new day now'}
-            </button>
-            <div className="mt-1.5 text-[10px] text-zinc-600 text-center">
-              Shifts the day-start time to now. Reversible in Settings → Feeding schedule.
-            </div>
+            {!readOnly && (
+              <>
+                <button
+                  onClick={startNewDayNow}
+                  disabled={updateSettings.isPending}
+                  className="mt-3 w-full py-2.5 rounded-lg bg-zinc-800 text-zinc-200 text-sm active:scale-[.98] disabled:opacity-40"
+                >
+                  {updateSettings.isPending ? 'Rolling over…' : 'Start new day now'}
+                </button>
+                <div className="mt-1.5 text-[10px] text-zinc-600 text-center">
+                  Shifts the day-start time to now. Reversible in Settings → Feeding schedule.
+                </div>
+              </>
+            )}
           </div>
         )
       })()}
