@@ -205,8 +205,10 @@ def compute_overview() -> Overview:
 
     inds: list[OverviewIndicator] = []
 
-    # Intake — last 3 completed days, avg ml/kg/day vs bands
-    avg_mlkg, days_used = _ml_per_kg_last_n_days(3)
+    # Intake: last 7 completed days, avg ml/kg/day vs bands. Matches the
+    # 7-day window the History tab uses, so both surfaces show the same
+    # number for a given day.
+    avg_mlkg, days_used = _ml_per_kg_last_n_days(7)
     if avg_mlkg is None:
         inds.append(OverviewIndicator(
             key="intake",
