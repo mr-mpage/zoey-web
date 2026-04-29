@@ -6,6 +6,7 @@ import {
   useSetWeight,
   useWeight,
 } from '../api/hooks'
+import { FentonChart } from '../components/FentonChart'
 import { WeightModal } from '../components/WeightModal'
 import { WeightSparkline } from '../components/WeightSparkline'
 import { fmtDate } from '../lib/format'
@@ -93,6 +94,20 @@ export function WeightHistorySection() {
             Weight trend · {weights.length} entries
           </div>
           <WeightSparkline weights={weights} />
+        </div>
+      )}
+
+      {/* Fenton percentile chart */}
+      {weights.length >= 1 && appSettings && (
+        <div className="rounded-xl bg-zinc-900/60 p-3 mb-4">
+          <div className="text-[11px] uppercase tracking-wider text-zinc-500 mb-2">
+            Fenton 2013 girls · weight by PMA
+          </div>
+          <FentonChart
+            weights={weights}
+            birthDateIso={appSettings.birth_date}
+            gestationalAgeWeeks={appSettings.gestational_age_weeks}
+          />
         </div>
       )}
 
