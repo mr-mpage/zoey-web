@@ -226,7 +226,7 @@ export function TodayScreen() {
       </div>
 
       {data.breastfeeds_today_count > 0 && (
-        <div className="mt-2 text-[11px] text-pink-300/80 text-right">
+        <div className="mt-2 text-[11px] text-zinc-500 text-right">
           {data.breastfeeds_today_count} breastfeed{data.breastfeeds_today_count === 1 ? '' : 's'} today
           {data.breastfeeds_today_ml_est > 0 && <> · ~{data.breastfeeds_today_ml_est.toFixed(0)} ml estimated</>}
           {data.breastfeeds_today_minutes > 0 && <> · {data.breastfeeds_today_minutes} min total</>}
@@ -368,15 +368,11 @@ export function TodayScreen() {
                   key={f.id}
                   onClick={() => openEditFeed(f)}
                   className={`rounded-xl p-3 flex items-center gap-3 active:bg-zinc-900 ${
-                    f.is_extra ? 'bg-amber-500/5 border border-amber-500/20' :
-                    isBreast ? 'bg-pink-300/5 border border-pink-300/20' :
-                    'bg-zinc-900/60'
+                    f.is_extra ? 'bg-amber-500/5 border border-amber-500/20' : 'bg-zinc-900/60'
                   }`}
                 >
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] ${
-                    f.is_extra ? 'bg-amber-500/15 text-amber-300' :
-                    isBreast ? 'bg-pink-300/15 text-pink-200' :
-                    'bg-zinc-800 text-zinc-400'
+                    f.is_extra ? 'bg-amber-500/15 text-amber-300' : 'bg-zinc-800 text-zinc-400'
                   }`}>
                     {f.is_extra ? 'EXT' : `#${f.feed_index}`}
                   </div>
@@ -384,10 +380,11 @@ export function TodayScreen() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="tabular-nums text-lg">
                         {f.amount_ml.toFixed(0)} ml
-                        {isBreast && <span className="text-[11px] text-pink-300/80 ml-1">est</span>}
                       </span>
                       {isBreast && (
-                        <span className="text-[10px] uppercase tracking-wider text-pink-300/80">breast</span>
+                        <span className="text-[10px] uppercase tracking-wider text-zinc-500 bg-zinc-800 px-1.5 py-0.5 rounded">
+                          breast · est
+                        </span>
                       )}
                       {f.is_extra && (
                         <span className="text-[10px] uppercase tracking-wider text-amber-300/80">extra · off-schedule</span>

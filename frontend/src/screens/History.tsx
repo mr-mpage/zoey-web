@@ -240,7 +240,7 @@ export function HistoryScreen() {
                       </div>
                     )}
                     {bf && (
-                      <div className="text-pink-300/70">
+                      <div className="text-zinc-500">
                         {bf.count} breastfeed{bf.count === 1 ? '' : 's'}
                         {bf.ml > 0 && <> · ~{bf.ml.toFixed(0)} ml est</>}
                         {bf.min > 0 && <> · {bf.min} min</>}
