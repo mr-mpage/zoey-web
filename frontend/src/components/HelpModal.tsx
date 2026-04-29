@@ -553,8 +553,7 @@ const VIEW_SECTIONS: Section[] = [
         <H>Privacy</H>
         <p>
           Data lives on the family's private home server, backed up to a separate storage box and a
-          private GitHub repository. Max and Sabrina see when you last opened the app, by your passcode
-          label, to know who's been keeping up.
+          private GitHub repository.
         </p>
       </>
     ),
