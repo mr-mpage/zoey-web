@@ -8,7 +8,9 @@ import {
 } from '../api/hooks'
 import { FentonChart } from '../components/FentonChart'
 import { WeightModal } from '../components/WeightModal'
+import { WeightNarrativeCard } from '../components/WeightNarrativeCard'
 import { WeightSparkline } from '../components/WeightSparkline'
+import { buildWeightNarrative } from '../lib/weightNarrative'
 import { fmtDate } from '../lib/format'
 import { expectedGainRange, gainTone, gainsBetweenEntries, rollingGainRate } from '../lib/growth'
 import type { Weight } from '../api/types'
@@ -110,6 +112,17 @@ export function WeightHistorySection() {
           />
         </div>
       )}
+
+      {/* Plain-language narrative of the weight history */}
+      {appSettings && (() => {
+        const narrative = buildWeightNarrative({
+          weights,
+          birthDateIso: appSettings.birth_date,
+          gestationalAgeWeeks: appSettings.gestational_age_weeks,
+          birthWeightGrams: appSettings.birth_weight_grams,
+        })
+        return narrative ? <WeightNarrativeCard narrative={narrative} /> : null
+      })()}
 
       {/* Add weight button */}
       <button

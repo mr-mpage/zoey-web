@@ -3,6 +3,36 @@ import { ZOEY_BIRTH_ISO } from '../lib/constants'
 import { ageInDays, fmtDateLong } from '../lib/format'
 import type { OverviewIndicator, OverviewStatus } from '../api/types'
 
+const ICON_PROPS = { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+
+const KEY_ICON: Record<string, React.ReactNode> = {
+  intake: (
+    <svg {...ICON_PROPS}>
+      <path d="M9 3h6" />
+      <path d="M10 3v3.5a3 3 0 0 1-.4 1.5l-1.2 2a4 4 0 0 0-.4 1.7V19a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-7.3a4 4 0 0 0-.4-1.7l-1.2-2A3 3 0 0 1 14 6.5V3" />
+      <path d="M8 13h8" />
+    </svg>
+  ),
+  growth: (
+    <svg {...ICON_PROPS}>
+      <path d="M4 19V5" />
+      <path d="M4 19h16" />
+      <path d="M7 16l4-5 3 3 5-7" />
+    </svg>
+  ),
+  today_pace: (
+    <svg {...ICON_PROPS}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  ),
+  hydration: (
+    <svg {...ICON_PROPS}>
+      <path d="M12 3.2c-3.4 4-6.5 7.4-6.5 11.1a6.5 6.5 0 0 0 13 0c0-3.7-3.1-7.1-6.5-11.1z" />
+    </svg>
+  ),
+}
+
 const TONE: Record<OverviewStatus, { border: string; bg: string; accent: string; dot: string; word: string }> = {
   good: {
     border: 'border-emerald-500/30',
@@ -43,13 +73,21 @@ const TONE: Record<OverviewStatus, { border: string; bg: string; accent: string;
 
 function IndicatorCard({ ind }: { ind: OverviewIndicator }) {
   const t = TONE[ind.status]
+  const icon = KEY_ICON[ind.key]
   return (
     <div className={`rounded-2xl border ${t.border} ${t.bg} p-4`}>
-      <div className="flex items-center justify-between mb-1.5">
-        <div className="text-xs text-zinc-500 uppercase tracking-wider">{ind.title}</div>
-        <div className="flex items-center gap-1.5">
-          <span className={`w-2 h-2 rounded-full ${t.dot}`} />
-          <span className={`text-[11px] uppercase tracking-wider ${t.accent}`}>{t.word}</span>
+      <div className="flex items-center gap-3 mb-2">
+        {icon && (
+          <div className={`w-9 h-9 rounded-lg bg-zinc-900/40 ${t.accent} flex items-center justify-center shrink-0`}>
+            {icon}
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="text-xs text-zinc-500 uppercase tracking-wider">{ind.title}</div>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className={`w-2 h-2 rounded-full ${t.dot}`} />
+            <span className={`text-[11px] uppercase tracking-wider ${t.accent}`}>{t.word}</span>
+          </div>
         </div>
       </div>
       <div className="text-base text-zinc-100 leading-snug">{ind.headline}</div>
