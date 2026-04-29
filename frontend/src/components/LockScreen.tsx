@@ -105,6 +105,7 @@ export function LockScreen() {
           )
         })}
       </div>
+      <div className="mt-10 text-[10px] text-zinc-600">© {new Date().getFullYear()} The Page Family</div>
     </div>
   )
 }

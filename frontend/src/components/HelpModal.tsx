@@ -675,6 +675,7 @@ export function HelpModal({ open, onClose }: Props) {
             >
               Got it
             </button>
+            <div className="mt-3 text-[10px] text-zinc-600">© {new Date().getFullYear()} The Page Family</div>
           </div>
         </div>
       </div>
