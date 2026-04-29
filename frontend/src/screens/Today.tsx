@@ -9,6 +9,7 @@ import {
   useDeleteFeed,
   useDiapers,
   usePatchFeed,
+  useUpdateAppSettings,
   useWeight,
 } from '../api/hooks'
 import { AmountModal } from '../components/AmountModal'
@@ -80,6 +81,7 @@ export function TodayScreen() {
   const createPump = useCreatePump()
   const createDiaper = useCreateDiaper()
   const deleteDiaper = useDeleteDiaper()
+  const updateSettings = useUpdateAppSettings()
 
   const [feedDraft, setFeedDraft] = useState<FeedDraft | null>(null)
   const [pumpDraft, setPumpDraft] = useState<PumpDraft | null>(null)
@@ -226,7 +228,7 @@ export function TodayScreen() {
       </div>
 
       {data.breastfeeds_today_count > 0 && (
-        <div className="mt-2 text-[11px] text-zinc-500 text-right">
+        <div className="mt-2 text-[11px] text-zinc-500 text-center">
           {data.breastfeeds_today_count} breastfeed{data.breastfeeds_today_count === 1 ? '' : 's'} today
           {data.breastfeeds_today_ml_est > 0 && <> · ~{data.breastfeeds_today_ml_est.toFixed(0)} ml estimated</>}
           {data.breastfeeds_today_minutes > 0 && <> · {data.breastfeeds_today_minutes} min total</>}
@@ -260,6 +262,13 @@ export function TodayScreen() {
             : { border: 'border-amber-500/30', bg: 'bg-amber-500/5', accent: 'text-amber-300', word: `${Math.abs(totalDelta).toFixed(0)} ml under` }
         const scheduledCount = data.feeds_today.filter((f) => !f.is_extra).length
         const nextSuggest = data.per_feed_target_ml
+        const startNewDayNow = () => {
+          const now = new Date()
+          updateSettings.mutate({
+            day_start_hour: now.getHours(),
+            day_start_minute: now.getMinutes(),
+          })
+        }
         return (
           <div className={`mt-5 rounded-2xl border ${tone.border} ${tone.bg} p-4`}>
             <div className="flex items-center justify-between">
@@ -284,6 +293,16 @@ export function TodayScreen() {
               <div className="text-zinc-500">
                 suggest <span className="text-zinc-100 tabular-nums">{nextSuggest.toFixed(0)} ml</span>
               </div>
+            </div>
+            <button
+              onClick={startNewDayNow}
+              disabled={updateSettings.isPending}
+              className="mt-3 w-full py-2.5 rounded-lg bg-zinc-800 text-zinc-200 text-sm active:scale-[.98] disabled:opacity-40"
+            >
+              {updateSettings.isPending ? 'Rolling over…' : 'Start new day now'}
+            </button>
+            <div className="mt-1.5 text-[10px] text-zinc-600 text-center">
+              Shifts the day-start time to now. Reversible in Settings → Feeding schedule.
             </div>
           </div>
         )

@@ -94,18 +94,19 @@ export function HelpModal({ open, onClose }: Props) {
             <p className="mb-2">
               In the feed modal, toggle <b>Breast</b> to log a direct breastfeeding session. The ml field
               becomes an estimate (0 ml is fine for a comfort attempt — Zoey at the breast but not really
-              feeding) and a duration-in-minutes field appears. Breast feeds render in pink with a "breast"
-              tag and "est" next to the ml.
+              feeding) and a duration-in-minutes field appears. Breast feeds get a small "BREAST · EST"
+              chip next to the ml, no row tint.
             </p>
             <p className="mb-2">
               Breast feeds <b>don't pollute the bottle averages</b> — comparison badges and the historical
               avg on the next-feed card only count bottle entries from past days. The volume still adds to
-              the daily total (with the noted uncertainty), so the catch-up math reacts to it.
+              the daily total (with the noted uncertainty), so the catch-up math reacts to it. Today and
+              History both show a daily breastfeed tally ("1 breastfeed today · ~5 ml estimated · 5 min").
             </p>
             <p className="text-zinc-400 text-[11px]">
-              Tip: if the breastfeed is in addition to a scheduled bottle (Sabrina trying breast between
-              bottles), also toggle <b>Extra (off-schedule)</b> so it doesn't shift the bottle slot
-              numbering. If the breast is replacing a bottle in the rotation, leave Extra off.
+              Tip: if the breastfeed is in addition to a scheduled bottle, also toggle <b>Extra
+              (off-schedule)</b> so it doesn't shift the bottle slot numbering. If the breast is replacing
+              a bottle in the rotation, leave Extra off.
             </p>
           </section>
 
@@ -132,6 +133,18 @@ export function HelpModal({ open, onClose }: Props) {
 
           {/* ───── SCHEDULE & RHYTHM ───── */}
           <GroupTitle>The schedule & rhythm</GroupTitle>
+
+          <section>
+            <SectionHeader>Starting the next day early</SectionHeader>
+            <p>
+              When today's 8 feeds are all done, the Today screen shows a <b>Day complete</b> card with a
+              <b> Start new day now</b> button. Tap it if Zoey wakes up before the scheduled day-rollover
+              and you want this feed to count as #1 of the new day rather than as a 9th feed appended to
+              the day that's just finished. It shifts the day-start time to right now (so the schedule
+              tracks her actual rhythm if it's drifting earlier). Reversible any time from
+              Settings → Feeding schedule.
+            </p>
+          </section>
 
           <section>
             <SectionHeader>Feeding schedule</SectionHeader>
