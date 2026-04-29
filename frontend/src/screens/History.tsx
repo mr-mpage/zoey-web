@@ -65,7 +65,8 @@ export function HistoryScreen() {
   const weights = weight?.history ?? []
 
   const grid = useMemo(() => {
-    type Bucket = { day: Date; entries: { time: number; amount: number }[] }
+    type Entry = { time: number; amount: number; is_extra: boolean }
+    type Bucket = { day: Date; entries: Entry[] }
     const byDay = new Map<string, Bucket>()
     for (const f of feeds ?? []) {
       // Honour per-feed feeding_day_override so a feed that was logged at
@@ -76,13 +77,24 @@ export function HistoryScreen() {
       const key = dayDate.toDateString()
       const time = new Date(f.fed_at).getTime()
       if (!byDay.has(key)) byDay.set(key, { day: dayDate, entries: [] })
-      byDay.get(key)!.entries.push({ time, amount: f.amount_ml })
+      byDay.get(key)!.entries.push({ time, amount: f.amount_ml, is_extra: f.is_extra })
     }
     return Array.from(byDay.values())
       .map((b) => {
-        const sorted = b.entries.sort((x, y) => x.time - y.time).map((e) => e.amount)
-        while (sorted.length < feedsPerDay) sorted.push(0)
-        return { day: b.day, feeds: sorted }
+        const sortedEntries = b.entries.sort((x, y) => x.time - y.time)
+        const feedsArr = sortedEntries.map((e) => e.amount)
+        while (feedsArr.length < feedsPerDay) feedsArr.push(0)
+        const scheduled = sortedEntries.filter((e) => !e.is_extra)
+        const extrasTotal = sortedEntries
+          .filter((e) => e.is_extra)
+          .reduce((a, e) => a + e.amount, 0)
+        return {
+          day: b.day,
+          feeds: feedsArr,
+          scheduledCount: scheduled.length,
+          scheduledTotal: scheduled.reduce((a, e) => a + e.amount, 0),
+          extrasTotal,
+        }
       })
       .sort((a, b) => +b.day - +a.day)
   }, [feeds, anchorH, anchorM, feedsPerDay])
@@ -169,7 +181,13 @@ export function HistoryScreen() {
 }
 
 type FeedsHistoryProps = {
-  grid: { day: Date; feeds: number[] }[]
+  grid: {
+    day: Date
+    feeds: number[]
+    scheduledCount: number
+    scheduledTotal: number
+    extrasTotal: number
+  }[]
   weights: Weight[]
   bands: Bands
   feedsPerDay: number
@@ -278,9 +296,32 @@ function FeedsHistorySection({
                       {mlPerKg.toFixed(0)} ml/kg · {deltaSign}{Math.abs(delta).toFixed(0)} ml ({(pct * 100).toFixed(0)}%)
                     </div>
                   )}
-                  {isToday && (
-                    <div className="text-[11px] text-zinc-500">in progress</div>
-                  )}
+                  {isToday && (() => {
+                    const kg = dayWeight ? dayWeight.weight_grams / 1000 : 0
+                    if (kg <= 0) return <div className="text-[11px] text-zinc-500">in progress</div>
+                    const liveMlPerKg = total / kg
+                    const remaining = Math.max(0, feedsPerDay - row.scheduledCount)
+                    const perFeedAvg = row.scheduledCount > 0 ? row.scheduledTotal / row.scheduledCount : 0
+                    if (row.scheduledCount === 0) {
+                      return <div className="text-[11px] text-zinc-500">no scheduled feeds yet</div>
+                    }
+                    const forecastTotal = total + remaining * perFeedAvg
+                    const forecastMlPerKg = forecastTotal / kg
+                    const forecastTone = bandTone(forecastMlPerKg, bands)
+                    return (
+                      <div className="text-[11px] tabular-nums leading-snug">
+                        <span className="text-zinc-300">{liveMlPerKg.toFixed(0)} ml/kg</span>
+                        <span className="text-zinc-600"> so far</span>
+                        {remaining > 0 && (
+                          <>
+                            <span className="text-zinc-700"> · </span>
+                            <span className={forecastTone}>~{forecastMlPerKg.toFixed(0)}</span>
+                            <span className="text-zinc-600"> at this pace</span>
+                          </>
+                        )}
+                      </div>
+                    )
+                  })()}
                 </div>
                 <div className={`text-sm tabular-nums ${totalTone}`}>
                   {total.toFixed(0)} / {dayTarget.toFixed(0)} ml
