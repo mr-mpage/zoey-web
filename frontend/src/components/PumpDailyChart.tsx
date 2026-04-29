@@ -43,20 +43,20 @@ function formatBalance(v: number): string {
 
 /** Daily pumped vs bottle-fed comparison so it's visible whether Sabrina
  *  is over- or under-producing relative to Zoey's intake. Dual bars per
- *  day (sky = pumped, pink = bottle fed); summary card above shows the
- *  rolling balance over today and the last 7 / 30 days. */
-export function PumpDailyChart({ pumps, feeds, days = 30, width = 320, height = 100 }: Props) {
+ *  day (sky = pumped, pink = bottle fed); summary tiles above show today,
+ *  the 4-day fridge cycle, and the 7-day rolling balance. */
+export function PumpDailyChart({ pumps, feeds, days = 7, width = 320, height = 100 }: Props) {
   const buckets = bucketize(pumps, feeds, days)
   const todayB = buckets[buckets.length - 1]
+  const last4 = buckets.slice(-4)
   const last7 = buckets.slice(-7)
-  const last30 = buckets.slice(-30)
 
   const sumP = (arr: DayTotals[]) => arr.reduce((s, b) => s + b.pumped, 0)
   const sumB = (arr: DayTotals[]) => arr.reduce((s, b) => s + b.bottled, 0)
 
   const balToday = todayB.pumped - todayB.bottled
+  const bal4 = sumP(last4) - sumB(last4)
   const bal7 = sumP(last7) - sumB(last7)
-  const bal30 = sumP(last30) - sumB(last30)
 
   const padX = 8
   const padTop = 6
@@ -87,15 +87,15 @@ export function PumpDailyChart({ pumps, feeds, days = 30, width = 320, height = 
           </div>
         </div>
         <div className="rounded-lg bg-zinc-900/50 px-2 py-2">
-          <div className="text-[10px] uppercase tracking-wider text-zinc-500">7 days</div>
-          <div className={`tabular-nums text-sm leading-tight mt-0.5 ${colorFor(bal7)}`}>
-            {formatBalance(bal7)}
+          <div className="text-[10px] uppercase tracking-wider text-zinc-500">Fridge · 4d</div>
+          <div className={`tabular-nums text-sm leading-tight mt-0.5 ${colorFor(bal4)}`}>
+            {formatBalance(bal4)}
           </div>
         </div>
         <div className="rounded-lg bg-zinc-900/50 px-2 py-2">
-          <div className="text-[10px] uppercase tracking-wider text-zinc-500">30 days</div>
-          <div className={`tabular-nums text-sm leading-tight mt-0.5 ${colorFor(bal30)}`}>
-            {formatBalance(bal30)}
+          <div className="text-[10px] uppercase tracking-wider text-zinc-500">7 days</div>
+          <div className={`tabular-nums text-sm leading-tight mt-0.5 ${colorFor(bal7)}`}>
+            {formatBalance(bal7)}
           </div>
         </div>
       </div>

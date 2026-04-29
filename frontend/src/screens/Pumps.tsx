@@ -6,7 +6,7 @@ import { fmtDate, fmtTime, localDatetimeInput } from '../lib/format'
 import type { Pump } from '../api/types'
 
 const DETAIL_DAYS = 7
-const CHART_DAYS = 30
+const CHART_DAYS = 7
 
 export function PumpsScreen() {
   const { data, isLoading } = usePumps(CHART_DAYS)
@@ -47,9 +47,10 @@ export function PumpsScreen() {
           </div>
           <PumpDailyChart pumps={pumps} feeds={feeds ?? []} days={CHART_DAYS} />
           <div className="text-[10px] text-zinc-500 mt-2 leading-relaxed">
-            Positive balance means Sabrina's pumped more than Zoey drank from a bottle, so the freezer
-            is building. Negative means the freezer is being drawn down. Breastfeeds aren't counted on
-            either side since they don't go through the bottle supply.
+            Positive balance means Sabrina pumped more than Zoey drank from a bottle, so stored milk is
+            building. Negative means it's being drawn down. The 4-day tile matches how long fresh milk
+            keeps in the fridge. Breastfeeds aren't counted on either side, since they don't go through
+            the bottle supply.
           </div>
         </div>
       )}

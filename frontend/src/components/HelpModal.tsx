@@ -180,16 +180,20 @@ const SECTIONS: Section[] = [
       <>
         <H>Supply vs intake balance</H>
         <p className="mb-2">
-          Top of the Pumps tab shows three numbers: today's balance, the rolling 7-day balance, and the
-          rolling 30-day balance. Each is <b>pumped minus bottle-fed</b>: a positive balance (emerald)
-          means more was pumped than Zoey drank from a bottle, so the freezer is building. A negative
-          balance (amber) means the freezer is being drawn down.
+          Top of the Pumps tab shows three numbers: today's balance, the 4-day fridge cycle, and the
+          rolling 7-day balance. Each is <b>pumped minus bottle-fed</b>: a positive balance (emerald)
+          means more was pumped than Zoey drank from a bottle, so the fridge or freezer is building.
+          A negative balance (amber) means stored milk is being drawn down.
+        </p>
+        <p className="mb-2">
+          The 4-day window matches how long fresh milk keeps in the fridge: if that tile is positive,
+          you're keeping up with day-to-day demand; if it's negative, dip into frozen.
         </p>
         <p className="mb-2">
           Breastfeeds aren't counted on either side, since they don't pass through the bottle supply.
         </p>
 
-        <H>The 30-day chart</H>
+        <H>The 7-day chart</H>
         <p className="mb-2">
           One pair of bars per day: <span className="text-sky-300">sky</span> for pumped,{' '}
           <span className="text-pink-300">pink</span> for bottle-fed. Today's bars are full opacity, prior
