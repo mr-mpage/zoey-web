@@ -16,7 +16,6 @@ import {
 import { AmountModal } from '../components/AmountModal'
 import { DiaperListModal } from '../components/DiaperListModal'
 import { EncouragementCard } from '../components/EncouragementCard'
-import { MilestoneChip } from '../components/MilestoneChip'
 import { PaceChip } from '../components/PaceChip'
 import { ProgressRing } from '../components/ProgressRing'
 import { StatusBadge } from '../components/StatusBadge'
@@ -141,6 +140,7 @@ export function TodayScreen() {
     const list = computeMilestones({
       birthDateIso: appSettings.birth_date,
       gestationalAgeWeeks: appSettings.gestational_age_weeks,
+      birthWeightGrams: appSettings.birth_weight_grams,
       feeds: feedHistory ?? [],
       weights: weight?.history ?? [],
       todayMaxFeedMl: todayMaxFeedMl > 0 ? todayMaxFeedMl : null,
@@ -252,16 +252,23 @@ export function TodayScreen() {
   return (
     <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
       <div className="text-center">
-        <div className="inline-flex items-center gap-1.5 text-zinc-100 text-base">
-          <svg width={14} height={14} viewBox="0 0 24 24" fill="rgb(244 175 195)" aria-hidden>
-            <path d="M12 21s-7.5-4.6-7.5-10.3a4.2 4.2 0 0 1 7.5-2.6 4.2 4.2 0 0 1 7.5 2.6c0 5.7-7.5 10.3-7.5 10.3z" />
-          </svg>
-          <span>Zoey · {ZOEY_BIRTH_ISO ? friendlyAge(ZOEY_BIRTH_ISO) : ''}</span>
+        <div className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-zinc-100 text-base">
+          <span className="inline-flex items-center gap-1.5">
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="rgb(244 175 195)" aria-hidden>
+              <path d="M12 21s-7.5-4.6-7.5-10.3a4.2 4.2 0 0 1 7.5-2.6 4.2 4.2 0 0 1 7.5 2.6c0 5.7-7.5 10.3-7.5 10.3z" />
+            </svg>
+            Zoey · {ZOEY_BIRTH_ISO ? friendlyAge(ZOEY_BIRTH_ISO) : ''}
+          </span>
+          {milestone && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-pink-300/15 border border-pink-300/25 text-pink-100 text-[12px] px-2.5 py-0.5">
+              <svg width={10} height={10} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <path d="M12 21s-7.5-4.6-7.5-10.3a4.2 4.2 0 0 1 7.5-2.6 4.2 4.2 0 0 1 7.5 2.6c0 5.7-7.5 10.3-7.5 10.3z" />
+              </svg>
+              {milestone.text}
+            </span>
+          )}
         </div>
-        <div className="text-[11px] text-zinc-500 mt-0.5">{fmtDateLong(data.today_date)}</div>
       </div>
-
-      <MilestoneChip milestone={milestone} />
 
       <div className="relative flex justify-center mt-4">
         {pct >= 0.95 && (

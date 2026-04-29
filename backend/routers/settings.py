@@ -19,6 +19,7 @@ def _current() -> AppSettings:
         target_high_ml_per_kg=int(s.get("target_high_ml_per_kg", "180")),
         birth_date=s.get("birth_date", "2026-04-15"),
         gestational_age_weeks=int(s.get("gestational_age_weeks", "35")),
+        birth_weight_grams=int(s.get("birth_weight_grams", "2455")),
     )
 
 
@@ -48,6 +49,8 @@ def patch_settings(payload: AppSettingsPatch) -> AppSettings:
         updates["birth_date"] = payload.birth_date
     if payload.gestational_age_weeks is not None:
         updates["gestational_age_weeks"] = str(payload.gestational_age_weeks)
+    if payload.birth_weight_grams is not None:
+        updates["birth_weight_grams"] = str(payload.birth_weight_grams)
     if updates:
         repo.set_settings(updates)
     return _current()

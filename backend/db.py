@@ -64,10 +64,12 @@ DEFAULTS = {
     "target_low_ml_per_kg": "150",
     "target_solid_ml_per_kg": "160",
     "target_high_ml_per_kg": "180",
-    # Birth context — used by the PMA-aware growth indicator on Overview.
-    # Default is Zoey's birth: 2026-04-15 at 35 weeks gestational age.
+    # Birth context — used by the PMA-aware growth indicator on Overview
+    # and the milestone chip on Today.
+    # Defaults are Zoey's: 2026-04-15 at 35 weeks gestational age, 2455 g.
     "birth_date": "2026-04-15",
     "gestational_age_weeks": "35",
+    "birth_weight_grams": "2455",
 }
 
 

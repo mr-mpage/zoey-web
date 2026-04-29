@@ -169,6 +169,9 @@ export function SettingsScreen() {
   const [bandLow, setBandLow] = useState<string>('150')
   const [bandSolid, setBandSolid] = useState<string>('165')
   const [bandHigh, setBandHigh] = useState<string>('180')
+  const [birthDate, setBirthDate] = useState<string>('')
+  const [gaWeeks, setGaWeeks] = useState<string>('')
+  const [birthWeight, setBirthWeight] = useState<string>('')
 
   useEffect(() => {
     if (appSettings) {
@@ -180,6 +183,9 @@ export function SettingsScreen() {
       setBandLow(String(appSettings.target_low_ml_per_kg))
       setBandSolid(String(appSettings.target_solid_ml_per_kg))
       setBandHigh(String(appSettings.target_high_ml_per_kg))
+      setBirthDate(appSettings.birth_date)
+      setGaWeeks(String(appSettings.gestational_age_weeks))
+      setBirthWeight(String(appSettings.birth_weight_grams))
     }
   }, [appSettings])
 
@@ -188,6 +194,19 @@ export function SettingsScreen() {
     const n = parseInt(feedsPerDay, 10)
     if (isNaN(hh) || isNaN(mm) || isNaN(n) || n < 4 || n > 12) return
     updateSettings.mutate({ day_start_hour: hh, day_start_minute: mm, feeds_per_day: n })
+  }
+
+  const saveBirth = () => {
+    const ga = parseInt(gaWeeks, 10)
+    const bw = parseInt(birthWeight, 10)
+    if (!birthDate || isNaN(ga) || isNaN(bw)) return
+    if (ga < 22 || ga > 42) return
+    if (bw < 300 || bw > 6000) return
+    updateSettings.mutate({
+      birth_date: birthDate,
+      gestational_age_weeks: ga,
+      birth_weight_grams: bw,
+    })
   }
 
   const saveBands = () => {
@@ -208,6 +227,60 @@ export function SettingsScreen() {
   return (
     <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
       <div className="text-center text-zinc-500 text-sm mb-4">Settings</div>
+
+      <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">
+        <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Birth profile</div>
+        <p className="text-xs text-zinc-500 mb-3">
+          Used by the PMA-aware growth bands, the Fenton chart, the friendly age in the header, and
+          the milestone chip (e.g. "Back to birth weight").
+        </p>
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <div className="text-sm">Birth date</div>
+            </div>
+            <input
+              type="date"
+              value={birthDate}
+              onChange={(e) => setBirthDate(e.target.value)}
+              className="bg-zinc-800 rounded-lg px-3 py-2 tabular-nums text-center"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <div className="text-sm">Gestational age at birth</div>
+              <div className="text-[11px] text-zinc-500">weeks</div>
+            </div>
+            <input
+              inputMode="numeric"
+              value={gaWeeks}
+              onChange={(e) => setGaWeeks(e.target.value.replace(/\D/g, ''))}
+              className="bg-zinc-800 rounded-lg px-3 py-2 tabular-nums w-20 text-center"
+              placeholder="35"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <div className="text-sm">Birth weight</div>
+              <div className="text-[11px] text-zinc-500">grams</div>
+            </div>
+            <input
+              inputMode="numeric"
+              value={birthWeight}
+              onChange={(e) => setBirthWeight(e.target.value.replace(/\D/g, ''))}
+              className="bg-zinc-800 rounded-lg px-3 py-2 tabular-nums w-24 text-center"
+              placeholder="2455"
+            />
+          </div>
+        </div>
+        <button
+          onClick={saveBirth}
+          disabled={updateSettings.isPending}
+          className="mt-3 w-full py-2.5 rounded-lg bg-pink-300 text-zinc-900 text-sm font-medium disabled:opacity-40"
+        >
+          {updateSettings.isPending ? 'Saving…' : 'Save birth profile'}
+        </button>
+      </div>
 
       <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">
         <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Feeding schedule</div>

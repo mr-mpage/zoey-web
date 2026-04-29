@@ -11,6 +11,7 @@ export type Milestone = {
 type Args = {
   birthDateIso: string
   gestationalAgeWeeks: number
+  birthWeightGrams: number
   feeds: Feed[]
   weights: Weight[]
   todayMaxFeedMl: number | null
@@ -22,6 +23,7 @@ type Args = {
 export function computeMilestones({
   birthDateIso,
   gestationalAgeWeeks,
+  birthWeightGrams,
   feeds,
   weights,
   todayMaxFeedMl,
@@ -43,20 +45,18 @@ export function computeMilestones({
   const today = new Date().toISOString().slice(0, 10)
   const sortedW = [...weights].sort((a, b) => a.recorded_at.localeCompare(b.recorded_at))
 
-  // Birth weight regained — first weight ≥ first recorded weight that wasn't a loss
-  if (sortedW.length >= 2) {
-    const first = sortedW[0].weight_grams
-    const idxRegained = sortedW.findIndex((w, i) => i > 0 && w.weight_grams >= first)
-    if (idxRegained > 0 && sortedW[idxRegained].recorded_at.slice(0, 10) === today) {
+  // Birth weight regained — first weight ≥ actual birth weight
+  if (sortedW.length >= 1 && birthWeightGrams > 0) {
+    const idxRegained = sortedW.findIndex((w) => w.weight_grams >= birthWeightGrams)
+    if (idxRegained >= 0 && sortedW[idxRegained].recorded_at.slice(0, 10) === today) {
       out.push({ id: 'regained-bw', text: 'Back to birth weight', rank: 1 })
     }
   }
 
   // Birth weight doubled — typical ~4–5 months
-  if (sortedW.length >= 2) {
-    const first = sortedW[0].weight_grams
-    const idxDoubled = sortedW.findIndex((w, i) => i > 0 && w.weight_grams >= first * 2)
-    if (idxDoubled > 0 && sortedW[idxDoubled].recorded_at.slice(0, 10) === today) {
+  if (sortedW.length >= 1 && birthWeightGrams > 0) {
+    const idxDoubled = sortedW.findIndex((w) => w.weight_grams >= birthWeightGrams * 2)
+    if (idxDoubled >= 0 && sortedW[idxDoubled].recorded_at.slice(0, 10) === today) {
       out.push({ id: 'doubled-bw', text: 'Doubled birth weight!', rank: 1 })
     }
   }
