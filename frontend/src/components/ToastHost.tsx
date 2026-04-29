@@ -60,7 +60,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <div
               key={t.id}
               role="status"
-              className={`pointer-events-auto rounded-xl border px-4 py-2.5 text-sm shadow-lg flex items-center gap-3 max-w-full ${
+              className={`pointer-events-auto rounded-xl border px-4 py-2.5 text-sm shadow-lg flex items-center gap-3 max-w-full animate-toast-pop ${
                 isUndo
                   ? 'bg-zinc-900 border-amber-500/30'
                   : 'bg-zinc-900 border-emerald-500/30'

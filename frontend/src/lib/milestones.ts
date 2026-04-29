@@ -31,17 +31,8 @@ export function computeMilestones({
   const out: Milestone[] = []
   const days = ageInDays(birthDateIso)
 
-  // Round-number ages today
-  if (days > 0 && days % 7 === 0) {
-    const weeks = days / 7
-    out.push({
-      id: `weeks-${weeks}`,
-      text: weeks === 1 ? '1 week old today' : `${weeks} weeks old today`,
-      rank: 0,
-    })
-  }
-  if (days === 30) out.push({ id: 'days-30', text: '1 month old today', rank: 0 })
-  if (days === 100) out.push({ id: 'days-100', text: '100 days old', rank: 0 })
+  // (Round-number ages are already announced by the header — we don't
+  //  duplicate them as a milestone chip.)
 
   // Term-equivalent (PMA = 40 weeks)
   const pma = gestationalAgeWeeks + days / 7

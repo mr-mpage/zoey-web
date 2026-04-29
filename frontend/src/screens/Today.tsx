@@ -264,10 +264,37 @@ export function TodayScreen() {
 
       <MilestoneChip milestone={milestone} />
 
-      <div className="flex justify-center mt-4">
+      <div className="relative flex justify-center mt-4">
+        {pct >= 0.95 && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 flex justify-center"
+          >
+            <div
+              className="w-56 h-56 rounded-full opacity-60 blur-2xl"
+              style={{
+                background:
+                  'radial-gradient(circle, rgba(244,175,195,0.35) 0%, rgba(251,191,36,0.18) 45%, rgba(0,0,0,0) 70%)',
+              }}
+            />
+          </div>
+        )}
         <ProgressRing pct={pct}>
-          <svg width={14} height={14} viewBox="0 0 24 24" fill="rgb(244 175 195)" aria-hidden className="opacity-70">
-            <path d="M12 21s-7.5-4.6-7.5-10.3a4.2 4.2 0 0 1 7.5-2.6 4.2 4.2 0 0 1 7.5 2.6c0 5.7-7.5 10.3-7.5 10.3z" />
+          <svg
+            width={16}
+            height={16}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="rgb(244 175 195)"
+            strokeWidth={1.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+            className="opacity-80"
+          >
+            <path d="M9 3h6" />
+            <path d="M10 3v3.5a3 3 0 0 1-.4 1.5l-1.2 2a4 4 0 0 0-.4 1.7V19a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-7.3a4 4 0 0 0-.4-1.7l-1.2-2A3 3 0 0 1 14 6.5V3" />
+            <path d="M8 13h8" />
           </svg>
           <div className="text-3xl font-light tabular-nums mt-1">
             {data.feeds_total_ml.toFixed(0)}
@@ -509,7 +536,7 @@ export function TodayScreen() {
           </div>
         ) : (
           <ul className="space-y-2">
-            {[...data.feeds_today].reverse().map((f) => {
+            {[...data.feeds_today].reverse().map((f, i) => {
               const isBreast = f.method === 'breast'
               return (
                 <li
@@ -517,7 +544,7 @@ export function TodayScreen() {
                   onClick={() => openEditFeed(f)}
                   className={`rounded-xl p-3 flex items-center gap-3 active:bg-zinc-900 ${
                     f.is_extra ? 'bg-amber-500/5 border border-amber-500/20' : 'bg-zinc-900/60'
-                  }`}
+                  } ${i === 0 ? 'animate-feed-fade-in' : ''}`}
                 >
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] ${
                     f.is_extra ? 'bg-amber-500/15 text-amber-300' : 'bg-zinc-800 text-zinc-400'
