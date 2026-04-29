@@ -221,9 +221,22 @@ def _render(days: int) -> str:
   td.num, th.num {{ text-align: right; font-variant-numeric: tabular-nums; }}
   .muted {{ color: #71717a; font-style: italic; text-align: center; padding: 12px; }}
   .footer {{ margin-top: 24px; color: #71717a; font-size: 10px; }}
+  .actions {{
+    position: sticky; top: 0; background: #fff;
+    padding: 8px 0 12px 0; margin-bottom: 8px;
+    border-bottom: 1px solid #e4e4e7;
+    display: flex; gap: 8px; z-index: 10;
+  }}
+  .actions button {{
+    flex: 1; padding: 10px 14px; font: inherit; font-size: 13px;
+    border: 1px solid #d4d4d8; border-radius: 8px; background: #fafafa;
+    cursor: pointer; -webkit-appearance: none;
+  }}
+  .actions button.primary {{ background: #18181b; color: #fff; border-color: #18181b; }}
   @media print {{
     body {{ padding: 0; }}
     .wrap {{ max-width: none; }}
+    .actions {{ display: none; }}
     h2 {{ page-break-after: avoid; }}
     tr {{ page-break-inside: avoid; }}
   }}
@@ -231,6 +244,10 @@ def _render(days: int) -> str:
 </style>
 </head>
 <body><div class=wrap>
+  <div class=actions>
+    <button class=primary onclick="window.print()">Print / Save PDF</button>
+    <button onclick="if(window.opener){{window.close()}}else{{history.back()}}">Close</button>
+  </div>
   <h1>Zoey — feeding &amp; growth report</h1>
   <div class=meta>
     Born <strong>{escape(birth_iso)}</strong> at <strong>{ga_weeks}w</strong> GA ·

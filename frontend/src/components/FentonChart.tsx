@@ -9,7 +9,15 @@ type Props = {
   height?: number
 }
 
-/** Plots Zoey's weight overlaid on the Fenton 2013 girls reference percentile
+const COLOR_P50 = 'rgb(212 212 216)'
+const COLOR_P10_P90 = 'rgb(161 161 170)'
+const COLOR_P3 = 'rgb(120 113 108)'
+const COLOR_ZOEY = 'rgb(244 175 195)'
+
+const DASH_P10_P90 = '3 2'
+const DASH_P3 = '1.5 2.5'
+
+/** Plots Zoey's weight overlaid on the Fenton 2025 girls reference percentile
  *  bands (3rd, 10th, 50th, 90th). PMA on x-axis, weight (g) on y-axis. */
 export function FentonChart({
   weights,
@@ -34,8 +42,6 @@ export function FentonChart({
     })
     .filter((p) => p.pma >= fentonPmaRange[0] && p.pma <= fentonPmaRange[1])
 
-  // Frame the chart around Zoey's weight + the Fenton band that brackets her
-  // PMA — full-range axes (22-42w, 0-4500g) hide most detail.
   const visiblePmaMin = points.length ? Math.max(fentonPmaRange[0], Math.floor(Math.min(...points.map((p) => p.pma)) - 1)) : fentonPmaRange[0]
   const visiblePmaMax = points.length ? Math.min(fentonPmaRange[1], Math.ceil(Math.max(...points.map((p) => p.pma)) + 2)) : fentonPmaRange[1]
   const fenSlice = fentonGirls.filter((r) => r.pma >= visiblePmaMin && r.pma <= visiblePmaMax)
@@ -58,11 +64,9 @@ export function FentonChart({
     .map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(p.pma).toFixed(1)} ${y(p.grams).toFixed(1)}`)
     .join(' ')
 
-  // X-axis ticks at integer weeks
   const xTicks: number[] = []
   for (let w = visiblePmaMin; w <= visiblePmaMax; w++) xTicks.push(w)
 
-  // Y-axis ticks every 250 or 500 g depending on range
   const yStep = yMax - yMin > 2000 ? 500 : 250
   const yTicks: number[] = []
   for (let g = Math.ceil(yMin / yStep) * yStep; g <= yMax; g += yStep) yTicks.push(g)
@@ -70,10 +74,15 @@ export function FentonChart({
   const latest = points[points.length - 1]
   const latestPct = latest ? approxPercentile(latest.pma, latest.grams) : null
 
+  const LegendSwatch = ({ color, dash }: { color: string; dash?: string }) => (
+    <svg width={18} height={6} className="inline-block align-middle mr-1" aria-hidden>
+      <line x1={0} y1={3} x2={18} y2={3} stroke={color} strokeWidth={1.4} strokeDasharray={dash} />
+    </svg>
+  )
+
   return (
     <div>
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full block" preserveAspectRatio="none">
-        {/* Y gridlines */}
         {yTicks.map((g) => (
           <g key={g}>
             <line
@@ -91,7 +100,6 @@ export function FentonChart({
           </g>
         ))}
 
-        {/* X axis tick labels (every 2 weeks) */}
         {xTicks.map((w) =>
           w % 2 === 0 ? (
             <text key={w} x={x(w)} y={height - 4} fontSize={9} textAnchor="middle" fill="rgb(113 113 122)" className="tabular-nums">
@@ -100,37 +108,63 @@ export function FentonChart({
           ) : null,
         )}
 
-        {/* Reference percentile lines */}
-        <path d={buildPath('p3')} fill="none" stroke="rgb(120 113 108)" strokeWidth={0.7} strokeDasharray="2 2" />
-        <path d={buildPath('p10')} fill="none" stroke="rgb(161 161 170)" strokeWidth={0.9} strokeDasharray="3 2" />
-        <path d={buildPath('p50')} fill="none" stroke="rgb(212 212 216)" strokeWidth={1} />
-        <path d={buildPath('p90')} fill="none" stroke="rgb(161 161 170)" strokeWidth={0.9} strokeDasharray="3 2" />
+        <path d={buildPath('p3')} fill="none" stroke={COLOR_P3} strokeWidth={0.7} strokeDasharray={DASH_P3} />
+        <path d={buildPath('p10')} fill="none" stroke={COLOR_P10_P90} strokeWidth={0.9} strokeDasharray={DASH_P10_P90} />
+        <path d={buildPath('p50')} fill="none" stroke={COLOR_P50} strokeWidth={1.2} />
+        <path d={buildPath('p90')} fill="none" stroke={COLOR_P10_P90} strokeWidth={0.9} strokeDasharray={DASH_P10_P90} />
 
-        {/* Observed weights */}
         {observedPath && (
-          <path d={observedPath} fill="none" stroke="rgb(244 175 195)" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+          <path d={observedPath} fill="none" stroke={COLOR_ZOEY} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
         )}
         {points.map((p, i) => (
-          <circle key={i} cx={x(p.pma)} cy={y(p.grams)} r={2.2} fill="rgb(244 175 195)" />
+          <circle key={i} cx={x(p.pma)} cy={y(p.grams)} r={2.2} fill={COLOR_ZOEY} />
         ))}
       </svg>
 
-      <div className="flex items-center justify-between text-[10px] text-zinc-500 mt-1 px-1">
-        <div>PMA (weeks)</div>
-        <div className="flex gap-3 items-center">
-          <span><span className="inline-block w-3 h-px bg-zinc-300 align-middle mr-1" />50th</span>
-          <span><span className="inline-block w-3 h-px bg-zinc-500 align-middle mr-1" style={{ borderTop: '1px dashed' }} />10/90</span>
-          <span><span className="inline-block w-3 h-px bg-pink-300 align-middle mr-1" />Zoey</span>
-        </div>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-zinc-400 mt-1 px-1">
+        <span><LegendSwatch color={COLOR_ZOEY} />Zoey</span>
+        <span><LegendSwatch color={COLOR_P50} />50th (median)</span>
+        <span><LegendSwatch color={COLOR_P10_P90} dash={DASH_P10_P90} />10th &amp; 90th</span>
+        <span><LegendSwatch color={COLOR_P3} dash={DASH_P3} />3rd</span>
+        <span className="ml-auto text-zinc-500">PMA (weeks)</span>
       </div>
 
       {latest && latestPct !== null && (
-        <div className="text-[11px] text-zinc-400 mt-2">
-          Latest: <span className="text-zinc-200 tabular-nums">{latest.grams} g</span> at PMA{' '}
-          <span className="tabular-nums">{latest.pma.toFixed(1)}w</span> ·
-          {' '}≈ <span className="text-zinc-200 tabular-nums">{latestPct}th</span> percentile (Fenton 2013 girls).
+        <div className="text-[11px] text-zinc-400 mt-2 tabular-nums">
+          Latest: <span className="text-zinc-200">{latest.grams} g</span> at PMA{' '}
+          <span>{latest.pma.toFixed(1)}w</span> · ≈{' '}
+          <span className="text-zinc-200">{latestPct}th</span> percentile
         </div>
       )}
+
+      <details className="mt-3 text-[11px] text-zinc-500 leading-relaxed">
+        <summary className="cursor-pointer text-zinc-400">What this chart means</summary>
+        <div className="mt-2 space-y-2">
+          <p>
+            This is the <span className="text-zinc-300">Fenton 2025</span> growth reference, built specifically
+            for babies born preterm. The x-axis is{' '}
+            <span className="text-zinc-300">postmenstrual age (PMA)</span> — gestational age plus how old she
+            is — which is how preterm growth is tracked, since chronological age from birth doesn't line up
+            with babies born at term.
+          </p>
+          <p>
+            The grey lines show where preterm babies of the same PMA typically fall: most are between the 10th
+            and 90th, half are above the 50th. A baby on the 25th percentile is smaller than 75% of preterm
+            babies her age — which is normal and expected for many preemies, especially smaller ones at birth.
+          </p>
+          <p>
+            <span className="text-zinc-300">Trajectory matters more than the absolute percentile.</span>{' '}
+            The goal is for her line to{' '}
+            <span className="text-zinc-300">stay roughly parallel</span> to the reference lines — i.e. she
+            keeps following her own curve. Crossing percentiles upward is catch-up growth; crossing downward
+            for several weigh-ins is a flag worth raising at her next visit.
+          </p>
+          <p className="text-zinc-600">
+            Reference: Fenton TR et al., <em>Paediatr Perinat Epidemiol</em> 2025; girls weight-for-PMA cutoffs.
+            Used here only for visual context — clinical assessment is the doctor's call.
+          </p>
+        </div>
+      </details>
     </div>
   )
 }

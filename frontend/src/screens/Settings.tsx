@@ -209,10 +209,6 @@ export function SettingsScreen() {
     <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
       <div className="text-center text-zinc-500 text-sm mb-4">Settings</div>
 
-      <div className="text-[11px] text-zinc-500 mb-4 text-center">
-        Weight tracking has moved to the History tab → Weight.
-      </div>
-
       <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">
         <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Feeding schedule</div>
         <p className="text-xs text-zinc-500 mb-3">

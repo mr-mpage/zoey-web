@@ -101,7 +101,7 @@ export function WeightHistorySection() {
       {weights.length >= 1 && appSettings && (
         <div className="rounded-xl bg-zinc-900/60 p-3 mb-4">
           <div className="text-[11px] uppercase tracking-wider text-zinc-500 mb-2">
-            Fenton 2013 girls · weight by PMA
+            Fenton 2025 girls · weight by PMA
           </div>
           <FentonChart
             weights={weights}
