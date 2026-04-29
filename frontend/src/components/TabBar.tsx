@@ -58,7 +58,7 @@ const TABS: { id: Tab; label: string; Icon: (p: IconProps) => React.ReactElement
   { id: 'today', label: 'Today', Icon: TodayIcon },
   { id: 'overview', label: 'Overview', Icon: OverviewIcon },
   { id: 'pumps', label: 'Pumps', Icon: PumpIcon },
-  { id: 'history', label: 'History', Icon: HistoryIcon },
+  { id: 'history', label: 'Trends', Icon: HistoryIcon },
   { id: 'settings', label: 'Settings', Icon: SettingsIcon },
 ]
 

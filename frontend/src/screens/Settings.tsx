@@ -427,7 +427,7 @@ export function SettingsScreen() {
       <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">
         <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Colour bands (ml/kg/day)</div>
         <p className="text-xs text-zinc-500 mb-3">
-          History rows are coloured by where the day's ml/kg/day lands. Defaults reflect typical preterm
+          Trends rows are coloured by where the day's ml/kg/day lands. Defaults reflect typical preterm
           guidance; adjust if your doctor uses different numbers.
         </p>
         <div className="space-y-2">

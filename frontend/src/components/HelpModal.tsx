@@ -213,16 +213,16 @@ const EDIT_SECTIONS: Section[] = [
   {
     id: 'weight',
     title: 'Weight & growth',
-    blurb: 'Fenton 2025 chart, PMA-aware bands, history colours.',
+    blurb: 'Fenton 2025 chart, PMA-aware bands, trend colours.',
     tone: 'lime',
     icon: Icons.growth,
     body: (
       <>
         <H>Updating her weight</H>
         <p>
-          Go to <b>History → Weight</b>. Tap <b>+ Add weight</b> to log a new entry, or tap any row to edit
+          Go to <b>Trends → Weight</b>. Tap <b>+ Add weight</b> to log a new entry, or tap any row to edit
           or delete. Enter the new weight in grams and (if it changed) the ml/kg/day rate. The daily target
-          recalculates immediately; past-day history rows keep using the weight current at the time.
+          recalculates immediately; past-day rows keep using the weight current at the time.
         </p>
 
         <H>Fenton 2025 percentile chart</H>
@@ -252,7 +252,7 @@ const EDIT_SECTIONS: Section[] = [
           both judge her against her current age bucket.
         </p>
 
-        <H>History colours (ml/kg/day)</H>
+        <H>Trend colours (ml/kg/day)</H>
         <ul className="space-y-1 list-none pl-0">
           <li><span className="text-rose-400">rose</span> — under 135 · genuinely low</li>
           <li><span className="text-amber-400">amber</span> — 135–150 · under target</li>
@@ -316,7 +316,7 @@ const EDIT_SECTIONS: Section[] = [
           <li>Status card amber ("Behind pace") → next-feed target bumps up. Try the suggested amount, but
             never force feed — let her stop when she's done.</li>
           <li>Same feed slot repeatedly flagged ↓ below avg → pattern worth mentioning at her next visit.</li>
-          <li>Two or more amber history days in a row (under 150 ml/kg/day) → flag for the doctor.</li>
+          <li>Two or more amber days in a row on the trend (under 150 ml/kg/day) → flag for the doctor.</li>
           <li>Growth indicator showing concern for several weigh-ins → worth raising, especially past day 14.</li>
           <li>Use the notes field for anything specific — fortifier added, spit-up, very fussy, etc.</li>
         </ul>
@@ -459,7 +459,7 @@ const VIEW_SECTIONS: Section[] = [
       <>
         <H>The Fenton 2025 chart</H>
         <p className="mb-2">
-          On the History tab → Weight, Zoey's weight history is plotted against the Fenton 2025 girls
+          On the Trends tab → Weight, Zoey's weight history is plotted against the Fenton 2025 girls
           reference percentiles (3rd, 10th, 50th, 90th). The x-axis is{' '}
           <b>postmenstrual age (PMA)</b> — gestational age at birth plus how old she is — which is the
           standard way preterm babies are tracked.
@@ -592,7 +592,7 @@ export function HelpModal({ open, onClose }: Props) {
                 </li>
                 <li>
                   Use the tabs at the bottom: <b>Today</b> for the live picture, <b>Overview</b> for a
-                  weekly health-check paragraph, <b>Pumps</b> for milk supply, <b>History</b> for the full
+                  weekly health-check paragraph, <b>Pumps</b> for milk supply, <b>Trends</b> for the full
                   feed grid and the weight chart.
                 </li>
                 <li>

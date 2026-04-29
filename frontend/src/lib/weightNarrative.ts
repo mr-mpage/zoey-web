@@ -62,7 +62,7 @@ export function buildWeightNarrative({
     return {
       tone: 'neutral',
       headline: 'No weights logged yet',
-      detail: 'Add her first weight from History → Weight to start tracking the trend.',
+      detail: 'Add her first weight from Trends → Weight to start tracking the trend.',
     }
   }
 

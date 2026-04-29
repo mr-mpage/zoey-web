@@ -139,7 +139,7 @@ export function HistoryScreen() {
 
   return (
     <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
-      <div className="text-center text-zinc-500 text-sm mb-3">History</div>
+      <div className="text-center text-zinc-500 text-sm mb-3">Trends</div>
 
       <div className="grid grid-cols-2 gap-1 bg-zinc-800/40 rounded-lg p-1 mb-4">
         <button
