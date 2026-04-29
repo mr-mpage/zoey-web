@@ -237,14 +237,27 @@ export function TodayScreen() {
         Day {day} · {fmtDateLong(data.today_date)}
       </div>
 
-      <div className="flex justify-center mt-4">
-        <ProgressRing pct={pct}>
-          <div className="text-3xl font-light tabular-nums">
+      <div className="flex items-center gap-4 mt-4">
+        <ProgressRing pct={pct} size={132} stroke={10}>
+          <div className="text-2xl font-light tabular-nums leading-none">
             {data.feeds_total_ml.toFixed(0)}
-            <span className="text-zinc-500 text-base"> / {dailyTarget.toFixed(0)}</span>
           </div>
-          <div className="text-xs text-zinc-500 mt-1">ml today</div>
+          <div className="text-[11px] text-zinc-500 tabular-nums mt-0.5">/ {dailyTarget.toFixed(0)} ml</div>
         </ProgressRing>
+        <div className="flex-1 grid grid-cols-1 gap-1.5">
+          <div className="rounded-lg bg-zinc-900/60 px-3 py-2 flex items-baseline justify-between">
+            <div className="text-zinc-500 text-[11px] uppercase tracking-wider">Avg</div>
+            <div className="tabular-nums text-sm">{fmtMl(data.feeds_avg_ml)}</div>
+          </div>
+          <div className="rounded-lg bg-zinc-900/60 px-3 py-2 flex items-baseline justify-between">
+            <div className="text-zinc-500 text-[11px] uppercase tracking-wider">Per feed</div>
+            <div className="tabular-nums text-sm">{fmtMl(data.per_feed_target_ml)}</div>
+          </div>
+          <div className="rounded-lg bg-zinc-900/60 px-3 py-2 flex items-baseline justify-between">
+            <div className="text-zinc-500 text-[11px] uppercase tracking-wider">Left</div>
+            <div className="tabular-nums text-sm">{data.feeds_remaining}</div>
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col items-center gap-1.5 mt-3">
@@ -333,21 +346,6 @@ export function TodayScreen() {
           {data.breastfeeds_today_minutes > 0 && <> · {data.breastfeeds_today_minutes} min total</>}
         </div>
       )}
-
-      <div className="grid grid-cols-3 gap-2 mt-4 text-center text-sm">
-        <div className="rounded-xl bg-zinc-900/60 py-3">
-          <div className="text-zinc-500 text-[11px] uppercase tracking-wider">Avg</div>
-          <div className="tabular-nums">{fmtMl(data.feeds_avg_ml)}</div>
-        </div>
-        <div className="rounded-xl bg-zinc-900/60 py-3">
-          <div className="text-zinc-500 text-[11px] uppercase tracking-wider">Per feed</div>
-          <div className="tabular-nums">{fmtMl(data.per_feed_target_ml)}</div>
-        </div>
-        <div className="rounded-xl bg-zinc-900/60 py-3">
-          <div className="text-zinc-500 text-[11px] uppercase tracking-wider">Left</div>
-          <div className="tabular-nums">{data.feeds_remaining}</div>
-        </div>
-      </div>
 
       {!data.next_feed && data.feeds_remaining === 0 && data.daily_target_ml > 0 && (() => {
         const totalDelta = data.feeds_total_ml - data.daily_target_ml
