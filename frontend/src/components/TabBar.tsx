@@ -91,9 +91,6 @@ export function TabBar({
           </button>
         ))}
       </div>
-      <div className="text-center text-[9px] text-zinc-600 pb-1">
-        © {new Date().getFullYear()} The Page Family
-      </div>
     </nav>
   )
 }
