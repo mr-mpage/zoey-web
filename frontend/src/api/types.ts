@@ -8,6 +8,9 @@ export type Feed = {
   is_extra: boolean
   method: FeedMethod
   duration_min: number | null
+  /** YYYY-MM-DD; when set, this feed counts toward this feeding day rather
+   *  than the one derived from fed_at + anchor. */
+  feeding_day_override: string | null
 }
 
 export type Pump = {

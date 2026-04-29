@@ -20,6 +20,7 @@ import { StatusBadge } from '../components/StatusBadge'
 import { ZOEY_BIRTH_ISO } from '../lib/constants'
 import { buildEncouragement } from '../lib/encouragement'
 import { ageInDays, fmtClock, fmtDateLong, fmtMl, fmtRelative, fmtTime, localDatetimeInput } from '../lib/format'
+import { feedingDayKey } from '../lib/feedingday'
 import { gainTone, pmaAndPostnatal, rollingGainRate } from '../lib/growth'
 import type { Diaper, FeedWithComparison } from '../api/types'
 
@@ -67,6 +68,22 @@ type FeedDraft = {
   is_extra?: boolean
   method?: 'bottle' | 'breast'
   duration_min?: number | null
+  feeding_day_override?: string | null
+}
+
+type FeedSaveInput = {
+  amount_ml: number
+  at: string
+  notes: string
+  is_extra: boolean
+  method: 'bottle' | 'breast'
+  duration_min: number | null
+}
+
+type BoundaryPrompt = {
+  input: FeedSaveInput
+  impliedDay: string
+  currentDay: string
 }
 type PumpDraft = { amount_ml?: number; pumped_at?: string; notes?: string }
 
@@ -85,6 +102,7 @@ export function TodayScreen() {
 
   const [feedDraft, setFeedDraft] = useState<FeedDraft | null>(null)
   const [pumpDraft, setPumpDraft] = useState<PumpDraft | null>(null)
+  const [boundaryPrompt, setBoundaryPrompt] = useState<BoundaryPrompt | null>(null)
 
   if (isLoading || !data) {
     return <div className="p-8 text-center text-zinc-500">Loading…</div>
@@ -122,14 +140,10 @@ export function TodayScreen() {
       duration_min: f.duration_min,
     })
 
-  const onSaveFeed = (input: {
-    amount_ml: number
-    at: string
-    notes: string
-    is_extra: boolean
-    method: 'bottle' | 'breast'
-    duration_min: number | null
-  }) => {
+  const saveFeedActual = (
+    input: FeedSaveInput,
+    overrides?: { is_extra?: boolean; feeding_day_override?: string | null },
+  ) => {
     // Always send notes (even ""): on PATCH, an empty string is how the user
     // clears a previously set note. Coercing to undefined hid the field from
     // the JSON, leaving the old note in place.
@@ -137,15 +151,49 @@ export function TodayScreen() {
       amount_ml: input.amount_ml,
       fed_at: input.at,
       notes: input.notes,
-      is_extra: input.is_extra,
+      is_extra: overrides?.is_extra ?? input.is_extra,
       method: input.method,
       duration_min: input.duration_min,
+      ...(overrides?.feeding_day_override !== undefined
+        ? { feeding_day_override: overrides.feeding_day_override }
+        : {}),
     }
     if (feedDraft?.id) {
       patchFeed.mutate({ id: feedDraft.id, ...body }, { onSuccess: () => setFeedDraft(null) })
     } else {
       createFeed.mutate(body, { onSuccess: () => setFeedDraft(null) })
     }
+  }
+
+  const anchorH = appSettings?.day_start_hour ?? 2
+  const anchorM = appSettings?.day_start_minute ?? 30
+
+  const onSaveFeed = (input: FeedSaveInput) => {
+    // For brand-new feeds (no existing id), check whether the timestamp lands
+    // in a past feeding day. If so, the intent is ambiguous: the user may
+    // have meant 'extra at end of yesterday' OR 'first feed of the new day'.
+    // Pop a small picker to resolve.
+    if (!feedDraft?.id) {
+      const ts = new Date(input.at)
+      const impliedDay = feedingDayKey(ts, anchorH, anchorM)
+      const currentDay = data.today_date
+      if (impliedDay < currentDay) {
+        setBoundaryPrompt({ input, impliedDay, currentDay })
+        return
+      }
+    }
+    saveFeedActual(input)
+  }
+
+  const resolveBoundary = (choice: 'extra-yesterday' | 'first-today') => {
+    if (!boundaryPrompt) return
+    const { input, currentDay } = boundaryPrompt
+    if (choice === 'first-today') {
+      saveFeedActual(input, { feeding_day_override: currentDay })
+    } else {
+      saveFeedActual(input, { is_extra: true })
+    }
+    setBoundaryPrompt(null)
   }
 
   const onSavePump = (input: { amount_ml: number; at: string; notes: string }) => {
@@ -465,6 +513,41 @@ export function TodayScreen() {
         onSave={onSavePump}
         saving={createPump.isPending}
       />
+
+      {boundaryPrompt && (
+        <div className="fixed inset-0 z-[60] bg-black/70 flex items-end sm:items-center justify-center" onClick={() => setBoundaryPrompt(null)}>
+          <div
+            className="w-full sm:max-w-sm bg-zinc-900 sm:border border-zinc-800 sm:rounded-2xl rounded-t-2xl p-5 pb-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-lg font-medium mb-1.5">Which day is this feed?</div>
+            <p className="text-sm text-zinc-400 mb-5 leading-relaxed">
+              {fmtClock(boundaryPrompt.input.at)} on {fmtDateLong(boundaryPrompt.input.at)} sits before today's
+              anchor — it could be the last feed of yesterday's day, or the first of today's.
+            </p>
+            <div className="space-y-2">
+              <button
+                onClick={() => resolveBoundary('first-today')}
+                className="w-full py-3 rounded-xl bg-pink-300 text-zinc-900 font-medium active:scale-[.98]"
+              >
+                First feed of today ({boundaryPrompt.currentDay})
+              </button>
+              <button
+                onClick={() => resolveBoundary('extra-yesterday')}
+                className="w-full py-3 rounded-xl bg-zinc-800 text-zinc-200 active:scale-[.98]"
+              >
+                Extra at end of {boundaryPrompt.impliedDay}
+              </button>
+              <button
+                onClick={() => setBoundaryPrompt(null)}
+                className="w-full py-2.5 rounded-xl text-zinc-500 text-sm"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

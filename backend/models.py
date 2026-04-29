@@ -11,6 +11,7 @@ class FeedIn(BaseModel):
     is_extra: bool = False
     method: str = Field(default="bottle", pattern="^(bottle|breast)$")
     duration_min: Optional[int] = Field(default=None, ge=0, le=240)
+    feeding_day_override: Optional[str] = Field(default=None, pattern=r"^(\d{4}-\d{2}-\d{2})?$")
 
 
 class FeedPatch(BaseModel):
@@ -20,6 +21,7 @@ class FeedPatch(BaseModel):
     is_extra: Optional[bool] = None
     method: Optional[str] = Field(default=None, pattern="^(bottle|breast)$")
     duration_min: Optional[int] = Field(default=None, ge=0, le=240)
+    feeding_day_override: Optional[str] = Field(default=None, pattern=r"^(\d{4}-\d{2}-\d{2})?$")
 
 
 class Feed(BaseModel):
@@ -30,6 +32,7 @@ class Feed(BaseModel):
     is_extra: bool = False
     method: str = "bottle"
     duration_min: Optional[int] = None
+    feeding_day_override: Optional[str] = None
 
 
 class PumpIn(BaseModel):

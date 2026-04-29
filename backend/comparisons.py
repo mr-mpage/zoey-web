@@ -50,6 +50,20 @@ def feeding_day_bounds(day: date, anchor_h: int, anchor_m: int) -> tuple[datetim
     return start, end
 
 
+def feeding_day_for_row(row: dict, anchor_h: int, anchor_m: int) -> date:
+    """Resolve a feed row's feeding-day membership, honouring an explicit
+    override if set. Used so a feed at e.g. 02:20 can be tagged 'first feed
+    of today' even though its timestamp is just before the 02:30 anchor."""
+    override = row.get("feeding_day_override")
+    if override:
+        try:
+            return date.fromisoformat(override)
+        except ValueError:
+            pass  # bad value, fall through to derived
+    fed_at = row["fed_at"] if isinstance(row["fed_at"], datetime) else datetime.fromisoformat(row["fed_at"])
+    return feeding_day_for(fed_at, anchor_h, anchor_m)
+
+
 def index_feeds_by_feeding_day(
     rows: Iterable[dict], anchor_h: int, anchor_m: int
 ) -> dict[date, list[dict]]:
@@ -61,8 +75,7 @@ def index_feeds_by_feeding_day(
     """
     by_day: dict[date, list[dict]] = defaultdict(list)
     for r in rows:
-        fed_at = r["fed_at"] if isinstance(r["fed_at"], datetime) else datetime.fromisoformat(r["fed_at"])
-        d = feeding_day_for(fed_at, anchor_h, anchor_m)
+        d = feeding_day_for_row(r, anchor_h, anchor_m)
         by_day[d].append(r)
     for items in by_day.values():
         items.sort(key=lambda r: r["fed_at"])

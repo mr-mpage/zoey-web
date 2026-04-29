@@ -86,6 +86,11 @@ def init_db() -> None:
             conn.execute("ALTER TABLE feeds ADD COLUMN method TEXT NOT NULL DEFAULT 'bottle'")
         if "duration_min" not in cols:
             conn.execute("ALTER TABLE feeds ADD COLUMN duration_min INTEGER")
+        if "feeding_day_override" not in cols:
+            # Optional 'YYYY-MM-DD' explicit feeding-day membership. Lets a
+            # feed logged at 02:20 (just before a 02:30 anchor) count as
+            # feed #1 of the new day without having to fudge the timestamp.
+            conn.execute("ALTER TABLE feeds ADD COLUMN feeding_day_override TEXT")
 
 
 @contextmanager

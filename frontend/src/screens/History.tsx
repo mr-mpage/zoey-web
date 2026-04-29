@@ -44,8 +44,8 @@ function bandTone(mlPerKg: number, b: Bands): string {
 }
 
 export function HistoryScreen() {
-  const { data: feeds } = useFeeds(30)
-  const { data: diapers } = useDiapers(30)
+  const { data: feeds } = useFeeds(90)
+  const { data: diapers } = useDiapers(90)
   const { data: weight } = useWeight()
   const { data: appSettings } = useAppSettings()
   const anchorH = appSettings?.day_start_hour ?? 2
@@ -113,12 +113,13 @@ export function HistoryScreen() {
     [feeds, weights, anchorH, anchorM],
   )
 
-  // Show only the last 7 completed days + today in the grid
-  const visibleGrid = grid.slice(0, 8)
+  // Show all loaded days (up to 90, capped by API). Doctor visits sometimes
+  // need older history, so the grid keeps everything we have.
+  const visibleGrid = grid
 
   return (
     <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
-      <div className="text-center text-zinc-500 text-sm mb-4">Last 7 days</div>
+      <div className="text-center text-zinc-500 text-sm mb-4">Full history</div>
 
       {sparkPoints.length >= 2 && (() => {
         // Headline = avg over the last (up to) 7 completed days

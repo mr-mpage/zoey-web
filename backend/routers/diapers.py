@@ -32,7 +32,7 @@ def _row_to_diaper(row: dict) -> Diaper:
 
 
 @router.get("")
-def list_diapers(days: int = Query(default=7, ge=1, le=90)) -> list[Diaper]:
+def list_diapers(days: int = Query(default=7, ge=1, le=730)) -> list[Diaper]:
     end = now_local() + timedelta(days=1)
     start = (now_local() - timedelta(days=days - 1)).replace(hour=0, minute=0, second=0, microsecond=0)
     rows = repo.list_diapers_between(start.isoformat(), end.isoformat())

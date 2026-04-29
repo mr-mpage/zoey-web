@@ -136,13 +136,17 @@ export function HelpModal({ open, onClose }: Props) {
 
           <section>
             <SectionHeader>Starting the next day early</SectionHeader>
+            <p className="mb-2">
+              When today's feeds are all done, the Today screen shows a <b>Day complete</b> card with a
+              <b> Start new day now</b> button. Tap it to shift the day-start time to right now — useful
+              if Zoey's rhythm is genuinely drifting earlier and you want the schedule to follow.
+              Reversible any time from Settings → Feeding schedule.
+            </p>
             <p>
-              When today's 8 feeds are all done, the Today screen shows a <b>Day complete</b> card with a
-              <b> Start new day now</b> button. Tap it if Zoey wakes up before the scheduled day-rollover
-              and you want this feed to count as #1 of the new day rather than as a 9th feed appended to
-              the day that's just finished. It shifts the day-start time to right now (so the schedule
-              tracks her actual rhythm if it's drifting earlier). Reversible any time from
-              Settings → Feeding schedule.
+              If you instead just want a single feed to count toward the new day without shifting the
+              schedule, log the feed normally — when the timestamp lands before today's anchor, a small
+              dialog asks "first feed of today" or "extra at end of yesterday". Picking "first of today"
+              tags only this one feed without touching the anchor.
             </p>
           </section>
 

@@ -82,6 +82,8 @@ type FeedWriteInput = {
   is_extra?: boolean
   method?: 'bottle' | 'breast'
   duration_min?: number | null
+  /** YYYY-MM-DD to set, '' to clear, undefined to leave alone. */
+  feeding_day_override?: string | null
 }
 
 export function useCreateFeed() {

@@ -32,7 +32,7 @@ def _row_to_pump(row: dict) -> Pump:
 
 
 @router.get("")
-def list_pumps(days: int = Query(default=7, ge=1, le=90)) -> list[Pump]:
+def list_pumps(days: int = Query(default=7, ge=1, le=730)) -> list[Pump]:
     end = now_local() + timedelta(days=1)
     start = (now_local() - timedelta(days=days - 1)).replace(hour=0, minute=0, second=0, microsecond=0)
     rows = repo.list_pumps_between(start.isoformat(), end.isoformat())

@@ -31,12 +31,13 @@ def _row_to_feed(row: dict) -> Feed:
         is_extra=bool(row.get("is_extra", 0)),
         method=row.get("method") or "bottle",
         duration_min=row.get("duration_min"),
+        feeding_day_override=row.get("feeding_day_override"),
     )
 
 
 @router.get("")
 def list_feeds(
-    days: int = Query(default=7, ge=1, le=90),
+    days: int = Query(default=7, ge=1, le=730),
 ) -> list[Feed]:
     end = now_local() + timedelta(days=1)
     start = (now_local() - timedelta(days=days - 1)).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -49,6 +50,7 @@ def create_feed(payload: FeedIn) -> Feed:
     fed_at = _normalize_time(payload.fed_at) or now_local()
     new_id = repo.insert_feed(
         fed_at, payload.amount_ml, payload.notes, payload.is_extra, payload.method, payload.duration_min,
+        payload.feeding_day_override,
     )
     return Feed(
         id=new_id,
@@ -58,14 +60,20 @@ def create_feed(payload: FeedIn) -> Feed:
         is_extra=payload.is_extra,
         method=payload.method,
         duration_min=payload.duration_min,
+        feeding_day_override=payload.feeding_day_override,
     )
 
 
 @router.patch("/{feed_id}")
 def patch_feed(feed_id: int, payload: FeedPatch) -> dict:
     fed_at = _normalize_time(payload.fed_at)
+    # Treat empty-string feeding_day_override as 'clear'; non-empty as 'set'.
+    clear_override = payload.feeding_day_override == ""
+    new_override = payload.feeding_day_override if payload.feeding_day_override else None
     ok = repo.update_feed(
         feed_id, fed_at, payload.amount_ml, payload.notes, payload.is_extra, payload.method, payload.duration_min,
+        feeding_day_override=new_override,
+        clear_feeding_day_override=clear_override,
     )
     if not ok:
         raise HTTPException(status_code=404, detail="Feed not found")
