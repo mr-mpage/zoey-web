@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useIsReadOnly } from '../lib/authMode'
 
 type Props = { open: boolean; onClose: () => void }
 
@@ -55,7 +56,7 @@ const Icons = {
   ),
 }
 
-const SECTIONS: Section[] = [
+const EDIT_SECTIONS: Section[] = [
   {
     id: 'today',
     title: 'The Today screen',
@@ -332,7 +333,237 @@ const SECTIONS: Section[] = [
   },
 ]
 
+const VIEW_SECTIONS: Section[] = [
+  {
+    id: 'today',
+    title: 'The Today screen',
+    blurb: 'Today\'s feeding progress at a glance.',
+    tone: 'emerald',
+    icon: Icons.today,
+    body: (
+      <>
+        <H>The progress ring</H>
+        <p className="mb-2">
+          The big circle in the middle shows how much milk Zoey has had today out of her daily target.
+          The pink fill grows with each feed. A small light tick on the circle marks where she should be
+          right now if she's keeping pace with the day, so you can see ahead/behind at a glance: pink fill
+          past the tick = ahead, fill stops short of the tick = behind.
+        </p>
+        <p>
+          When the day's total reaches the goal, a soft warm glow appears behind the ring as a quiet
+          celebration.
+        </p>
+
+        <H>Pace chip + plain-language line</H>
+        <p>
+          Just below the ring, a coloured chip names today's pace in seven tiers, from{' '}
+          <span className="text-rose-300">well behind</span> to <span className="text-sky-200">well ahead</span>,
+          with the exact gap. Underneath, a one-sentence note says where things stand and what's expected
+          next.
+        </p>
+
+        <H>Today's feeds list</H>
+        <p>
+          The feeds Zoey has had today, with time, amount, and a small comparison badge that compares each
+          feed to the same slot from the past week:{' '}
+          <span className="text-amber-300">↓ below</span>,{' '}
+          <span className="text-emerald-300">≈ normal</span>,{' '}
+          <span className="text-sky-300">↑ above</span>. Breast feeds get a "BREAST · EST" tag and don't
+          pollute the bottle averages.
+        </p>
+
+        <H>Diaper count</H>
+        <p>
+          Wet and dirty diaper totals for today, with the time of the most recent change. Pediatricians
+          usually look for at least six wet diapers in 24 hours.
+        </p>
+
+        <H>Milestones</H>
+        <p>
+          A small pink chip near the top celebrates one-time events when they happen: birth weight regained,
+          term-equivalent age reached, first 60 ml feed, doubled birth weight, and so on.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: 'overview',
+    title: 'The Overview tab',
+    blurb: 'Weekly health-check answer in plain English.',
+    tone: 'rose',
+    icon: Icons.shield,
+    body: (
+      <>
+        <H>The headline paragraph</H>
+        <p>
+          Opens with a paragraph in plain language that answers "how is she doing?" — woven from the four
+          indicators below. If everything is fine it celebrates; if something is worth watching it names it
+          directly; if something has slipped it flags it for the next doctor visit.
+        </p>
+
+        <H>The four indicators</H>
+        <ul className="space-y-1.5 list-disc pl-5">
+          <li><b>Intake</b> — average ml/kg/day across the last completed week.</li>
+          <li><b>Growth</b> — weight-gain rate vs the band expected for her current age.</li>
+          <li><b>Today's pace</b> — where she stands against today's target.</li>
+          <li><b>Hydration</b> — wet-diaper count, the rough indicator of fluid balance.</li>
+        </ul>
+        <p className="mt-2 text-[11px] text-zinc-500">
+          Each card carries a coloured dot:{' '}
+          <span className="text-emerald-300">emerald</span> = on track,{' '}
+          <span className="text-amber-300">amber</span> = watch,{' '}
+          <span className="text-rose-300">rose</span> = flag for the doctor,{' '}
+          <span className="text-sky-300">sky</span> = above target.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: 'pumps',
+    title: 'The Pumps tab',
+    blurb: 'Supply vs intake balance over the last week.',
+    tone: 'sky',
+    icon: Icons.pump,
+    body: (
+      <>
+        <H>Three balance numbers</H>
+        <p className="mb-2">
+          Today's, the 4-day fridge cycle, and the rolling 7-day balance. Each number is{' '}
+          <b>pumped minus bottle-fed</b>:
+        </p>
+        <ul className="space-y-1 list-none pl-0 mb-2">
+          <li><span className="text-emerald-300">positive (emerald)</span> — pumping is ahead of intake, so stored milk is building.</li>
+          <li><span className="text-amber-300">negative (amber)</span> — drawing down on stored milk.</li>
+        </ul>
+        <p>
+          The 4-day window matches roughly how long fresh milk keeps in the fridge. Breast feeds aren't
+          counted on either side since they don't pass through the bottle supply.
+        </p>
+
+        <H>The dual-bar chart</H>
+        <p>
+          One pair of bars per day for the last 7 days: <span className="text-sky-300">sky</span> for pumped,
+          <span className="text-pink-300"> pink</span> for bottle-fed. The visible gap between the two pairs
+          tells you that day's surplus or deficit at a glance.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: 'weight',
+    title: 'Weight & growth',
+    blurb: 'Fenton percentile chart and what to read into it.',
+    tone: 'lime',
+    icon: Icons.growth,
+    body: (
+      <>
+        <H>The Fenton 2025 chart</H>
+        <p className="mb-2">
+          On the History tab → Weight, Zoey's weight history is plotted against the Fenton 2025 girls
+          reference percentiles (3rd, 10th, 50th, 90th). The x-axis is{' '}
+          <b>postmenstrual age (PMA)</b> — gestational age at birth plus how old she is — which is the
+          standard way preterm babies are tracked.
+        </p>
+        <p>
+          <b>Trajectory matters more than the absolute percentile.</b> The goal is for her line to stay
+          roughly parallel to the reference lines, i.e. follow her own curve. It's normal for preemies to
+          start at lower percentiles. Crossing percentiles upward over weeks is catch-up growth; crossing
+          downward repeatedly is what doctors flag.
+        </p>
+
+        <H>The narrative card</H>
+        <p>
+          Below the chart, a short paragraph in plain English summarises what the chart shows: birth-weight
+          recovery progress, current Fenton percentile, week-over-week percentile shifts, and the recent
+          gain rate vs the expected band. Tone (emerald/amber/sky) tracks the data.
+        </p>
+
+        <H>Per-row gain colours</H>
+        <p>
+          In the weight history list, each row shows how much was gained since the previous entry, both as
+          g/day and the more clinically meaningful g/kg/day. The colour grades the gain against the band
+          expected for that age bracket.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: 'preterm',
+    title: 'Why this is preterm-specific',
+    blurb: 'A short primer on PMA and gain bands.',
+    tone: 'violet',
+    icon: Icons.bell,
+    body: (
+      <>
+        <H>Postmenstrual age (PMA)</H>
+        <p className="mb-2">
+          PMA is gestational age at birth plus how old the baby is, in weeks. So a baby born at 35 weeks
+          and now 14 days old is at 35 + 2 = 37 weeks PMA. Almost every preterm growth metric is reported
+          against PMA rather than calendar age, because a baby's biology is still catching up to the
+          gestational timeline.
+        </p>
+        <p>
+          A "term-equivalent" baby has reached PMA 40 weeks — the moment a full-term baby would have been
+          born — which is when growth velocity starts to slow toward the term curve.
+        </p>
+
+        <H>Why the gain bands change</H>
+        <p>
+          Expected weight gain in g/kg/day decreases as PMA approaches term: faster at younger PMA, slower
+          near term. The app uses these bands (from Fenton 2025 + AAP/ESPGHAN 2022) to colour the daily
+          gain so a number like +12 g/kg/day reads as "lovely" at 36w PMA and "watch" at 40w+.
+        </p>
+
+        <H>Why the first two weeks are different</H>
+        <p>
+          Preemies almost always lose weight in the first 5–7 days, then start regaining around day 7 and
+          recover their birth weight by roughly day 14–21. So gain expectations during this period are
+          much lower than later — a "good" reading is anything climbing back toward birth weight.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: 'session',
+    title: 'Your session & sign out',
+    blurb: 'Read-only access, 7 days, sign-out icon top-right.',
+    tone: 'pink',
+    icon: Icons.bottle,
+    body: (
+      <>
+        <H>Read-only by design</H>
+        <p>
+          Your passcode opens a viewer session: you can see everything the parents see, but you can't add,
+          edit, or delete entries. That's intentional. The app's underlying log is the parents' record,
+          and view sessions can't accidentally change it.
+        </p>
+
+        <H>How long the session lasts</H>
+        <p>
+          Viewer sessions last 7 days before they expire. After that you'll be asked for the passcode
+          again. (Parents stay logged in for 90 days.)
+        </p>
+
+        <H>Signing out</H>
+        <p>
+          A small sign-out icon sits below the help "?" in the top-right corner. Tap it to end the session
+          on this device.
+        </p>
+
+        <H>Privacy</H>
+        <p>
+          Data lives on the family's private home server, backed up to a separate storage box and a
+          private GitHub repository. The parents see when you last opened the app, by your passcode label,
+          to know who's been keeping up.
+        </p>
+      </>
+    ),
+  },
+]
+
 export function HelpModal({ open, onClose }: Props) {
+  const readOnly = useIsReadOnly()
+  const sections = readOnly ? VIEW_SECTIONS : EDIT_SECTIONS
   const [openId, setOpenId] = useState<string | null>(null)
 
   if (!open) return null
@@ -351,36 +582,59 @@ export function HelpModal({ open, onClose }: Props) {
 
         <div className="overflow-y-auto px-5 py-4 text-sm leading-relaxed text-zinc-200">
 
-          {/* Quick start — always visible */}
+          {/* Quick start — always visible. Branches on auth mode. */}
           <div className="rounded-2xl bg-pink-300/10 border border-pink-300/20 p-4 mb-5">
             <div className="text-pink-200 font-medium mb-2">Quick start</div>
-            <ul className="space-y-1.5 list-disc pl-5 text-zinc-200">
-              <li>
-                Tap <span className="bg-pink-300/20 text-pink-200 px-1.5 rounded">+ Feed</span> to log a
-                bottle. The button shows the suggested ml.
-              </li>
-              <li>
-                Tap <span className="bg-zinc-800 text-zinc-100 px-1.5 rounded">+ Pump</span>,{' '}
-                <span className="bg-zinc-800 text-zinc-100 px-1.5 rounded">+ Wet</span>, or{' '}
-                <span className="bg-zinc-800 text-zinc-100 px-1.5 rounded">+ Dirty</span> for the rest.
-              </li>
-              <li>
-                <b>Tap any logged item</b> to edit amount, time, notes, or delete. Deletes have a 5-second
-                Undo.
-              </li>
-              <li>
-                Watch the <b>progress ring</b> + <b>pace chip</b> on Today for "are we on track right now?"
-                The <b>Overview</b> tab is the at-a-glance status if you only have a second.
-              </li>
-              <li>
-                Open the section below that matches what you're looking for — tap to expand.
-              </li>
-            </ul>
+            {readOnly ? (
+              <ul className="space-y-1.5 list-disc pl-5 text-zinc-200">
+                <li>
+                  This is a live view of how Zoey is doing. The data updates as soon as her parents log
+                  feeds, weights, and diapers.
+                </li>
+                <li>
+                  Use the tabs at the bottom: <b>Today</b> for the live picture, <b>Overview</b> for a
+                  weekly health-check paragraph, <b>Pumps</b> for milk supply, <b>History</b> for the full
+                  feed grid and the weight chart.
+                </li>
+                <li>
+                  Everything is read-only. You can't change anything by tapping, so explore freely.
+                </li>
+                <li>
+                  Sign out with the small icon below the "?" in the top right. Sessions last 7 days.
+                </li>
+                <li>
+                  Tap a section below to learn what each view is showing.
+                </li>
+              </ul>
+            ) : (
+              <ul className="space-y-1.5 list-disc pl-5 text-zinc-200">
+                <li>
+                  Tap <span className="bg-pink-300/20 text-pink-200 px-1.5 rounded">+ Feed</span> to log a
+                  bottle. The button shows the suggested ml.
+                </li>
+                <li>
+                  Tap <span className="bg-zinc-800 text-zinc-100 px-1.5 rounded">+ Pump</span>,{' '}
+                  <span className="bg-zinc-800 text-zinc-100 px-1.5 rounded">+ Wet</span>, or{' '}
+                  <span className="bg-zinc-800 text-zinc-100 px-1.5 rounded">+ Dirty</span> for the rest.
+                </li>
+                <li>
+                  <b>Tap any logged item</b> to edit amount, time, notes, or delete. Deletes have a 5-second
+                  Undo.
+                </li>
+                <li>
+                  Watch the <b>progress ring</b> + <b>pace chip</b> on Today for "are we on track right now?"
+                  The <b>Overview</b> tab is the at-a-glance status if you only have a second.
+                </li>
+                <li>
+                  Open the section below that matches what you're looking for — tap to expand.
+                </li>
+              </ul>
+            )}
           </div>
 
           {/* Sections — accordion */}
           <div className="space-y-2">
-            {SECTIONS.map((s) => {
+            {sections.map((s) => {
               const isOpen = openId === s.id
               const t = TONES[s.tone]
               return (
