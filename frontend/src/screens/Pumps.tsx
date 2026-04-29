@@ -72,7 +72,7 @@ export function PumpsScreen() {
             { onSuccess: () => setEditing(null) },
           )
         }}
-        onDelete={editing ? () => del.mutate(editing.id, { onSuccess: () => setEditing(null) }) : undefined}
+        onDelete={editing ? () => del.mutate(editing, { onSuccess: () => setEditing(null) }) : undefined}
         saving={patch.isPending || del.isPending}
       />
     </div>

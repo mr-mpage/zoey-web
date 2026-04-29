@@ -187,7 +187,7 @@ export function WeightHistorySection() {
           onSave={(patch) =>
             patchWeight.mutate({ id: editing.id, ...patch }, { onSuccess: () => setEditing(null) })
           }
-          onDelete={() => deleteWeight.mutate(editing.id, { onSuccess: () => setEditing(null) })}
+          onDelete={() => deleteWeight.mutate(editing, { onSuccess: () => setEditing(null) })}
           saving={patchWeight.isPending || deleteWeight.isPending}
         />
       )}

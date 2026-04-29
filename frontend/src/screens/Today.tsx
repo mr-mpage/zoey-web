@@ -69,6 +69,9 @@ type FeedDraft = {
   method?: 'bottle' | 'breast'
   duration_min?: number | null
   feeding_day_override?: string | null
+  /** When editing, the original Feed — used as the snapshot for the
+   *  delete-undo toast. New drafts (from +Feed) leave this undefined. */
+  original?: FeedWithComparison
 }
 
 type FeedSaveInput = {
@@ -126,7 +129,7 @@ export function TodayScreen() {
     const latest = [...todayDiapers]
       .filter((d) => d.kind === kind)
       .sort((a, b) => b.recorded_at.localeCompare(a.recorded_at))[0] as Diaper | undefined
-    if (latest) deleteDiaper.mutate(latest.id)
+    if (latest) deleteDiaper.mutate(latest)
   }
 
   const openEditFeed = (f: FeedWithComparison) =>
@@ -138,6 +141,7 @@ export function TodayScreen() {
       is_extra: f.is_extra,
       method: f.method,
       duration_min: f.duration_min,
+      original: f,
     })
 
   const saveFeedActual = (
@@ -500,7 +504,7 @@ export function TodayScreen() {
         }
         onClose={() => setFeedDraft(null)}
         onSave={onSaveFeed}
-        onDelete={feedDraft?.id ? () => deleteFeed.mutate(feedDraft.id!, { onSuccess: () => setFeedDraft(null) }) : undefined}
+        onDelete={feedDraft?.original ? () => deleteFeed.mutate(feedDraft.original!, { onSuccess: () => setFeedDraft(null) }) : undefined}
         saving={createFeed.isPending || patchFeed.isPending || deleteFeed.isPending}
       />
 
