@@ -186,11 +186,12 @@ export function HelpModal({ open, onClose }: Props) {
           <section>
             <SectionHeader>Updating her weight</SectionHeader>
             <p>
-              Go to Settings → Update weight, enter the new weight in grams and (if it changed) the
-              ml/kg/day rate. The daily target recalculates immediately, and history rows for past days keep
-              using the weight that was current then. Tap any row in the weight history to edit or delete it.
-              If a new weight differs by more than 10% or 100 g/day from the previous, you'll get a sanity-check
-              confirmation before it saves.
+              Go to <b>History → Weight</b> tab. Tap <b>+ Add weight</b> to log a new entry, or tap any
+              existing row to edit or delete it. Enter the new weight in grams and (if it changed) the
+              ml/kg/day rate. The daily target recalculates immediately, and history rows for past days
+              keep using the weight that was current then. The Weight tab also shows current weight,
+              7-day gain rate vs the expected range for her age, a weight trend sparkline, and per-row
+              gains coloured against PMA-aware bands.
             </p>
           </section>
 

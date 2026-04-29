@@ -1,9 +1,12 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useAppSettings, useDiapers, useFeeds, useWeight } from '../api/hooks'
 import { MlPerKgSparkline, buildSparklinePoints } from '../components/MlPerKgSparkline'
 import { feedingDayKeyOfFeed } from '../lib/feedingday'
 import { fmtDate } from '../lib/format'
 import type { Weight } from '../api/types'
+import { WeightHistorySection } from './WeightHistory'
+
+type SubTab = 'feeds' | 'weight'
 
 function feedingDayKey(d: Date, anchorH: number, anchorM: number): Date {
   const minutes = d.getHours() * 60 + d.getMinutes()
@@ -45,6 +48,7 @@ function bandTone(mlPerKg: number, b: Bands): string {
 }
 
 export function HistoryScreen() {
+  const [tab, setTab] = useState<SubTab>('feeds')
   const { data: feeds } = useFeeds(90)
   const { data: diapers } = useDiapers(90)
   const { data: weight } = useWeight()
@@ -123,8 +127,72 @@ export function HistoryScreen() {
 
   return (
     <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
-      <div className="text-center text-zinc-500 text-sm mb-4">Full history</div>
+      <div className="text-center text-zinc-500 text-sm mb-3">History</div>
 
+      <div className="grid grid-cols-2 gap-1 bg-zinc-800/40 rounded-lg p-1 mb-4">
+        <button
+          type="button"
+          onClick={() => setTab('feeds')}
+          className={`py-2 rounded-md text-sm font-medium transition ${
+            tab === 'feeds' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400'
+          }`}
+        >
+          Feeds
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('weight')}
+          className={`py-2 rounded-md text-sm font-medium transition ${
+            tab === 'weight' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400'
+          }`}
+        >
+          Weight
+        </button>
+      </div>
+
+      {tab === 'weight' && <WeightHistorySection />}
+      {tab === 'feeds' && (
+        <FeedsHistorySection
+          grid={visibleGrid}
+          weights={weights}
+          bands={bands}
+          feedsPerDay={feedsPerDay}
+          anchorH={anchorH}
+          anchorM={anchorM}
+          sparkPoints={sparkPoints}
+          diapersByDay={diapersByDay}
+          breastByDay={breastByDay}
+        />
+      )}
+    </div>
+  )
+}
+
+type FeedsHistoryProps = {
+  grid: { day: Date; feeds: number[] }[]
+  weights: Weight[]
+  bands: Bands
+  feedsPerDay: number
+  anchorH: number
+  anchorM: number
+  sparkPoints: ReturnType<typeof buildSparklinePoints>
+  diapersByDay: Map<string, { wet: number; dirty: number }>
+  breastByDay: Map<string, { count: number; ml: number; min: number }>
+}
+
+function FeedsHistorySection({
+  grid,
+  weights,
+  bands,
+  feedsPerDay,
+  anchorH,
+  anchorM,
+  sparkPoints,
+  diapersByDay,
+  breastByDay,
+}: FeedsHistoryProps) {
+  return (
+    <>
       {sparkPoints.length >= 2 && (() => {
         // Headline = avg over the last (up to) 7 completed days
         const recent = sparkPoints.slice(-7)
@@ -182,7 +250,7 @@ export function HistoryScreen() {
         <div className="rounded-xl bg-zinc-900/40 p-6 text-center text-zinc-500 text-sm">No feeds logged yet.</div>
       )}
       <div className="space-y-3">
-        {visibleGrid.map((row) => {
+        {grid.map((row) => {
           const total = row.feeds.reduce((a, b) => a + b, 0)
           const dayWeight = weightForDay(row.day, weights)
           const dayTarget = dayWeight ? (dayWeight.weight_grams / 1000) * dayWeight.ml_per_kg_per_day : 0
@@ -258,6 +326,6 @@ export function HistoryScreen() {
           )
         })}
       </div>
-    </div>
+    </>
   )
 }

@@ -1,111 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
-import {
-  useAppSettings,
-  useDeleteWeight,
-  useLogout,
-  usePatchWeight,
-  useSetWeight,
-  useUpdateAppSettings,
-  useWeight,
-} from '../api/hooks'
+import { useEffect, useState } from 'react'
+import { useAppSettings, useLogout, useUpdateAppSettings } from '../api/hooks'
 import { api, ApiError } from '../api/client'
-import { fmtDate, localDatetimeInput } from '../lib/format'
-import { expectedGainRange, gainTone, gainsBetweenEntries } from '../lib/growth'
-
-function pmaAtDate(dateIso: string, birthDateIso: string, gaWeeks: number): { pma: number; postnatalDays: number } {
-  const birth = new Date(birthDateIso + 'T00:00:00').getTime()
-  const at = new Date(dateIso).getTime()
-  const days = Math.max(0, Math.floor((at - birth) / 86_400_000))
-  return { pma: gaWeeks + days / 7, postnatalDays: days }
-}
 import { disablePush, enablePush, getState as getPushState, isStandalone } from '../lib/push'
-import type { Weight } from '../api/types'
-
-function WeightEditModal({
-  entry,
-  onClose,
-  onSave,
-  onDelete,
-  saving,
-}: {
-  entry: Weight
-  onClose: () => void
-  onSave: (patch: { weight_grams: number; ml_per_kg_per_day: number; recorded_at: string; notes: string }) => void
-  onDelete: () => void
-  saving?: boolean
-}) {
-  const [grams, setGrams] = useState(String(entry.weight_grams))
-  const [rate, setRate] = useState(String(entry.ml_per_kg_per_day))
-  const [when, setWhen] = useState(localDatetimeInput(new Date(entry.recorded_at)))
-  const [notes, setNotes] = useState(entry.notes ?? '')
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div
-        className="w-full sm:max-w-sm bg-zinc-900 sm:border border-zinc-800 sm:rounded-2xl rounded-t-2xl p-5 pb-8"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center mb-4">
-          <div className="text-lg font-medium">Edit weight</div>
-          <button onClick={onClose} className="text-zinc-400 text-2xl leading-none">×</button>
-        </div>
-
-        <label className="block text-xs text-zinc-500 mb-1">Weight (grams)</label>
-        <input
-          inputMode="numeric"
-          value={grams}
-          onChange={(e) => setGrams(e.target.value.replace(/\D/g, ''))}
-          className="w-full bg-zinc-800 rounded-lg px-3 py-2.5 mb-3 tabular-nums"
-        />
-
-        <label className="block text-xs text-zinc-500 mb-1">Rate (ml/kg/day)</label>
-        <input
-          inputMode="numeric"
-          value={rate}
-          onChange={(e) => setRate(e.target.value.replace(/\D/g, ''))}
-          className="w-full bg-zinc-800 rounded-lg px-3 py-2.5 mb-3 tabular-nums"
-        />
-
-        <label className="block text-xs text-zinc-500 mb-1">Recorded at</label>
-        <input
-          type="datetime-local"
-          value={when}
-          onChange={(e) => setWhen(e.target.value)}
-          className="w-full bg-zinc-800 rounded-lg px-3 py-2.5 mb-3 text-zinc-100"
-        />
-
-        <label className="block text-xs text-zinc-500 mb-1">Notes</label>
-        <input
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          className="w-full bg-zinc-800 rounded-lg px-3 py-2.5 mb-4"
-        />
-
-        <div className="flex gap-2">
-          <button
-            onClick={onDelete}
-            disabled={saving}
-            className="px-4 py-3 rounded-xl bg-rose-950 text-rose-300 text-sm"
-          >
-            Delete
-          </button>
-          <button
-            onClick={() => onSave({
-              weight_grams: parseInt(grams, 10),
-              ml_per_kg_per_day: parseInt(rate, 10),
-              recorded_at: new Date(when).toISOString(),
-              notes,
-            })}
-            disabled={saving || !grams || !rate}
-            className="flex-1 py-3 rounded-xl bg-pink-300 text-zinc-900 font-medium disabled:opacity-40"
-          >
-            {saving ? 'Saving…' : 'Save'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function PushSection() {
   const [state, setState] = useState<'unsupported' | 'denied' | 'available' | 'enabled' | 'loading'>('loading')
@@ -263,18 +159,10 @@ function BandRow({
 }
 
 export function SettingsScreen() {
-  const { data: weight } = useWeight()
-  const setWeight = useSetWeight()
-  const patchWeight = usePatchWeight()
-  const deleteWeight = useDeleteWeight()
   const { data: appSettings } = useAppSettings()
   const updateSettings = useUpdateAppSettings()
   const logout = useLogout()
-  const [editingWeight, setEditingWeight] = useState<Weight | null>(null)
 
-  const [grams, setGrams] = useState<string>(weight?.current?.weight_grams.toString() ?? '')
-  const [rate, setRate] = useState<string>(weight?.current?.ml_per_kg_per_day.toString() ?? '160')
-  const [notes, setNotes] = useState<string>('')
   const [anchor, setAnchor] = useState<string>('02:30')
   const [feedsPerDay, setFeedsPerDay] = useState<string>('8')
   const [bandConcern, setBandConcern] = useState<string>('130')
@@ -317,75 +205,12 @@ export function SettingsScreen() {
     })
   }
 
-  const handleSubmit = () => {
-    const g = parseInt(grams, 10)
-    const r = parseInt(rate, 10)
-    if (!g || !r) return
-    const prev = weight?.current
-    if (prev) {
-      const pctDelta = Math.abs(g - prev.weight_grams) / prev.weight_grams
-      const days = (Date.now() - new Date(prev.recorded_at).getTime()) / 86_400_000
-      const gPerDay = days > 0 ? Math.abs(g - prev.weight_grams) / days : Infinity
-      if (pctDelta > 0.1 || (days > 0 && gPerDay > 100)) {
-        const ok = window.confirm(
-          `Sanity check:\n\nLast weight: ${prev.weight_grams} g (${fmtDate(prev.recorded_at)})\nNew weight: ${g} g\nChange: ${(g - prev.weight_grams >= 0 ? '+' : '') + (g - prev.weight_grams)} g over ${days.toFixed(1)} days\n\nThat's an unusually large change. Save anyway?`,
-        )
-        if (!ok) return
-      }
-    }
-    setWeight.mutate(
-      { weight_grams: g, ml_per_kg_per_day: r, notes: notes || undefined },
-      { onSuccess: () => setNotes('') },
-    )
-  }
-
-  const projDaily = grams && rate ? (parseInt(grams, 10) / 1000) * parseInt(rate, 10) : 0
-
-  const gains = useMemo(() => gainsBetweenEntries(weight?.history ?? []), [weight?.history])
-
   return (
     <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
       <div className="text-center text-zinc-500 text-sm mb-4">Settings</div>
 
-      <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">
-        <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Update weight</div>
-        <label className="block text-xs text-zinc-500 mb-1">Weight (grams)</label>
-        <input
-          inputMode="numeric"
-          value={grams}
-          onChange={(e) => setGrams(e.target.value.replace(/\D/g, ''))}
-          className="w-full bg-zinc-800 rounded-lg px-3 py-2.5 mb-3 tabular-nums"
-          placeholder="2400"
-        />
-        <label className="block text-xs text-zinc-500 mb-1">Rate (ml/kg/day)</label>
-        <input
-          inputMode="numeric"
-          value={rate}
-          onChange={(e) => setRate(e.target.value.replace(/\D/g, ''))}
-          className="w-full bg-zinc-800 rounded-lg px-3 py-2.5 mb-3 tabular-nums"
-          placeholder="160"
-        />
-        <label className="block text-xs text-zinc-500 mb-1">Notes (optional)</label>
-        <input
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          className="w-full bg-zinc-800 rounded-lg px-3 py-2.5 mb-3"
-          placeholder="weighed at hospital, doctor visit, etc."
-        />
-        {projDaily > 0 && (
-          <div className="text-xs text-zinc-500 mb-3 text-center">
-            new daily target <span className="text-zinc-200 tabular-nums">{projDaily.toFixed(0)} ml</span>
-            {' · '}
-            per feed <span className="text-zinc-200 tabular-nums">{(projDaily / 8).toFixed(0)} ml</span>
-          </div>
-        )}
-        <button
-          onClick={handleSubmit}
-          disabled={setWeight.isPending || !grams || !rate}
-          className="w-full py-3 rounded-xl bg-pink-300 text-zinc-900 font-medium disabled:opacity-40"
-        >
-          {setWeight.isPending ? 'Saving…' : 'Save weight'}
-        </button>
+      <div className="text-[11px] text-zinc-500 mb-4 text-center">
+        Weight tracking has moved to the History tab → Weight.
       </div>
 
       <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">
@@ -451,7 +276,7 @@ export function SettingsScreen() {
             help="Below this is a flag — rose"
             value={bandConcern}
             onChange={setBandConcern}
-            placeholder="130"
+            placeholder="135"
           />
           <BandRow
             label="Zone minimum"
@@ -465,7 +290,7 @@ export function SettingsScreen() {
             help="At minimum, edge of zone — lime"
             value={bandSolid}
             onChange={setBandSolid}
-            placeholder="165"
+            placeholder="160"
           />
           <BandRow
             label="Zone maximum"
@@ -483,88 +308,6 @@ export function SettingsScreen() {
           {updateSettings.isPending ? 'Saving…' : 'Save bands'}
         </button>
       </div>
-
-      <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">
-        <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Weight history</div>
-        {weight && weight.history.length > 0 ? (
-          <ul className="space-y-1">
-            {weight.history.map((w) => {
-              const gain = gains.find((g) => g.to.id === w.id)
-              const ctx = appSettings
-                ? pmaAtDate(w.recorded_at, appSettings.birth_date, appSettings.gestational_age_weeks)
-                : null
-              return (
-                <li
-                  key={w.id}
-                  onClick={() => setEditingWeight(w)}
-                  className="rounded-lg p-2 -mx-2 active:bg-zinc-800/60"
-                >
-                  <div className="flex justify-between text-sm">
-                    <span className="text-zinc-400">{fmtDate(w.recorded_at)}</span>
-                    <span className="tabular-nums">
-                      {w.weight_grams} g · {w.ml_per_kg_per_day} ml/kg/d
-                    </span>
-                  </div>
-                  {gain && (
-                    <div className={`text-[11px] tabular-nums text-right ${gainTone(gain.g_per_kg_per_day, ctx?.pma, ctx?.postnatalDays)}`}>
-                      {gain.g_per_day >= 0 ? '+' : ''}{gain.g_per_day.toFixed(0)} g/day · {gain.g_per_kg_per_day >= 0 ? '+' : ''}{gain.g_per_kg_per_day.toFixed(1)} g/kg/day
-                    </div>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
-        ) : (
-          <div className="text-zinc-500 text-sm">No history yet.</div>
-        )}
-        {appSettings && (() => {
-          const today = new Date().toISOString()
-          const ctx = pmaAtDate(today, appSettings.birth_date, appSettings.gestational_age_weeks)
-          const [gMin, gMax] = expectedGainRange(ctx.pma, ctx.postnatalDays)
-          const stage =
-            ctx.postnatalDays < 7
-              ? 'first week (birth-weight loss/regain)'
-              : ctx.postnatalDays < 14
-                ? 'first 2 weeks (rebuilding from birth weight)'
-                : `PMA ~${ctx.pma.toFixed(0)} weeks`
-          return (
-            <div className="text-[11px] text-zinc-500 mt-3 leading-relaxed">
-              <div className="text-zinc-300 mb-1">How the gain colours work</div>
-              <p>
-                Each row's gain (eg <span className="tabular-nums">+9 g/kg/day</span>) is coloured against the
-                range expected for her age at that point. Premature babies have an age-shifting target rather
-                than one fixed number — the youngest preemies are on the steepest growth curve, slowing toward
-                a term-equivalent rate.
-              </p>
-              <p className="mt-1.5">
-                <b className="text-zinc-300">Today</b> (day {ctx.postnatalDays}, {stage}): expected{' '}
-                <b className="text-zinc-300 tabular-nums">{gMin}–{gMax} g/kg/day</b>.
-              </p>
-              <details className="mt-1.5">
-                <summary className="cursor-pointer text-zinc-400">Full reference</summary>
-                <ul className="mt-1 space-y-0.5 list-none pl-3 text-zinc-500 tabular-nums">
-                  <li>First week: 0–12 g/kg/day (loss/regain phase)</li>
-                  <li>Days 7–14: 8–16 (rebuilding birth weight)</li>
-                  <li>PMA &lt; 30 weeks: 17–23</li>
-                  <li>PMA 30–34 weeks: 15–20</li>
-                  <li>PMA 34–38 weeks: 12–17</li>
-                  <li>Term-equivalent (≥ 38 w): 10–15</li>
-                </ul>
-              </details>
-            </div>
-          )
-        })()}
-      </div>
-
-      {editingWeight && (
-        <WeightEditModal
-          entry={editingWeight}
-          onClose={() => setEditingWeight(null)}
-          onSave={(patch) => patchWeight.mutate({ id: editingWeight.id, ...patch }, { onSuccess: () => setEditingWeight(null) })}
-          onDelete={() => deleteWeight.mutate(editingWeight.id, { onSuccess: () => setEditingWeight(null) })}
-          saving={patchWeight.isPending || deleteWeight.isPending}
-        />
-      )}
 
       <PushSection />
 

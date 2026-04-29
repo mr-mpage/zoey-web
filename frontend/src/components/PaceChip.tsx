@@ -31,7 +31,7 @@ export function PaceChip({ pace, gap, hasFeeds }: Props) {
   const abs = Math.abs(gap)
   const showQuantity = abs >= 1 // hide '0 ml' clutter
   const onTrack = pace === 'on_track'
-  const sign = gap > 0 ? '+' : '−'
+  const sign = gap > 0 ? '+' : gap < 0 ? '−' : ''
   const s = STYLES[pace]
   return (
     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm border ${s.color}`}>
@@ -39,7 +39,7 @@ export function PaceChip({ pace, gap, hasFeeds }: Props) {
       <span>{VERDICT[pace]}</span>
       {showQuantity && (
         <span className={`tabular-nums ${onTrack ? 'opacity-60 text-xs' : ''}`}>
-          · {onTrack ? `${sign}${abs.toFixed(0)}` : abs.toFixed(0)} ml
+          · {sign}{abs.toFixed(0)} ml
         </span>
       )}
     </span>
