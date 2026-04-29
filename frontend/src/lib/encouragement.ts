@@ -253,29 +253,35 @@ export function buildEncouragement(d: Dashboard): Encouragement {
   }
 }
 
-/** Third-person status line for read-only viewers. Same branching as
- *  buildEncouragement, but observational rather than coaching: doesn't
- *  use second-person verbs ("aim for", "let her stop") since the reader
- *  is not the one feeding her. */
+/** Warm third-person line for read-only viewers (grandparents, doctors).
+ *  Same branching as buildEncouragement but no clinical pace numbers, no
+ *  next-feed targets, no "aim for" coaching. Honest about lighter-eating
+ *  days without being alarming. */
 export function buildViewerEncouragement(d: Dashboard): Encouragement {
   const feedsDone = d.feeds_today.filter((f) => !f.is_extra).length
   const remaining = d.feeds_remaining
   const target = d.daily_target_ml
   const total = d.feeds_total_ml
-  const gap = d.gap_ml
-  const absGap = Math.abs(gap)
+  const absGap = Math.abs(d.gap_ml)
   const pace = d.pace_status
-  const nf = d.next_feed
-  const next = nf?.target_ml ?? d.per_feed_target_ml
+  const last = feedsDone > 0 ? d.feeds_today[feedsDone - 1] : null
+  const lastId = last?.id ?? 0
+
+  const seedBase = `${d.today_date}|${feedsDone}|${lastId}|view`
+  const seedFor = (branch: string) => `${seedBase}|${branch}`
 
   if (target === 0) {
-    return { tone: 'neutral', text: "Today's target isn't set yet." }
+    return { tone: 'neutral', text: 'Just getting set up for today.' }
   }
 
   if (feedsDone === 0) {
     return {
       tone: 'neutral',
-      text: `Today is just starting. The first feed is aiming for around ${next.toFixed(0)} ml.`,
+      text: pickStable(seedFor('start'), [
+        'A fresh day for Zoey is just getting started.',
+        "Today's just beginning for Zoey.",
+        'Quiet morning so far. The day is just starting.',
+      ]),
     }
   }
 
@@ -283,18 +289,30 @@ export function buildViewerEncouragement(d: Dashboard): Encouragement {
     if (total >= target) {
       return {
         tone: 'celebrate',
-        text: `Today's feeds are all done and the target is reached. Lovely day for Zoey.`,
+        text: pickStable(seedFor('done-hit'), [
+          'A lovely eating day for Zoey. All her feeds are done.',
+          'Zoey ate beautifully today and is all done.',
+          'A strong day for Zoey, comfortably through all her feeds.',
+        ]),
       }
     }
     if (absGap <= target * 0.05) {
       return {
         tone: 'positive',
-        text: `Today's feeds are all done, landing right around target.`,
+        text: pickStable(seedFor('done-close'), [
+          "Zoey's done for the day, right where she should be.",
+          'A nicely paced day. All her feeds in.',
+          "All wrapped up for today, right on her usual.",
+        ]),
       }
     }
     return {
       tone: 'neutral',
-      text: `Today's feeds are all done, ${absGap.toFixed(0)} ml shy of target.`,
+      text: pickStable(seedFor('done-under'), [
+        'A lighter eating day for Zoey today. She is settled now, fresh start tomorrow.',
+        "Zoey's done for today. A quieter day for her appetite, but every feed counts.",
+        'All her feeds in, just a quieter day at the bottle. Tomorrow is a new one.',
+      ]),
     }
   }
 
@@ -309,66 +327,109 @@ export function buildViewerEncouragement(d: Dashboard): Encouragement {
     if (isWellBehind || isBehind) {
       return {
         tone: 'concern',
-        text: `Last feed of the day. Zoey is ${absGap.toFixed(0)} ml under pace; the next feed is aiming for ${next.toFixed(0)} ml.`,
+        text: pickStable(seedFor('last-behind'), [
+          "Zoey's last feed of the day coming up. A quieter eating day than usual, Max and Sabrina are watching how she takes it.",
+          "One feed left for Zoey today. She's been a bit lighter than her usual.",
+          "Last feed coming up. Today has been a slower one for her appetite.",
+        ]),
       }
     }
     if (isSlightlyBehind) {
       return {
         tone: 'neutral',
-        text: `Last feed coming up. A touch behind pace; next feed is around ${next.toFixed(0)} ml.`,
+        text: pickStable(seedFor('last-slight-behind'), [
+          'One feed to go for Zoey. Just a touch under her usual today.',
+          "Last feed coming up. Zoey is a small bit behind her rhythm, easy to round out.",
+        ]),
       }
     }
     if (isWellAhead || isAhead || isSlightlyAhead) {
       return {
         tone: 'positive',
-        text: `Last feed coming up. Zoey is already past target today; next feed is around ${next.toFixed(0)} ml.`,
+        text: pickStable(seedFor('last-ahead'), [
+          "Last feed coming up, and Zoey has already met her target. A strong day at the bottle.",
+          "One to go for Zoey. She's eaten well today, comfortably past target.",
+          "Last feed of the day. Zoey has been tucking in beautifully.",
+        ]),
       }
     }
     return {
       tone: 'positive',
-      text: `Last feed coming up. About ${next.toFixed(0)} ml lands her on target.`,
+      text: pickStable(seedFor('last-on'), [
+        "Zoey's last feed of the day is on its way. She's been right in her rhythm.",
+        'Almost done for the day. Zoey has been eating just as expected.',
+      ]),
     }
   }
 
   if (isWellBehind) {
     return {
       tone: 'concern',
-      text: `Zoey is ${absGap.toFixed(0)} ml behind pace today. The next feed is aiming for ${next.toFixed(0)} ml.`,
+      text: pickStable(seedFor('mid-well-behind'), [
+        "A quieter eating day for Zoey so far. Max and Sabrina are keeping a close eye on it.",
+        "Zoey has been lighter than usual at the bottle today. Plenty of time still to come.",
+        "Today is a slower one for Zoey's appetite. The day isn't over yet.",
+      ]),
     }
   }
   if (isBehind) {
     return {
       tone: 'concern',
-      text: `Zoey is ${absGap.toFixed(0)} ml under pace. Next feed is around ${next.toFixed(0)} ml.`,
+      text: pickStable(seedFor('mid-behind'), [
+        "A slightly slower start to the day for Zoey. Plenty of feeds still to come.",
+        "Zoey is a bit under her usual rhythm today, but the day is still young.",
+        "A quieter eating day so far for Zoey. No drama, just a slower start.",
+      ]),
     }
   }
   if (isSlightlyBehind) {
     return {
       tone: 'neutral',
-      text: `Zoey is just slightly under pace today. Next feed: ${next.toFixed(0)} ml.`,
+      text: pickStable(seedFor('mid-slight-behind'), [
+        "Zoey's just a touch under her usual today. Nothing unusual.",
+        "A slightly quieter day so far. Easy for Zoey to round out.",
+        "Just a small bit under her rhythm today, no concern.",
+      ]),
     }
   }
   if (isWellAhead) {
     return {
       tone: 'positive',
-      text: `Zoey is well ahead of pace today, eating brilliantly. Next feed: ${next.toFixed(0)} ml.`,
+      text: pickStable(seedFor('mid-well-ahead'), [
+        "Zoey is having a hungry day! Eating beautifully.",
+        "A big appetite today. Zoey is tucking in well past her usual.",
+        "Strong eating day for Zoey, well ahead of her rhythm.",
+      ]),
     }
   }
   if (isAhead) {
     return {
       tone: 'positive',
-      text: `Zoey is comfortably ahead of pace today. Next feed: ${next.toFixed(0)} ml.`,
+      text: pickStable(seedFor('mid-ahead'), [
+        "Zoey is having a strong day at the bottle.",
+        "A nice eating day for Zoey, ahead of her usual.",
+        "Tucking in well today, comfortably ahead of her rhythm.",
+      ]),
     }
   }
   if (isSlightlyAhead) {
     return {
       tone: 'positive',
-      text: `Zoey is just ahead of pace. Next feed: ${next.toFixed(0)} ml.`,
+      text: pickStable(seedFor('mid-slight-ahead'), [
+        "Zoey is eating just a touch ahead of her usual today. Lovely rhythm.",
+        "A small bit ahead of her rhythm. Eating well.",
+        "Zoey is right where you'd want her, with a touch extra.",
+      ]),
     }
   }
 
   return {
     tone: 'positive',
-    text: `Zoey is right on pace today. Next feed: ${next.toFixed(0)} ml.`,
+    text: pickStable(seedFor('on-pace'), [
+      "Zoey is right in her rhythm today. Eating just as expected.",
+      "A steady day for Zoey at the bottle.",
+      "Zoey is doing nicely today, right on her usual.",
+      "Smooth day so far. Zoey is eating well.",
+    ]),
   }
 }

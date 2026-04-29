@@ -73,6 +73,9 @@ export function LockScreen() {
           height={88}
           className="mx-auto mb-4 rounded-2xl shadow-lg"
         />
+        <div className="text-zinc-400 text-[12px] mb-2 italic">
+          Following Zoey's first months, one feed at a time.
+        </div>
         <div className="text-pink-200/90 text-3xl font-light tracking-wide">Zoey</div>
         <div className="text-zinc-500 text-sm mt-1">{busy ? 'Checking…' : 'Enter passcode'}</div>
       </div>
