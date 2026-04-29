@@ -142,6 +142,40 @@ export function HelpModal({ open, onClose }: Props) {
             </p>
           </section>
 
+          <section>
+            <SectionHeader>Save confirmations & undo</SectionHeader>
+            <p>
+              Every save (feed, pump, weight, diaper) flashes a brief green toast confirming what was logged
+              — so a tap is never silent. Every delete shows a 5-second amber toast with an{' '}
+              <b>Undo</b> button that re-creates the entry exactly as it was. Use it freely if you've
+              tapped delete by accident.
+            </p>
+          </section>
+
+          {/* ───── PUMPS, REPORT, SCHEDULE ───── */}
+          <GroupTitle>Pumps & reports</GroupTitle>
+
+          <section>
+            <SectionHeader>Pump supply chart</SectionHeader>
+            <p>
+              The Pumps tab opens with a 30-day daily-totals chart. Today's bar is highlighted; a dashed
+              line marks the rolling 7-day average. Underneath, the caption shows peak day, 7-day average,
+              and the count of active days. The detail list still shows the last 7 days grouped by day —
+              tap any pump to edit amount, time, or notes.
+            </p>
+          </section>
+
+          <section>
+            <SectionHeader>Doctor visit report</SectionHeader>
+            <p>
+              <b>Settings → Open report (last 14 days)</b> generates a printable summary: weight history
+              with gain rates, daily intake (ml + ml/kg/day, breast attempts, diaper counts), and every
+              feed note from the period. The page has Print / Save PDF and Close buttons at the top —
+              tap Print on iOS to bring up the system share sheet for "Save to Files → PDF". Hand the PDF
+              to the doctor or print it out.
+            </p>
+          </section>
+
           {/* ───── SCHEDULE & RHYTHM ───── */}
           <GroupTitle>The schedule & rhythm</GroupTitle>
 
@@ -196,6 +230,22 @@ export function HelpModal({ open, onClose }: Props) {
           </section>
 
           <section>
+            <SectionHeader>Fenton 2025 percentile chart</SectionHeader>
+            <p className="mb-2">
+              On the Weight tab, the chart plots her weight history against the Fenton 2025 girls
+              reference percentiles (3rd, 10th, 50th, 90th). The x-axis is{' '}
+              <b>postmenstrual age (PMA)</b> — gestational age + how old she is — which is the standard
+              way preterm growth is tracked.
+            </p>
+            <p>
+              <b>Trajectory matters more than the absolute percentile.</b> The goal is for her line to
+              stay roughly parallel to the reference lines (i.e. follow her own curve). It's normal for
+              preemies to start at lower percentiles. The expandable "What this chart means" panel under
+              the chart has the full primer.
+            </p>
+          </section>
+
+          <section>
             <SectionHeader>Weight gain expectations (PMA-aware)</SectionHeader>
             <p className="mb-2">
               Expected gain depends on her postmenstrual age (PMA = gestational age at birth + days postnatal).
@@ -210,9 +260,9 @@ export function HelpModal({ open, onClose }: Props) {
               <li>Term-equivalent (≥ 38 w): <b>10–15 g/kg/day</b></li>
             </ul>
             <p className="mt-2 text-zinc-400 text-[11px]">
-              Reference: AAP/ESPGHAN 2022 + Fenton growth charts. The Today gain chip and the Overview growth
-              indicator both judge her against her current age bucket — so a 9 g/kg/day reading reads as "good"
-              during postnatal recovery and as "watch" once she's past day 14.
+              Reference: AAP/ESPGHAN 2022 + Fenton 2025 growth charts. The Today gain chip and the Overview
+              growth indicator both judge her against her current age bucket — so a 9 g/kg/day reading reads
+              as "good" during postnatal recovery and as "watch" once she's past day 14.
             </p>
           </section>
 
