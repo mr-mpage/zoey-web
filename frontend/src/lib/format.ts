@@ -37,6 +37,25 @@ export function ageInDays(birthIso: string): number {
   return Math.floor((Date.now() - birth) / 86_400_000)
 }
 
+/** Warm, parent-facing rendering of postnatal age. */
+export function friendlyAge(birthIso: string): string {
+  const days = ageInDays(birthIso)
+  if (days <= 0) return 'Born today'
+  if (days === 1) return '1 day old'
+  if (days < 14) return `${days} days old`
+  if (days < 60) {
+    const weeks = Math.floor(days / 7)
+    const rest = days % 7
+    if (rest === 0) return weeks === 1 ? '1 week old today' : `${weeks} weeks old today`
+    return `${weeks}w ${rest}d`
+  }
+  // Calendar-month diff for the round number, fall back to ~30d for the remainder
+  const months = Math.floor(days / 30)
+  const rest = days - months * 30
+  if (rest === 0) return months === 1 ? '1 month old today' : `${months} months old today`
+  return `${months}m ${rest}d`
+}
+
 export function fmtDateLong(iso: string): string {
   return new Date(iso).toLocaleDateString('en-GB', {
     day: 'numeric',

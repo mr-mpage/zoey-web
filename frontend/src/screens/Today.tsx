@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   useAppSettings,
   useCreateDiaper,
@@ -8,6 +8,7 @@ import {
   useDeleteDiaper,
   useDeleteFeed,
   useDiapers,
+  useFeeds,
   usePatchFeed,
   useUpdateAppSettings,
   useWeight,
@@ -15,14 +16,16 @@ import {
 import { AmountModal } from '../components/AmountModal'
 import { DiaperListModal } from '../components/DiaperListModal'
 import { EncouragementCard } from '../components/EncouragementCard'
+import { MilestoneChip } from '../components/MilestoneChip'
 import { PaceChip } from '../components/PaceChip'
 import { ProgressRing } from '../components/ProgressRing'
 import { StatusBadge } from '../components/StatusBadge'
 import { ZOEY_BIRTH_ISO } from '../lib/constants'
 import { buildEncouragement } from '../lib/encouragement'
-import { ageInDays, fmtClock, fmtDateLong, fmtMl, fmtRelative, fmtTime, localDatetimeInput } from '../lib/format'
+import { fmtClock, fmtDateLong, fmtMl, fmtRelative, fmtTime, friendlyAge, localDatetimeInput } from '../lib/format'
 import { feedingDayKey } from '../lib/feedingday'
 import { gainTone, pmaAndPostnatal, rollingGainRate } from '../lib/growth'
+import { computeMilestones } from '../lib/milestones'
 import type { Diaper, FeedWithComparison } from '../api/types'
 
 function DiaperLastLine({ at }: { at: string | null }) {
@@ -116,6 +119,7 @@ export function TodayScreen() {
   const { data: weight } = useWeight()
   const { data: appSettings } = useAppSettings()
   const { data: diapers } = useDiapers(1)
+  const { data: feedHistory } = useFeeds(180)
   const createFeed = useCreateFeed()
   const patchFeed = usePatchFeed()
   const deleteFeed = useDeleteFeed()
@@ -135,11 +139,26 @@ export function TodayScreen() {
 
   const dailyTarget = data.daily_target_ml
   const pct = dailyTarget > 0 ? data.feeds_total_ml / dailyTarget : 0
-  const day = ageInDays(ZOEY_BIRTH_ISO)
   const gain = rollingGainRate(weight?.history ?? [], 7)
   const { pma, postnatalDays } = appSettings
     ? pmaAndPostnatal(appSettings.birth_date, appSettings.gestational_age_weeks)
     : { pma: 0, postnatalDays: 0 }
+
+  const milestone = useMemo(() => {
+    if (!appSettings) return null
+    const todayMaxFeedMl = data.feeds_today
+      .filter((f) => f.method !== 'breast')
+      .reduce((m, f) => Math.max(m, f.amount_ml), 0)
+    const list = computeMilestones({
+      birthDateIso: appSettings.birth_date,
+      gestationalAgeWeeks: appSettings.gestational_age_weeks,
+      feeds: feedHistory ?? [],
+      weights: weight?.history ?? [],
+      todayFeedTotalMl: data.feeds_total_ml,
+      todayMaxFeedMl: todayMaxFeedMl > 0 ? todayMaxFeedMl : null,
+    })
+    return list[0] ?? null
+  }, [appSettings, data.feeds_today, data.feeds_total_ml, feedHistory, weight?.history])
 
   const todayDiapers = (diapers ?? []).filter((d) => {
     const start = data.feeding_day_start
@@ -233,13 +252,24 @@ export function TodayScreen() {
 
   return (
     <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
-      <div className="text-center text-zinc-500 text-sm mb-1">
-        Day {day} · {fmtDateLong(data.today_date)}
+      <div className="text-center">
+        <div className="inline-flex items-center gap-1.5 text-zinc-100 text-base">
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="rgb(244 175 195)" aria-hidden>
+            <path d="M12 21s-7.5-4.6-7.5-10.3a4.2 4.2 0 0 1 7.5-2.6 4.2 4.2 0 0 1 7.5 2.6c0 5.7-7.5 10.3-7.5 10.3z" />
+          </svg>
+          <span>Zoey · {ZOEY_BIRTH_ISO ? friendlyAge(ZOEY_BIRTH_ISO) : ''}</span>
+        </div>
+        <div className="text-[11px] text-zinc-500 mt-0.5">{fmtDateLong(data.today_date)}</div>
       </div>
+
+      <MilestoneChip milestone={milestone} />
 
       <div className="flex justify-center mt-4">
         <ProgressRing pct={pct}>
-          <div className="text-3xl font-light tabular-nums">
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="rgb(244 175 195)" aria-hidden className="opacity-70">
+            <path d="M12 21s-7.5-4.6-7.5-10.3a4.2 4.2 0 0 1 7.5-2.6 4.2 4.2 0 0 1 7.5 2.6c0 5.7-7.5 10.3-7.5 10.3z" />
+          </svg>
+          <div className="text-3xl font-light tabular-nums mt-1">
             {data.feeds_total_ml.toFixed(0)}
             <span className="text-zinc-500 text-base"> / {dailyTarget.toFixed(0)}</span>
           </div>
