@@ -7,6 +7,8 @@ export type Encouragement = {
   text: string
 }
 
+export type Audience = 'self' | 'viewer'
+
 /** Stable per (day + branch + recent activity) rotation. Including feedsDone
  *  and the last feed's id means the phrase changes after every new feed,
  *  giving variety without flicker mid-glance. */
@@ -248,5 +250,125 @@ export function buildEncouragement(d: Dashboard): Encouragement {
       `On track and looking comfortable. ${next.toFixed(0)} ml next.`,
       `Smooth rhythm today. ${next.toFixed(0)} ml on the next.`,
     ]),
+  }
+}
+
+/** Third-person status line for read-only viewers. Same branching as
+ *  buildEncouragement, but observational rather than coaching: doesn't
+ *  use second-person verbs ("aim for", "let her stop") since the reader
+ *  is not the one feeding her. */
+export function buildViewerEncouragement(d: Dashboard): Encouragement {
+  const feedsDone = d.feeds_today.filter((f) => !f.is_extra).length
+  const remaining = d.feeds_remaining
+  const target = d.daily_target_ml
+  const total = d.feeds_total_ml
+  const gap = d.gap_ml
+  const absGap = Math.abs(gap)
+  const pace = d.pace_status
+  const nf = d.next_feed
+  const next = nf?.target_ml ?? d.per_feed_target_ml
+
+  if (target === 0) {
+    return { tone: 'neutral', text: "Today's target isn't set yet." }
+  }
+
+  if (feedsDone === 0) {
+    return {
+      tone: 'neutral',
+      text: `Today is just starting. The first feed is aiming for around ${next.toFixed(0)} ml.`,
+    }
+  }
+
+  if (remaining === 0) {
+    if (total >= target) {
+      return {
+        tone: 'celebrate',
+        text: `Today's feeds are all done and the target is reached. Lovely day for Zoey.`,
+      }
+    }
+    if (absGap <= target * 0.05) {
+      return {
+        tone: 'positive',
+        text: `Today's feeds are all done, landing right around target.`,
+      }
+    }
+    return {
+      tone: 'neutral',
+      text: `Today's feeds are all done, ${absGap.toFixed(0)} ml shy of target.`,
+    }
+  }
+
+  const isWellBehind = pace === 'well_behind'
+  const isBehind = pace === 'behind'
+  const isSlightlyBehind = pace === 'slightly_behind'
+  const isWellAhead = pace === 'well_ahead'
+  const isAhead = pace === 'ahead'
+  const isSlightlyAhead = pace === 'slightly_ahead'
+
+  if (remaining === 1) {
+    if (isWellBehind || isBehind) {
+      return {
+        tone: 'concern',
+        text: `Last feed of the day. Zoey is ${absGap.toFixed(0)} ml under pace; the next feed is aiming for ${next.toFixed(0)} ml.`,
+      }
+    }
+    if (isSlightlyBehind) {
+      return {
+        tone: 'neutral',
+        text: `Last feed coming up. A touch behind pace; next feed is around ${next.toFixed(0)} ml.`,
+      }
+    }
+    if (isWellAhead || isAhead || isSlightlyAhead) {
+      return {
+        tone: 'positive',
+        text: `Last feed coming up. Zoey is already past target today; next feed is around ${next.toFixed(0)} ml.`,
+      }
+    }
+    return {
+      tone: 'positive',
+      text: `Last feed coming up. About ${next.toFixed(0)} ml lands her on target.`,
+    }
+  }
+
+  if (isWellBehind) {
+    return {
+      tone: 'concern',
+      text: `Zoey is ${absGap.toFixed(0)} ml behind pace today. The next feed is aiming for ${next.toFixed(0)} ml.`,
+    }
+  }
+  if (isBehind) {
+    return {
+      tone: 'concern',
+      text: `Zoey is ${absGap.toFixed(0)} ml under pace. Next feed is around ${next.toFixed(0)} ml.`,
+    }
+  }
+  if (isSlightlyBehind) {
+    return {
+      tone: 'neutral',
+      text: `Zoey is just slightly under pace today. Next feed: ${next.toFixed(0)} ml.`,
+    }
+  }
+  if (isWellAhead) {
+    return {
+      tone: 'positive',
+      text: `Zoey is well ahead of pace today, eating brilliantly. Next feed: ${next.toFixed(0)} ml.`,
+    }
+  }
+  if (isAhead) {
+    return {
+      tone: 'positive',
+      text: `Zoey is comfortably ahead of pace today. Next feed: ${next.toFixed(0)} ml.`,
+    }
+  }
+  if (isSlightlyAhead) {
+    return {
+      tone: 'positive',
+      text: `Zoey is just ahead of pace. Next feed: ${next.toFixed(0)} ml.`,
+    }
+  }
+
+  return {
+    tone: 'positive',
+    text: `Zoey is right on pace today. Next feed: ${next.toFixed(0)} ml.`,
   }
 }

@@ -326,7 +326,7 @@ def compute_overview() -> Overview:
         pct = abs(gap) / expected if expected > 0 else 0
         if pct <= 0.05:
             status, headline = "good", "On track today"
-            detail = f"{abs(gap):.0f} ml from the expected mid-day pace — right on rhythm."
+            detail = f"{abs(gap):.0f} ml from the expected pace at this point — right on rhythm."
         elif gap < 0 and pct >= 0.20:
             status, headline = "concern", "Well behind today"
             detail = f"{abs(gap):.0f} ml under the expected pace. Catch-up is built into the next feed's target."
@@ -335,7 +335,7 @@ def compute_overview() -> Overview:
             detail = f"{abs(gap):.0f} ml under the expected pace. Catch-up is built into the next feed's target."
         elif gap < 0:
             status, headline = "watch", "Slightly behind today"
-            detail = f"{abs(gap):.0f} ml under the expected mid-day pace — well within range, easy to recover."
+            detail = f"{abs(gap):.0f} ml under the expected pace so far — well within range, easy to recover."
         elif pct >= 0.20:
             status, headline = "over", "Well ahead today"
             detail = f"{gap:.0f} ml above the expected pace. Next feeds will ease off."

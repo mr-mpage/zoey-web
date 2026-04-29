@@ -69,7 +69,7 @@ const EDIT_SECTIONS: Section[] = [
         <ul className="space-y-1.5 list-disc pl-5">
           <li><b>Progress ring</b> — total fed today vs daily target (weight × ml/kg/day).</li>
           <li>
-            <b>Pace chip</b> — seven tiers vs the expected mid-day pace:{' '}
+            <b>Pace chip</b> — seven tiers vs the expected pace so far:{' '}
             <span className="text-rose-300">well behind</span>{' / '}
             <span className="text-amber-300">behind</span>{' / '}
             <span className="text-yellow-300">slightly behind</span>{' / '}
@@ -533,15 +533,15 @@ const VIEW_SECTIONS: Section[] = [
       <>
         <H>Read-only by design</H>
         <p>
-          Your passcode opens a viewer session: you can see everything the parents see, but you can't add,
-          edit, or delete entries. That's intentional. The app's underlying log is the parents' record,
-          and view sessions can't accidentally change it.
+          Your passcode opens a viewer session: you can see everything Max and Sabrina see, but you can't
+          add, edit, or delete entries. That's intentional. The app's underlying log is their record, and
+          view sessions can't accidentally change it.
         </p>
 
         <H>How long the session lasts</H>
         <p>
           Viewer sessions last 7 days before they expire. After that you'll be asked for the passcode
-          again. (Parents stay logged in for 90 days.)
+          again. (Max and Sabrina stay logged in for 90 days.)
         </p>
 
         <H>Signing out</H>
@@ -553,8 +553,8 @@ const VIEW_SECTIONS: Section[] = [
         <H>Privacy</H>
         <p>
           Data lives on the family's private home server, backed up to a separate storage box and a
-          private GitHub repository. The parents see when you last opened the app, by your passcode label,
-          to know who's been keeping up.
+          private GitHub repository. Max and Sabrina see when you last opened the app, by your passcode
+          label, to know who's been keeping up.
         </p>
       </>
     ),
@@ -588,7 +588,7 @@ export function HelpModal({ open, onClose }: Props) {
             {readOnly ? (
               <ul className="space-y-1.5 list-disc pl-5 text-zinc-200">
                 <li>
-                  This is a live view of how Zoey is doing. The data updates as soon as her parents log
+                  This is a live view of how Zoey is doing. The data updates as soon as Max or Sabrina log
                   feeds, weights, and diapers.
                 </li>
                 <li>

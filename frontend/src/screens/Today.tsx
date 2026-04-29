@@ -21,7 +21,7 @@ import { ProgressRing } from '../components/ProgressRing'
 import { StatusBadge } from '../components/StatusBadge'
 import { useIsReadOnly } from '../lib/authMode'
 import { ZOEY_BIRTH_ISO } from '../lib/constants'
-import { buildEncouragement } from '../lib/encouragement'
+import { buildEncouragement, buildViewerEncouragement } from '../lib/encouragement'
 import { fmtClock, fmtDateLong, fmtMl, fmtRelative, fmtTime, friendlyAge, localDatetimeInput } from '../lib/format'
 import { feedingDayKey } from '../lib/feedingday'
 import { computeMilestones } from '../lib/milestones'
@@ -318,7 +318,7 @@ export function TodayScreen() {
         <PaceChip pace={data.pace_status} gap={data.gap_ml} hasFeeds={data.feeds_today.length > 0} />
       </div>
 
-      <EncouragementCard enc={buildEncouragement(data)} />
+      <EncouragementCard enc={readOnly ? buildViewerEncouragement(data) : buildEncouragement(data)} />
 
       {!readOnly && (
         <div className="mt-4 grid grid-cols-3 gap-2">
