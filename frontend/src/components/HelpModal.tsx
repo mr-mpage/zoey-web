@@ -269,39 +269,60 @@ const EDIT_SECTIONS: Section[] = [
   },
   {
     id: 'vitals',
-    title: 'Vitals (Owlet sock)',
-    blurb: 'Heart rate and SpO₂ trends from the Dream Sock.',
+    title: 'Vitals',
+    blurb: 'Heart rate and SpO₂ from the Owlet sock, and how to read them.',
     tone: 'rose',
     icon: Icons.shield,
     body: (
       <>
-        <H>Where the data comes from</H>
-        <p className="mb-2">
-          When the Owlet integration is configured, the backend polls the Dream Sock every 2 minutes and
-          stores readings in their own table. Trends → Vitals shows daily aggregates: heart-rate average +
-          range, the lowest sustained SpO₂ (10-min rolling average from the sock), monitoring hours, and
-          session counts. Owlet still does the real-time alerting; this is just the historical view.
+        <H>What the tab shows</H>
+        <p>
+          Per-day summaries of Zoey's heart rate and oxygen saturation while the Owlet sock is on.
+          The top card is today, the week chart shows seven days at a glance, the per-day list is the
+          detail. Owlet handles real-time alerting on its own; this view is for trends and patterns.
         </p>
 
-        <H>What "lowest SpO₂" actually measures</H>
+        <H>The week chart</H>
         <p>
-          The single 1-second value bouncing in and out of the 90s every breath is too noisy to track.
-          The sock publishes a <b>10-minute rolling average</b> alongside it; a sustained dip in <em>that</em>
-          number is what doctors look at. The card shows the lowest the 10-min average reached during a
-          monitored period.
+          One column per day. The thin grey bar is that day's heart-rate min–max range; the dot is
+          the daily average. The faint green band across the chart marks the typical preterm/newborn
+          range so you can see at a glance which days fell inside it.
         </p>
 
-        <H>Sessions</H>
+        <H>The SpO₂ sparkline</H>
         <p>
-          A session is a contiguous stretch of monitoring separated by at least 15 minutes off the foot
-          (nap → walk → bath, etc.). "3 sessions, 14 h" tells you the sock was on for most of the day,
-          which makes the day's numbers trustworthy. A 30-minute session is too thin to read into.
+          Below the heart-rate chart, one bar per day showing the lowest 10-minute average that day.
+          Single-second oxygen dips happen and don't matter; the metric doctors look at is the lowest
+          the <b>10-minute rolling average</b> from the sock dropped to. The bar's colour reflects
+          where it landed (see ranges below).
         </p>
 
-        <H>Storage</H>
+        <H>Sessions and monitoring hours</H>
         <p>
-          Raw readings are kept for 14 days then rolled into per-day aggregates and pruned, so the
-          database stays small. The aggregates are kept indefinitely and included in the GitHub backup.
+          A session is a contiguous stretch of monitoring; "3 sessions, 14 h" means the sock was on
+          for most of the day across three on-and-off periods. More monitoring hours = more reliable
+          numbers. A day with 30 minutes of data is too thin to read into.
+        </p>
+
+        <H>Reference ranges</H>
+        <ul className="space-y-1 list-none pl-0">
+          <li><span className="text-emerald-300">HR avg 120–160 BPM</span> — typical preterm/newborn band</li>
+          <li><span className="text-yellow-300">HR avg outside that</span> — context-dependent (sleep, crying, illness)</li>
+          <li><span className="text-emerald-300">SpO₂ ≥ 95%</span> — healthy</li>
+          <li><span className="text-yellow-300">SpO₂ 92–94%</span> — within acceptable preterm band, worth watching</li>
+          <li><span className="text-amber-300">SpO₂ 90–91%</span> — worth a glance</li>
+          <li><span className="text-rose-300">SpO₂ &lt; 90%</span> — worth raising at the next visit</li>
+        </ul>
+        <p className="mt-2 text-[11px] text-zinc-500">
+          Bands reflect general AAP newborn / NICU preterm guidance, not a clinical protocol. The
+          doctor's thresholds always take precedence.
+        </p>
+
+        <H>The narrative card</H>
+        <p>
+          A short paragraph above the chart picks one read of the week and matches its tone — calm
+          when nothing's off, watchful when SpO₂ has dipped, soft flag when it's persistently low.
+          It's just the same numbers in plain English.
         </p>
       </>
     ),
