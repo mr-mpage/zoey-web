@@ -36,11 +36,26 @@ pumps = list(db.execute("SELECT id, pumped_at, amount_ml, notes FROM pumps ORDER
 weights = list(db.execute("SELECT id, recorded_at, weight_grams, ml_per_kg_per_day, notes FROM weight_entries ORDER BY recorded_at"))
 diapers = list(db.execute("SELECT id, recorded_at, kind, notes FROM diapers ORDER BY recorded_at"))
 settings = {r["key"]: r["value"] for r in db.execute("SELECT key, value FROM app_settings")}
+# Daily vitals aggregates: tiny and worth backing up. Raw vitals are
+# transient (rolled up after 14 days) so we skip them.
+try:
+    vitals_daily = list(db.execute(
+        "SELECT feeding_day, hr_avg, hr_min, hr_max, spo2_avg, spo2_min_avg10, "
+        "monitoring_minutes, session_count, low_spo2_alert_count, sample_count, computed_at "
+        "FROM vitals_daily ORDER BY feeding_day"
+    ))
+except sqlite3.OperationalError:
+    vitals_daily = []  # table missing on older deploys
 
 write_csv("feeds", feeds, ["id", "fed_at", "amount_ml", "notes", "is_extra", "method", "duration_min", "feeding_day_override"])
 write_csv("pumps", pumps, ["id", "pumped_at", "amount_ml", "notes"])
 write_csv("weights", weights, ["id", "recorded_at", "weight_grams", "ml_per_kg_per_day", "notes"])
 write_csv("diapers", diapers, ["id", "recorded_at", "kind", "notes"])
+if vitals_daily:
+    write_csv("vitals_daily", vitals_daily, [
+        "feeding_day", "hr_avg", "hr_min", "hr_max", "spo2_avg", "spo2_min_avg10",
+        "monitoring_minutes", "session_count", "low_spo2_alert_count", "sample_count", "computed_at",
+    ])
 (out / "settings.json").write_text(json.dumps(settings, indent=2, sort_keys=True) + "\n")
 
 snapshot = {
@@ -48,6 +63,7 @@ snapshot = {
     "pumps": [dict(r) for r in pumps],
     "weights": [dict(r) for r in weights],
     "diapers": [dict(r) for r in diapers],
+    "vitals_daily": [dict(r) for r in vitals_daily],
     "settings": settings,
 }
 (out / "snapshot.json").write_text(json.dumps(snapshot, indent=2, default=str) + "\n")

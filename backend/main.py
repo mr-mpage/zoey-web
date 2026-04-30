@@ -8,7 +8,8 @@ from fastapi.responses import FileResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from .db import init_db
-from .routers import auth, dashboard, diapers, feeds, overview, pumps, push, report, settings, weight
+from .owlet import owlet_poll_loop, vitals_compaction_loop
+from .routers import auth, dashboard, diapers, feeds, overview, pumps, push, report, settings, vitals, weight
 from .scheduler import reminder_loop
 
 logging.basicConfig(level=logging.INFO)
@@ -16,15 +17,23 @@ logging.basicConfig(level=logging.INFO)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    task = asyncio.create_task(reminder_loop())
+    tasks = [
+        asyncio.create_task(reminder_loop()),
+        asyncio.create_task(owlet_poll_loop()),
+        asyncio.create_task(vitals_compaction_loop()),
+    ]
     try:
         yield
     finally:
-        task.cancel()
-        try:
-            await task
-        except asyncio.CancelledError:
-            pass
+        for t in tasks:
+            t.cancel()
+        for t in tasks:
+            try:
+                await t
+            except asyncio.CancelledError:
+                pass
+            except Exception:  # noqa: BLE001
+                logging.getLogger(__name__).exception("background task failed during shutdown")
 
 
 app = FastAPI(title="Zoey Tracker", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
@@ -87,6 +96,7 @@ app.include_router(diapers.router)
 app.include_router(push.router)
 app.include_router(overview.router)
 app.include_router(report.router)
+app.include_router(vitals.router)
 
 
 @app.get("/api/health")

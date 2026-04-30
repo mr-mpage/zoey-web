@@ -26,6 +26,19 @@ class Settings(BaseSettings):
     vapid_contact_email: str = "m.page@vendure.io"
     push_lead_minutes: int = 15
     push_check_interval_s: int = 60
+    # Owlet integration. Optional — leave email blank to disable polling.
+    zoey_owlet_email: str = ""
+    zoey_owlet_password: str = ""
+    zoey_owlet_region: str = "europe"  # "world" or "europe"
+    owlet_poll_interval_s: int = 120
+    # Tiered retention for raw vitals: keep N days raw (so we can recompute
+    # aggregates if the formula changes); roll older days into vitals_daily
+    # and delete the raw rows.
+    vitals_raw_retain_days: int = 14
+    # Threshold for what counts as a "low SpO2 alert event" — Owlet's own
+    # alerts are also persisted via the LOW_OX_ALRT property, but we count
+    # crossings of this band as a backup signal.
+    vitals_low_spo2_threshold: int = 90
 
 
 settings = Settings()

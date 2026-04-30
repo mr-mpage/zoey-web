@@ -7,6 +7,7 @@ import {
   useWeight,
 } from '../api/hooks'
 import { FentonChart } from '../components/FentonChart'
+import { VitalsCard } from '../components/VitalsCard'
 import { WeightModal } from '../components/WeightModal'
 import { WeightNarrativeCard } from '../components/WeightNarrativeCard'
 import { WeightSparkline } from '../components/WeightSparkline'
@@ -125,6 +126,9 @@ export function WeightHistorySection() {
         })
         return narrative ? <WeightNarrativeCard narrative={narrative} /> : null
       })()}
+
+      {/* Owlet vitals summary — renders nothing when not configured */}
+      <VitalsCard days={7} />
 
       {/* Add weight button */}
       {!readOnly && (

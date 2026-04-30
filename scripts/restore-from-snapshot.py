@@ -28,7 +28,7 @@ import sys
 from pathlib import Path
 
 
-TABLES = ("feeds", "pumps", "weight_entries", "diapers", "app_settings")
+TABLES = ("feeds", "pumps", "weight_entries", "diapers", "vitals_daily", "app_settings")
 
 
 def main() -> int:
@@ -51,6 +51,7 @@ def main() -> int:
     pumps = data.get("pumps", [])
     weights = data.get("weights", [])
     diapers = data.get("diapers", [])
+    vitals_daily = data.get("vitals_daily", [])
     settings = data.get("settings", {})
 
     conn = sqlite3.connect(args.db)
@@ -117,6 +118,27 @@ def main() -> int:
                 {"id": d.get("id"), "recorded_at": d["recorded_at"], "kind": d["kind"], "notes": d.get("notes")},
             )
 
+        for v in vitals_daily:
+            conn.execute(
+                "INSERT INTO vitals_daily (feeding_day, hr_avg, hr_min, hr_max, spo2_avg, spo2_min_avg10, "
+                "monitoring_minutes, session_count, low_spo2_alert_count, sample_count, computed_at) "
+                "VALUES (:feeding_day, :hr_avg, :hr_min, :hr_max, :spo2_avg, :spo2_min_avg10, "
+                ":monitoring_minutes, :session_count, :low_spo2_alert_count, :sample_count, :computed_at)",
+                {
+                    "feeding_day": v["feeding_day"],
+                    "hr_avg": v.get("hr_avg"),
+                    "hr_min": v.get("hr_min"),
+                    "hr_max": v.get("hr_max"),
+                    "spo2_avg": v.get("spo2_avg"),
+                    "spo2_min_avg10": v.get("spo2_min_avg10"),
+                    "monitoring_minutes": v.get("monitoring_minutes", 0),
+                    "session_count": v.get("session_count", 0),
+                    "low_spo2_alert_count": v.get("low_spo2_alert_count", 0),
+                    "sample_count": v.get("sample_count", 0),
+                    "computed_at": v.get("computed_at"),
+                },
+            )
+
         for k, v in settings.items():
             conn.execute(
                 "INSERT INTO app_settings (key, value) VALUES (?, ?) "
@@ -126,7 +148,7 @@ def main() -> int:
 
     print(
         f"restored: {len(feeds)} feeds, {len(pumps)} pumps, {len(weights)} weights, "
-        f"{len(diapers)} diapers, {len(settings)} settings"
+        f"{len(diapers)} diapers, {len(vitals_daily)} vitals_daily, {len(settings)} settings"
     )
     return 0
 

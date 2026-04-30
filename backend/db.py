@@ -59,6 +59,41 @@ CREATE TABLE IF NOT EXISTS viewer_passcodes (
     last_seen_at TEXT,
     created_at TEXT NOT NULL
 );
+
+-- Raw vitals readings from the Owlet sock. Polled at OWLET_POLL_INTERVAL_S
+-- (default 120 s). Compacted into vitals_daily and pruned after
+-- VITALS_RAW_RETAIN_DAYS (default 14) so storage stays bounded.
+CREATE TABLE IF NOT EXISTS vitals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    recorded_at TEXT NOT NULL,
+    heart_rate REAL,
+    spo2 REAL,
+    spo2_avg10 REAL,
+    movement INTEGER,
+    skin_temp INTEGER,
+    sock_connection INTEGER,
+    sock_off INTEGER NOT NULL DEFAULT 0,
+    charging INTEGER NOT NULL DEFAULT 0,
+    low_spo2_alert INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_vitals_recorded_at ON vitals(recorded_at);
+
+-- Per feeding-day aggregates. One row per day, kept indefinitely.
+-- Recomputed if needed (raw data within retention window) or filled in
+-- once when the raw readings for that day are about to be pruned.
+CREATE TABLE IF NOT EXISTS vitals_daily (
+    feeding_day TEXT PRIMARY KEY,
+    hr_avg REAL,
+    hr_min REAL,
+    hr_max REAL,
+    spo2_avg REAL,
+    spo2_min_avg10 REAL,
+    monitoring_minutes INTEGER NOT NULL DEFAULT 0,
+    session_count INTEGER NOT NULL DEFAULT 0,
+    low_spo2_alert_count INTEGER NOT NULL DEFAULT 0,
+    sample_count INTEGER NOT NULL DEFAULT 0,
+    computed_at TEXT NOT NULL
+);
 """
 
 DEFAULTS = {

@@ -306,6 +306,100 @@ def update_viewer_last_seen(label: str, when: datetime) -> None:
         )
 
 
+def insert_vital(
+    recorded_at: datetime,
+    heart_rate: Optional[float],
+    spo2: Optional[float],
+    spo2_avg10: Optional[float],
+    movement: Optional[int],
+    skin_temp: Optional[int],
+    sock_connection: Optional[int],
+    sock_off: bool,
+    charging: bool,
+    low_spo2_alert: bool,
+) -> int:
+    with get_conn() as c:
+        cur = c.execute(
+            "INSERT INTO vitals (recorded_at, heart_rate, spo2, spo2_avg10, movement, "
+            "skin_temp, sock_connection, sock_off, charging, low_spo2_alert) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                recorded_at.isoformat(),
+                heart_rate,
+                spo2,
+                spo2_avg10,
+                movement,
+                skin_temp,
+                sock_connection,
+                1 if sock_off else 0,
+                1 if charging else 0,
+                1 if low_spo2_alert else 0,
+            ),
+        )
+        return cur.lastrowid
+
+
+def list_vitals_between(start_iso: str, end_iso: str) -> list[dict]:
+    with get_conn() as c:
+        rows = c.execute(
+            "SELECT id, recorded_at, heart_rate, spo2, spo2_avg10, movement, skin_temp, "
+            "sock_connection, sock_off, charging, low_spo2_alert FROM vitals "
+            "WHERE recorded_at >= ? AND recorded_at < ? ORDER BY recorded_at ASC",
+            (start_iso, end_iso),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def delete_vitals_before(cutoff_iso: str) -> int:
+    with get_conn() as c:
+        cur = c.execute("DELETE FROM vitals WHERE recorded_at < ?", (cutoff_iso,))
+        return cur.rowcount
+
+
+def upsert_vitals_daily(
+    feeding_day: str,
+    hr_avg: Optional[float],
+    hr_min: Optional[float],
+    hr_max: Optional[float],
+    spo2_avg: Optional[float],
+    spo2_min_avg10: Optional[float],
+    monitoring_minutes: int,
+    session_count: int,
+    low_spo2_alert_count: int,
+    sample_count: int,
+    computed_at: datetime,
+) -> None:
+    with get_conn() as c:
+        c.execute(
+            "INSERT INTO vitals_daily (feeding_day, hr_avg, hr_min, hr_max, spo2_avg, spo2_min_avg10, "
+            "monitoring_minutes, session_count, low_spo2_alert_count, sample_count, computed_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(feeding_day) DO UPDATE SET "
+            "hr_avg=excluded.hr_avg, hr_min=excluded.hr_min, hr_max=excluded.hr_max, "
+            "spo2_avg=excluded.spo2_avg, spo2_min_avg10=excluded.spo2_min_avg10, "
+            "monitoring_minutes=excluded.monitoring_minutes, session_count=excluded.session_count, "
+            "low_spo2_alert_count=excluded.low_spo2_alert_count, sample_count=excluded.sample_count, "
+            "computed_at=excluded.computed_at",
+            (
+                feeding_day, hr_avg, hr_min, hr_max, spo2_avg, spo2_min_avg10,
+                monitoring_minutes, session_count, low_spo2_alert_count, sample_count,
+                computed_at.isoformat(),
+            ),
+        )
+
+
+def list_vitals_daily_between(start_day: str, end_day: str) -> list[dict]:
+    with get_conn() as c:
+        rows = c.execute(
+            "SELECT feeding_day, hr_avg, hr_min, hr_max, spo2_avg, spo2_min_avg10, "
+            "monitoring_minutes, session_count, low_spo2_alert_count, sample_count, computed_at "
+            "FROM vitals_daily WHERE feeding_day >= ? AND feeding_day <= ? "
+            "ORDER BY feeding_day ASC",
+            (start_day, end_day),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def get_settings() -> dict[str, str]:
     with get_conn() as c:
         rows = c.execute("SELECT key, value FROM app_settings").fetchall()

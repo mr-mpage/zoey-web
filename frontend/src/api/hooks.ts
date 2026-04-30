@@ -360,6 +360,34 @@ export function useAppSettings() {
   })
 }
 
+export type VitalsDay = {
+  feeding_day: string
+  hr_avg: number | null
+  hr_min: number | null
+  hr_max: number | null
+  spo2_avg: number | null
+  spo2_min_avg10: number | null
+  monitoring_minutes: number
+  session_count: number
+  low_spo2_alert_count: number
+  sample_count: number
+}
+
+export type VitalsSummary = {
+  days: VitalsDay[]
+  configured: boolean
+}
+
+export function useVitalsSummary(days = 7) {
+  return useQuery({
+    queryKey: ['vitals', days],
+    queryFn: () => api.get<VitalsSummary>(`/api/vitals/summary?days=${days}`),
+    refetchInterval: 5 * 60_000,
+    staleTime: 60_000,
+  })
+}
+
+
 export function useUpdateAppSettings() {
   const qc = useQueryClient()
   return useMutation({
