@@ -1,6 +1,12 @@
 import { useVitalsSummary, type VitalsDay } from '../api/hooks'
-
-const LOW_SPO2_THRESHOLD = 90
+import {
+  HR_AVG_TYPICAL_HIGH,
+  HR_AVG_TYPICAL_LOW,
+  SPO2_FLAG,
+  SPO2_HEALTHY,
+  SPO2_WATCH,
+  buildVitalsNarrative,
+} from '../lib/vitalsNarrative'
 
 function fmtHours(min: number): string {
   if (min < 60) return `${min} min`
@@ -23,11 +29,33 @@ function dayLabel(iso: string, today: string): string {
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
-function spo2Tone(v: number | null): string {
+function spo2ColorClass(v: number | null): string {
   if (v == null) return 'text-zinc-500'
-  if (v < LOW_SPO2_THRESHOLD) return 'text-amber-300'
-  if (v < 95) return 'text-yellow-300'
-  return 'text-zinc-200'
+  if (v >= SPO2_HEALTHY) return 'text-emerald-300'
+  if (v >= SPO2_WATCH) return 'text-yellow-300'
+  if (v >= SPO2_FLAG) return 'text-amber-300'
+  return 'text-rose-300'
+}
+
+function spo2BgFill(v: number | null): string {
+  if (v == null) return 'bg-zinc-700'
+  if (v >= SPO2_HEALTHY) return 'bg-emerald-300'
+  if (v >= SPO2_WATCH) return 'bg-yellow-300'
+  if (v >= SPO2_FLAG) return 'bg-amber-300'
+  return 'bg-rose-300'
+}
+
+function hrAvgColorClass(v: number | null): string {
+  if (v == null) return 'text-zinc-500'
+  if (v >= HR_AVG_TYPICAL_LOW && v <= HR_AVG_TYPICAL_HIGH) return 'text-emerald-300'
+  return 'text-yellow-300'
+}
+
+function hrAvgBgClass(v: number | null, isToday: boolean): string {
+  if (v == null) return 'bg-zinc-700'
+  const inRange = v >= HR_AVG_TYPICAL_LOW && v <= HR_AVG_TYPICAL_HIGH
+  if (inRange) return isToday ? 'bg-emerald-200' : 'bg-emerald-300'
+  return isToday ? 'bg-yellow-200' : 'bg-yellow-300'
 }
 
 function NotConfiguredCard() {
@@ -76,7 +104,7 @@ function TodayCard({ row }: { row: VitalsDay }) {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <div className="text-[10px] uppercase tracking-wider text-zinc-500">Heart rate</div>
-          <div className="text-2xl font-light tabular-nums text-zinc-100 leading-none mt-1">
+          <div className={`text-2xl font-light tabular-nums leading-none mt-1 ${hrAvgColorClass(row.hr_avg)}`}>
             {fmtHr(row.hr_avg)}
             <span className="text-zinc-500 text-base font-normal ml-1">avg</span>
           </div>
@@ -88,7 +116,7 @@ function TodayCard({ row }: { row: VitalsDay }) {
         </div>
         <div>
           <div className="text-[10px] uppercase tracking-wider text-zinc-500">Lowest SpO₂</div>
-          <div className={`text-2xl font-light tabular-nums leading-none mt-1 ${spo2Tone(row.spo2_min_avg10)}`}>
+          <div className={`text-2xl font-light tabular-nums leading-none mt-1 ${spo2ColorClass(row.spo2_min_avg10)}`}>
             {fmtSpo2(row.spo2_min_avg10)}
           </div>
           <div className="text-[11px] text-zinc-500 mt-1">10-min average</div>
@@ -146,42 +174,94 @@ function WeekChartCard({ days, today }: { days: VitalsDay[]; today: string }) {
         )}
       </div>
 
-      {/* HR range bars: thin background bar = min-max range, dot = average */}
-      <div className="flex items-end gap-1.5 h-24 mb-2">
-        {days.map((d) => {
-          const isToday = d.feeding_day === today
-          if (d.hr_avg == null || d.hr_min == null || d.hr_max == null) {
-            return <div key={d.feeding_day} className="flex-1 h-full bg-zinc-800/30 rounded-sm" />
-          }
-          const rangeBottom = ((d.hr_min - barMin) / barRange) * 100
-          const rangeTop = ((d.hr_max - barMin) / barRange) * 100
-          const avgPos = ((d.hr_avg - barMin) / barRange) * 100
+      {/* HR range bars: thin background bar = min-max range, dot = average.
+          Dot colour reflects whether the daily average sits in the typical
+          preterm/newborn range. Shaded backdrop marks the typical band. */}
+      <div className="relative h-24 mb-2">
+        {/* Typical-range backdrop */}
+        {(() => {
+          const lowPct = ((HR_AVG_TYPICAL_LOW - barMin) / barRange) * 100
+          const highPct = ((HR_AVG_TYPICAL_HIGH - barMin) / barRange) * 100
+          if (highPct <= 0 || lowPct >= 100) return null
+          const top = Math.min(highPct, 100)
+          const bottom = Math.max(lowPct, 0)
           return (
             <div
-              key={d.feeding_day}
-              className="flex-1 relative h-full"
-              title={`${dayLabel(d.feeding_day, today)}: ${fmtHr(d.hr_min)}–${fmtHr(d.hr_max)}, avg ${fmtHr(d.hr_avg)}`}
-            >
-              <div
-                className={`absolute left-1/2 -translate-x-1/2 w-1 rounded-sm ${
-                  isToday ? 'bg-pink-300/80' : 'bg-pink-300/40'
-                }`}
-                style={{ bottom: `${rangeBottom}%`, height: `${rangeTop - rangeBottom}%` }}
-              />
-              <div
-                className={`absolute left-1/2 -translate-x-1/2 w-2 h-2 rounded-full ${
-                  isToday ? 'bg-pink-200' : 'bg-pink-300'
-                }`}
-                style={{ bottom: `calc(${avgPos}% - 4px)` }}
-              />
-            </div>
+              className="absolute inset-x-0 bg-emerald-500/[0.06] border-y border-emerald-500/10 pointer-events-none"
+              style={{ bottom: `${bottom}%`, height: `${top - bottom}%` }}
+            />
           )
-        })}
+        })()}
+        <div className="flex items-end gap-1.5 h-full">
+          {days.map((d) => {
+            const isToday = d.feeding_day === today
+            if (d.hr_avg == null || d.hr_min == null || d.hr_max == null) {
+              return <div key={d.feeding_day} className="flex-1 h-full" />
+            }
+            const rangeBottom = ((d.hr_min - barMin) / barRange) * 100
+            const rangeTop = ((d.hr_max - barMin) / barRange) * 100
+            const avgPos = ((d.hr_avg - barMin) / barRange) * 100
+            return (
+              <div
+                key={d.feeding_day}
+                className="flex-1 relative h-full"
+                title={`${dayLabel(d.feeding_day, today)}: ${fmtHr(d.hr_min)}–${fmtHr(d.hr_max)}, avg ${fmtHr(d.hr_avg)}`}
+              >
+                <div
+                  className="absolute left-1/2 -translate-x-1/2 w-1 rounded-sm bg-zinc-500/40"
+                  style={{ bottom: `${rangeBottom}%`, height: `${rangeTop - rangeBottom}%` }}
+                />
+                <div
+                  className={`absolute left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full ${hrAvgBgClass(d.hr_avg, isToday)}`}
+                  style={{ bottom: `calc(${avgPos}% - 5px)` }}
+                />
+              </div>
+            )
+          })}
+        </div>
       </div>
       <div className="flex justify-between text-[9px] text-zinc-600 tabular-nums mb-3">
         <span>{barMin.toFixed(0)} BPM</span>
+        <span className="text-emerald-400/60">typical {HR_AVG_TYPICAL_LOW}–{HR_AVG_TYPICAL_HIGH}</span>
         <span>{barMax.toFixed(0)} BPM</span>
       </div>
+
+      {/* SpO2 sparkline: lowest 10-min avg per day, coloured by band. */}
+      {(() => {
+        const spo2s = days.map((d) => d.spo2_min_avg10)
+        const validSpo2s = spo2s.filter((v): v is number => v != null)
+        if (validSpo2s.length === 0) return null
+        const sMin = Math.min(85, Math.floor(Math.min(...validSpo2s)))
+        const sMax = 100
+        const sRange = sMax - sMin
+        return (
+          <div className="mb-3">
+            <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1.5">Lowest SpO₂ per day</div>
+            <div className="flex items-end gap-1.5 h-12">
+              {days.map((d) => {
+                const v = d.spo2_min_avg10
+                if (v == null) return <div key={d.feeding_day} className="flex-1 h-full" />
+                const h = ((v - sMin) / sRange) * 100
+                return (
+                  <div
+                    key={d.feeding_day}
+                    className={`flex-1 rounded-sm ${spo2BgFill(v)} ${
+                      d.feeding_day === today ? 'opacity-100' : 'opacity-70'
+                    }`}
+                    style={{ height: `${Math.max(h, 6)}%` }}
+                    title={`${dayLabel(d.feeding_day, today)}: ${fmtSpo2(v)}`}
+                  />
+                )
+              })}
+            </div>
+            <div className="flex justify-between text-[9px] text-zinc-600 tabular-nums mt-1">
+              <span>{sMin}%</span>
+              <span className="text-emerald-400/60">≥ {SPO2_HEALTHY}% healthy</span>
+              <span>{sMax}%</span>
+            </div>
+          </div>
+        )
+      })()}
 
       <div className="grid grid-cols-2 gap-3 pt-3 border-t border-zinc-800/60 text-[12px]">
         {hrAvgs.length > 0 && (
@@ -195,7 +275,7 @@ function WeekChartCard({ days, today }: { days: VitalsDay[]; today: string }) {
         {minSpo2 !== Infinity && minSpo2Day && (
           <div>
             <div className="text-[10px] uppercase tracking-wider text-zinc-500">Lowest SpO₂</div>
-            <div className={`tabular-nums ${spo2Tone(minSpo2)}`}>
+            <div className={`tabular-nums ${spo2ColorClass(minSpo2)}`}>
               {fmtSpo2(minSpo2)}
               <span className="text-zinc-600 text-[10px]"> {dayLabel(minSpo2Day, today)}</span>
             </div>
@@ -203,7 +283,7 @@ function WeekChartCard({ days, today }: { days: VitalsDay[]; today: string }) {
         )}
       </div>
 
-      {minSpo2 !== Infinity && minSpo2 < LOW_SPO2_THRESHOLD && minSpo2Day && (
+      {minSpo2 !== Infinity && minSpo2 < SPO2_FLAG && minSpo2Day && (
         <div className="text-[11px] text-amber-300 mt-3 leading-relaxed pt-3 border-t border-zinc-800/60">
           {dayLabel(minSpo2Day, today)}'s lowest SpO₂ was {Math.round(minSpo2)}% (10-min avg) — worth
           mentioning at the next visit.
@@ -214,23 +294,20 @@ function WeekChartCard({ days, today }: { days: VitalsDay[]; today: string }) {
 }
 
 function PerDayList({ days, today }: { days: VitalsDay[]; today: string }) {
-  const sorted = [...days].sort((a, b) => b.feeding_day.localeCompare(a.feeding_day))
+  // Drop empty days entirely — no point showing a "no data" row for days
+  // the sock wasn't on or before the integration was running.
+  const sorted = [...days]
+    .filter((d) => d.monitoring_minutes > 0)
+    .sort((a, b) => b.feeding_day.localeCompare(a.feeding_day))
+
+  if (sorted.length === 0) return null
+
   return (
     <div className="rounded-xl bg-zinc-900/60 p-4 mb-4">
       <div className="text-[11px] uppercase tracking-wider text-zinc-500 mb-3">Per day</div>
       <ul className="space-y-1.5">
         {sorted.map((d) => {
           const isToday = d.feeding_day === today
-          if (d.monitoring_minutes === 0) {
-            return (
-              <li key={d.feeding_day} className="flex items-baseline justify-between text-[12px] py-1">
-                <span className={isToday ? 'text-zinc-300' : 'text-zinc-500'}>
-                  {dayLabel(d.feeding_day, today)}
-                </span>
-                <span className="text-zinc-600 italic text-[11px]">no data</span>
-              </li>
-            )
-          }
           return (
             <li key={d.feeding_day} className="py-1.5 border-b border-zinc-800/40 last:border-b-0">
               <div className="flex items-baseline justify-between">
@@ -244,12 +321,12 @@ function PerDayList({ days, today }: { days: VitalsDay[]; today: string }) {
               </div>
               <div className="flex items-baseline gap-3 text-[11px] tabular-nums mt-0.5">
                 <span className="text-zinc-400">
-                  HR <span className="text-zinc-200">{fmtHr(d.hr_avg)}</span>
+                  HR <span className={hrAvgColorClass(d.hr_avg)}>{fmtHr(d.hr_avg)}</span>
                   {d.hr_min != null && d.hr_max != null && (
                     <span className="text-zinc-600"> ({fmtHr(d.hr_min)}–{fmtHr(d.hr_max)})</span>
                   )}
                 </span>
-                <span className={spo2Tone(d.spo2_min_avg10)}>
+                <span className={spo2ColorClass(d.spo2_min_avg10)}>
                   ↓ {fmtSpo2(d.spo2_min_avg10)}
                 </span>
                 {d.low_spo2_alert_count > 0 && (
@@ -262,6 +339,29 @@ function PerDayList({ days, today }: { days: VitalsDay[]; today: string }) {
           )
         })}
       </ul>
+    </div>
+  )
+}
+
+const NARRATIVE_TONE = {
+  celebrate: { border: 'border-sky-500/30',     bg: 'bg-sky-500/5',     accent: 'text-sky-300',     dot: 'bg-sky-400' },
+  positive:  { border: 'border-emerald-500/30', bg: 'bg-emerald-500/5', accent: 'text-emerald-300', dot: 'bg-emerald-400' },
+  neutral:   { border: 'border-zinc-700/40',    bg: 'bg-zinc-900/40',   accent: 'text-zinc-300',    dot: 'bg-zinc-500' },
+  concern:   { border: 'border-amber-500/30',   bg: 'bg-amber-500/5',   accent: 'text-amber-300',   dot: 'bg-amber-400' },
+} as const
+
+function NarrativeCard({ days }: { days: VitalsDay[] }) {
+  const n = buildVitalsNarrative(days)
+  if (!n) return null
+  const t = NARRATIVE_TONE[n.tone]
+  return (
+    <div className={`rounded-xl border ${t.border} ${t.bg} p-3 mb-4`}>
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <span className={`w-1.5 h-1.5 rounded-full ${t.dot}`} />
+        <span className={`text-[10px] uppercase tracking-wider ${t.accent}`}>This week</span>
+      </div>
+      <div className="text-sm text-zinc-100 leading-snug">{n.headline}</div>
+      <div className="text-xs text-zinc-400 mt-1 leading-relaxed">{n.detail}</div>
     </div>
   )
 }
@@ -282,6 +382,7 @@ export function VitalsHistorySection() {
   return (
     <>
       {todayRow && <TodayCard row={todayRow} />}
+      <NarrativeCard days={data.days.slice(-7)} />
       <WeekChartCard days={data.days.slice(-7)} today={today} />
       <PerDayList days={data.days} today={today} />
 
@@ -311,6 +412,20 @@ export function VitalsHistorySection() {
             <span className="text-zinc-300">Alerts</span> are low-SpO₂ events the sock
             flagged at the time. Owlet does the real-time alerting; this is just the
             historical count for context.
+          </p>
+
+          <div className="text-zinc-300 mt-3 mb-1">Reference ranges (preterm / newborn)</div>
+          <ul className="space-y-1 list-none pl-0">
+            <li><span className="text-emerald-300">HR avg {HR_AVG_TYPICAL_LOW}–{HR_AVG_TYPICAL_HIGH} BPM</span> — typical preterm/newborn band</li>
+            <li><span className="text-yellow-300">HR avg outside that</span> — context-dependent (sleep, crying, illness)</li>
+            <li><span className="text-emerald-300">SpO₂ ≥ {SPO2_HEALTHY}%</span> — healthy</li>
+            <li><span className="text-yellow-300">SpO₂ {SPO2_WATCH}–{SPO2_HEALTHY - 1}%</span> — within acceptable preterm band, watch</li>
+            <li><span className="text-amber-300">SpO₂ {SPO2_FLAG}–{SPO2_WATCH - 1}%</span> — worth a glance</li>
+            <li><span className="text-rose-300">SpO₂ &lt; {SPO2_FLAG}%</span> — worth raising at the next visit</li>
+          </ul>
+          <p className="mt-2 text-[11px] text-zinc-600">
+            Bands reflect general AAP newborn / NICU preterm guidance, not a clinical
+            protocol. The doctor's thresholds always take precedence.
           </p>
         </div>
       </details>
