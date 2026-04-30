@@ -4,9 +4,10 @@ import { MlPerKgSparkline, buildSparklinePoints } from '../components/MlPerKgSpa
 import { feedingDayKeyOfFeed } from '../lib/feedingday'
 import { fmtDate } from '../lib/format'
 import type { Weight } from '../api/types'
+import { VitalsHistorySection } from './VitalsHistory'
 import { WeightHistorySection } from './WeightHistory'
 
-type SubTab = 'feeds' | 'weight'
+type SubTab = 'feeds' | 'weight' | 'vitals'
 
 function feedingDayKey(d: Date, anchorH: number, anchorM: number): Date {
   const minutes = d.getHours() * 60 + d.getMinutes()
@@ -141,7 +142,7 @@ export function HistoryScreen() {
     <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
       <div className="text-center text-zinc-500 text-sm mb-3">Trends</div>
 
-      <div className="grid grid-cols-2 gap-1 bg-zinc-800/40 rounded-lg p-1 mb-4">
+      <div className="grid grid-cols-3 gap-1 bg-zinc-800/40 rounded-lg p-1 mb-4">
         <button
           type="button"
           onClick={() => setTab('feeds')}
@@ -160,9 +161,19 @@ export function HistoryScreen() {
         >
           Weight
         </button>
+        <button
+          type="button"
+          onClick={() => setTab('vitals')}
+          className={`py-2 rounded-md text-sm font-medium transition ${
+            tab === 'vitals' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400'
+          }`}
+        >
+          Vitals
+        </button>
       </div>
 
       {tab === 'weight' && <WeightHistorySection />}
+      {tab === 'vitals' && <VitalsHistorySection />}
       {tab === 'feeds' && (
         <FeedsHistorySection
           grid={visibleGrid}

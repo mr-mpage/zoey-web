@@ -268,6 +268,45 @@ const EDIT_SECTIONS: Section[] = [
     ),
   },
   {
+    id: 'vitals',
+    title: 'Vitals (Owlet sock)',
+    blurb: 'Heart rate and SpO₂ trends from the Dream Sock.',
+    tone: 'rose',
+    icon: Icons.shield,
+    body: (
+      <>
+        <H>Where the data comes from</H>
+        <p className="mb-2">
+          When the Owlet integration is configured, the backend polls the Dream Sock every 2 minutes and
+          stores readings in their own table. Trends → Vitals shows daily aggregates: heart-rate average +
+          range, the lowest sustained SpO₂ (10-min rolling average from the sock), monitoring hours, and
+          session counts. Owlet still does the real-time alerting; this is just the historical view.
+        </p>
+
+        <H>What "lowest SpO₂" actually measures</H>
+        <p>
+          The single 1-second value bouncing in and out of the 90s every breath is too noisy to track.
+          The sock publishes a <b>10-minute rolling average</b> alongside it; a sustained dip in <em>that</em>
+          number is what doctors look at. The card shows the lowest the 10-min average reached during a
+          monitored period.
+        </p>
+
+        <H>Sessions</H>
+        <p>
+          A session is a contiguous stretch of monitoring separated by at least 15 minutes off the foot
+          (nap → walk → bath, etc.). "3 sessions, 14 h" tells you the sock was on for most of the day,
+          which makes the day's numbers trustworthy. A 30-minute session is too thin to read into.
+        </p>
+
+        <H>Storage</H>
+        <p>
+          Raw readings are kept for 14 days then rolled into per-day aggregates and pruned, so the
+          database stays small. The aggregates are kept indefinitely and included in the GitHub backup.
+        </p>
+      </>
+    ),
+  },
+  {
     id: 'schedule',
     title: 'Schedule, reminders, reports',
     blurb: 'Anchor time, push notifications, doctor PDF.',
@@ -483,6 +522,37 @@ const VIEW_SECTIONS: Section[] = [
           In the weight history list, each row shows how much was gained since the previous entry, both as
           g/day and the more clinically meaningful g/kg/day. The colour grades the gain against the band
           expected for that age bracket.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: 'vitals',
+    title: 'Vitals',
+    blurb: 'Heart rate and SpO₂ from the Owlet sock.',
+    tone: 'rose',
+    icon: Icons.shield,
+    body: (
+      <>
+        <H>What you're seeing</H>
+        <p className="mb-2">
+          The Vitals sub-tab shows daily summaries of Zoey's heart rate and oxygen levels from her
+          Owlet Dream Sock. Each day shows the heart-rate range (with the average dot), the lowest
+          sustained oxygen reading, and how many monitoring sessions there were.
+        </p>
+
+        <H>Why the lowest oxygen is what matters</H>
+        <p>
+          Single-second oxygen dips happen and don't worry doctors. The number shown is a 10-minute
+          rolling average from the sock — the same metric the Owlet app uses for its overnight
+          summary. A sustained dip below 90% is what's worth raising at a check-up.
+        </p>
+
+        <H>Owlet does the alerting</H>
+        <p>
+          This view is for trends and patterns, not real-time safety. The sock itself alarms the
+          parents if oxygen or heart rate cross safe thresholds — that's its job. What you see here
+          is just the historical picture.
         </p>
       </>
     ),
