@@ -95,10 +95,14 @@ def _render(days: int, csp_nonce: str) -> str:
     ga_weeks = int(s.get("gestational_age_weeks", "35"))
     birth_weight = int(s.get("birth_weight_grams", "0"))
 
+    # Doctor reports should reflect *completed* feeding days only — including
+    # today would always pull averages downward (incomplete intake, partial
+    # monitoring). End the range at yesterday and walk back N days from there.
     today_local = now_local().date()
-    start_day = today_local - timedelta(days=days - 1)
+    end_day = today_local - timedelta(days=1)
+    start_day = end_day - timedelta(days=days - 1)
     range_start, _ = feeding_day_bounds(start_day, anchor_h, anchor_m)
-    _, range_end = feeding_day_bounds(today_local, anchor_h, anchor_m)
+    _, range_end = feeding_day_bounds(end_day, anchor_h, anchor_m)
 
     feeds = repo.list_feeds_between(range_start.isoformat(), range_end.isoformat())
     diapers = repo.list_diapers_between(range_start.isoformat(), range_end.isoformat())
@@ -109,7 +113,8 @@ def _render(days: int, csp_nonce: str) -> str:
     ]
     gain_by_id = _gains(weights_chrono)
 
-    # Per-day intake aggregation
+    # Per-day intake aggregation. The list is start_day .. end_day inclusive,
+    # which excludes today (incomplete) by construction.
     days_list: list[date] = [start_day + timedelta(days=i) for i in range(days)]
     per_day: list[dict] = []
     feed_notes: list[tuple[date, datetime, float, str, str]] = []
@@ -149,8 +154,10 @@ def _render(days: int, csp_nonce: str) -> str:
 
     intake_rows_data = [r for r in per_day if _has_intake_data(r)]
 
-    # Vitals (only days with monitoring)
-    vitals_all = vitals_summary_for_range(days)
+    # Vitals: same window as intake (yesterday going back N days). Pull
+    # one extra and drop today so the report only reports completed days.
+    today_iso = today_local.isoformat()
+    vitals_all = [v for v in vitals_summary_for_range(days + 1) if v["feeding_day"] != today_iso]
     vitals_data = [v for v in vitals_all if v.get("monitoring_minutes", 0) >= 30]
 
     # ─── Snapshot computations ────────────────────────────────────────
@@ -254,15 +261,13 @@ def _render(days: int, csp_nonce: str) -> str:
             f"<td class=num>day {pday}</td>"
             f"<td class=num>{pma:.1f}w</td>"
             f"<td class=num>{w['weight_grams']}</td>"
-            f"<td class=num>{w['ml_per_kg_per_day']}</td>"
             f"<td class=num>{g_per_day}</td>"
             f"<td class=num>{g_per_kg}</td>"
-            f"<td>{escape(w.get('notes') or '')}</td>"
             f"</tr>"
         )
 
     weight_rows_html = "\n".join(_weight_row(w) for w in weights_in_range) or (
-        "<tr><td colspan=8 class='muted'>No weights logged in this range.</td></tr>"
+        "<tr><td colspan=6 class='muted'>No weights logged in this range.</td></tr>"
     )
 
     def _vitals_row(v: dict) -> str:
@@ -443,8 +448,8 @@ def _render(days: int, csp_nonce: str) -> str:
     Today <strong>day {postnatal_days}</strong> postnatal · PMA <strong>{pma_now:.1f}w</strong>
   </div>
   <div class=meta>
-    Range: <strong>{fmt_d(start_day)} – {fmt_d(today_local)}</strong>
-    ({days} feeding days; day starts at {anchor_h:02d}:{anchor_m:02d})
+    Range: <strong>{fmt_d(start_day)} – {fmt_d(end_day)}</strong>
+    ({days} completed feeding days; day starts at {anchor_h:02d}:{anchor_m:02d}; today is excluded as incomplete)
   </div>
 
   {snapshot_html}
@@ -456,10 +461,8 @@ def _render(days: int, csp_nonce: str) -> str:
       <th class=num>Day</th>
       <th class=num>PMA</th>
       <th class=num>Weight (g)</th>
-      <th class=num>ml/kg/day rate</th>
       <th class=num>Gain g/day</th>
       <th class=num>Gain g/kg/day</th>
-      <th>Notes</th>
     </tr></thead>
     <tbody>{weight_rows_html}</tbody>
   </table>

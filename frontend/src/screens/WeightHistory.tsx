@@ -58,7 +58,7 @@ export function WeightHistorySection() {
             </div>
             {latest && (
               <div className="text-[11px] text-zinc-500 mt-1">
-                weighed {fmtDate(latest.recorded_at)} · {latest.ml_per_kg_per_day} ml/kg/day rate
+                weighed {fmtDate(latest.recorded_at)}
               </div>
             )}
           </div>
@@ -155,7 +155,7 @@ export function WeightHistorySection() {
                   <div className="flex justify-between text-sm">
                     <span className="text-zinc-400">{fmtDate(w.recorded_at)}</span>
                     <span className="tabular-nums">
-                      {w.weight_grams} g · {w.ml_per_kg_per_day} ml/kg/d
+                      {w.weight_grams} g
                     </span>
                   </div>
                   {gain && (
