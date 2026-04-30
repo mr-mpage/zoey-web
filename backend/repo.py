@@ -339,6 +339,14 @@ def insert_vital(
         return cur.lastrowid
 
 
+def latest_vital_recorded_at() -> Optional[str]:
+    with get_conn() as c:
+        row = c.execute(
+            "SELECT recorded_at FROM vitals ORDER BY recorded_at DESC LIMIT 1"
+        ).fetchone()
+    return row["recorded_at"] if row else None
+
+
 def list_vitals_between(start_iso: str, end_iso: str) -> list[dict]:
     with get_conn() as c:
         rows = c.execute(

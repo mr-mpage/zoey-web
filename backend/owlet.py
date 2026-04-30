@@ -15,12 +15,13 @@ configured, so the integration is opt-in via env.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from . import repo
-from .comparisons import now_local
+from .comparisons import TZ, now_local
 from .config import settings
 
 log = logging.getLogger(__name__)
@@ -49,6 +50,70 @@ def _flag(v: Any) -> bool:
     if isinstance(v, str):
         return v.strip() not in ("0", "", "false", "False")
     return False
+
+
+async def _backfill_recent(api, dsn: str) -> int:
+    """Pull whatever Ayla still retains in REAL_TIME_VITALS datapoints
+    (typically the last 30–60 minutes) and insert any rows newer than
+    what we already have. Idempotent — running again is safe.
+
+    The Ayla cloud only retains a short tail of REAL_TIME_VITALS, so this
+    can't go back days. Worth doing once at startup so the first hour of
+    a fresh integration isn't an empty card.
+    """
+    url = f"{api._api_url}/dsns/{dsn}/properties/REAL_TIME_VITALS/datapoints.json"
+    try:
+        async with api.session.get(url, headers=api.headers, params={"limit": 100}) as r:
+            if r.status != 200:
+                log.warning("owlet backfill: %s status=%s", dsn, r.status)
+                return 0
+            data = await r.json()
+    except Exception:  # noqa: BLE001
+        log.exception("owlet backfill: fetch failed for %s", dsn)
+        return 0
+
+    if not data:
+        return 0
+
+    latest_iso = repo.latest_vital_recorded_at()
+    latest_dt = datetime.fromisoformat(latest_iso) if latest_iso else None
+
+    inserted = 0
+    for entry in data:
+        dp = entry.get("datapoint") or {}
+        created_at = dp.get("created_at")
+        value_str = dp.get("value")
+        if not created_at or not value_str:
+            continue
+        # Ayla emits "2026-04-30T01:07:37Z" — parse to UTC then convert to local.
+        try:
+            ts_utc = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        ts_local = ts_utc.astimezone(TZ)
+        if latest_dt and ts_local <= latest_dt:
+            continue
+        try:
+            v = json.loads(value_str)
+        except (TypeError, ValueError):
+            continue
+        repo.insert_vital(
+            recorded_at=ts_local,
+            heart_rate=_coerce_float(v.get("hr")),
+            spo2=_coerce_float(v.get("ox")),
+            spo2_avg10=_coerce_float(v.get("oxta")),
+            movement=_coerce_int(v.get("mv")),
+            skin_temp=_coerce_int(v.get("st")),
+            sock_connection=_coerce_int(v.get("sc")),
+            # REAL_TIME_VITALS doesn't surface SOCK_OFF directly; treat any
+            # reading we got as the sock having been on at the time.
+            sock_off=False,
+            charging=_flag(v.get("chg")),
+            # alerts come on a separate property; safe default.
+            low_spo2_alert=False,
+        )
+        inserted += 1
+    return inserted
 
 
 async def _poll_once(sock) -> Optional[dict]:
@@ -97,7 +162,9 @@ async def owlet_poll_loop() -> None:
 
     api = None
     socks: list = []
+    dsns: list[str] = []
     backoff = settings.owlet_poll_interval_s
+    backfilled_this_session = False
 
     while True:
         try:
@@ -110,13 +177,34 @@ async def owlet_poll_loop() -> None:
                 await api.authenticate()
                 raw = await api.get_devices()
                 devs = raw.get("response", []) if isinstance(raw, dict) else (raw or [])
-                socks = [Sock(api, d.get("device", {})) for d in devs if isinstance(d, dict)]
+                socks = []
+                dsns = []
+                for d in devs:
+                    if not isinstance(d, dict):
+                        continue
+                    dev = d.get("device", {})
+                    socks.append(Sock(api, dev))
+                    dsn = dev.get("dsn")
+                    if dsn:
+                        dsns.append(dsn)
                 if not socks:
                     log.warning("owlet poller: no devices on account, retrying in 10 min")
                     await asyncio.sleep(600)
                     continue
                 log.info("owlet poller: authenticated, %d device(s)", len(socks))
                 backoff = settings.owlet_poll_interval_s
+
+                # One-shot backfill of the cloud's recent retention window.
+                # Only attempt once per process; repeated reauths after a
+                # disconnect shouldn't keep re-pulling the same window.
+                if not backfilled_this_session:
+                    backfilled_this_session = True
+                    total = 0
+                    for dsn in dsns:
+                        n = await _backfill_recent(api, dsn)
+                        total += n
+                    if total > 0:
+                        log.info("owlet poller: backfilled %d historical row(s)", total)
 
             for sock in socks:
                 props = await _poll_once(sock)
