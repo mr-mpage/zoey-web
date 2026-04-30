@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLogout } from '../api/hooks'
 import { useIsReadOnly } from '../lib/authMode'
 
 type Props = { open: boolean; onClose: () => void }
@@ -617,7 +618,7 @@ const VIEW_SECTIONS: Section[] = [
   {
     id: 'session',
     title: 'Your session & sign out',
-    blurb: 'Read-only access, 7 days, sign-out icon top-right.',
+    blurb: 'Read-only access, 7 days, sign-out at the bottom of this page.',
     tone: 'pink',
     icon: Icons.bottle,
     body: (
@@ -637,8 +638,7 @@ const VIEW_SECTIONS: Section[] = [
 
         <H>Signing out</H>
         <p>
-          A small sign-out icon sits below the help "?" in the top-right corner. Tap it to end the session
-          on this device.
+          Scroll to the bottom of this help page and tap <b>Sign out</b> to end the session on this device.
         </p>
 
         <H>Privacy</H>
@@ -653,6 +653,7 @@ const VIEW_SECTIONS: Section[] = [
 
 export function HelpModal({ open, onClose }: Props) {
   const readOnly = useIsReadOnly()
+  const logout = useLogout()
   const sections = readOnly ? VIEW_SECTIONS : EDIT_SECTIONS
   const [openId, setOpenId] = useState<string | null>(null)
 
@@ -690,7 +691,7 @@ export function HelpModal({ open, onClose }: Props) {
                   Everything is read-only. You can't change anything by tapping, so explore freely.
                 </li>
                 <li>
-                  Sign out with the small icon below the "?" in the top right. Sessions last 7 days.
+                  Sign out from the bottom of this help page. Sessions last 7 days.
                 </li>
                 <li>
                   Tap a section below to learn what each view is showing.
@@ -757,6 +758,21 @@ export function HelpModal({ open, onClose }: Props) {
               )
             })}
           </div>
+
+          {readOnly && (
+            <div className="mt-6 pt-4 border-t border-zinc-800">
+              <button
+                onClick={() => logout.mutate()}
+                disabled={logout.isPending}
+                className="w-full py-3 rounded-xl bg-rose-950/50 border border-rose-900/50 text-rose-200 text-sm font-medium disabled:opacity-40"
+              >
+                {logout.isPending ? 'Signing out…' : 'Sign out'}
+              </button>
+              <div className="mt-2 text-[11px] text-zinc-500 text-center">
+                Ends this session on this device. You can sign back in any time with your passcode.
+              </div>
+            </div>
+          )}
 
           <div className="pt-5 pb-1 text-center">
             <button
