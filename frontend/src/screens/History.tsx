@@ -282,6 +282,52 @@ function FeedsHistorySection({
               </span>
               <span>yesterday →</span>
             </div>
+
+            {(() => {
+              // Plain-language paragraph beneath the sparkline. State where
+              // she sits, what ml/kg/day actually means, and a one-line trend
+              // hint if the recent half differs from the prior half by ≥5%.
+              const target = `${bands.low}–${bands.high}`
+              const where =
+                recentAvg >= bands.high
+                  ? `above the typical ${target} ml/kg/day target zone — often catch-up after a slower stretch`
+                  : recentAvg >= bands.solid
+                    ? `solidly in the ${target} ml/kg/day target zone, where you want a feeding preemie to be`
+                    : recentAvg >= bands.low
+                      ? `at the lower edge of the ${target} ml/kg/day target — acceptable, but no cushion to give`
+                      : recentAvg >= bands.concern
+                        ? `under the ${target} ml/kg/day target zone — worth keeping an eye on`
+                        : `well under the typical ${bands.concern}+ ml/kg/day floor — worth flagging at her next visit`
+
+              let trendNote: string | null = null
+              if (recent.length >= 4) {
+                const half = Math.floor(recent.length / 2)
+                const earlier = recent.slice(0, half)
+                const later = recent.slice(-half)
+                const eAvg = earlier.reduce((s, p) => s + p.mlPerKg, 0) / earlier.length
+                const lAvg = later.reduce((s, p) => s + p.mlPerKg, 0) / later.length
+                const delta = lAvg - eAvg
+                if (Math.abs(delta) >= 5) {
+                  trendNote = delta > 0
+                    ? `Trending up over the week (about ${Math.round(delta)} ml/kg/day higher in the most recent half).`
+                    : `Trending down over the week (about ${Math.round(Math.abs(delta))} ml/kg/day lower in the most recent half).`
+                }
+              }
+
+              return (
+                <div className="mt-3 pt-3 border-t border-zinc-800/60 text-[12px] text-zinc-400 leading-relaxed">
+                  <p>
+                    Zoey averaged <span className="tabular-nums text-zinc-200">{recentAvg.toFixed(0)} ml/kg/day</span>{' '}
+                    over the last {recent.length} day{recent.length === 1 ? '' : 's'}, {where}.
+                    {trendNote && <> {trendNote}</>}
+                  </p>
+                  <p className="text-[11px] text-zinc-500 mt-1.5">
+                    "ml/kg/day" is daily intake divided by body weight in kg. Doctors use it because nutritional
+                    needs scale with size, so the same number stays comparable as Zoey grows.
+                  </p>
+                </div>
+              )
+            })()}
           </div>
         )
       })()}
