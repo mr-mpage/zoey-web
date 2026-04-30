@@ -382,6 +382,65 @@ def compute_overview() -> Overview:
             detail = f"Averaging {avg_int} wet/day over the last {dd} {day_word} — well under 6. Mention at her next check-in."
         inds.append(OverviewIndicator(key="hydration", title="Hydration", status=status, headline=headline, detail=detail))
 
+    # Vitals — Owlet sock aggregates over the last week of completed days.
+    # Only shown when the integration is configured (avoids a permanent
+    # "Not configured" card for users who don't have the sock).
+    from .config import settings as _settings
+    if _settings.zoey_owlet_email:
+        # Pull 8 to drop today (incomplete) and keep the last 7 completed days.
+        from .owlet import vitals_summary_for_range
+        v_summary = vitals_summary_for_range(8)
+        today_iso = now_local().date().isoformat()
+        v_completed = [
+            v for v in v_summary
+            if v["feeding_day"] != today_iso and v["monitoring_minutes"] >= 30
+        ]
+        if not v_completed:
+            inds.append(OverviewIndicator(
+                key="vitals", title="Vitals", status="unknown",
+                headline="No monitoring yet this week",
+                detail="The sock hasn't logged enough data this week to summarise.",
+            ))
+        else:
+            hr_avgs = [v["hr_avg"] for v in v_completed if v["hr_avg"] is not None]
+            spo2_mins = [v["spo2_min_avg10"] for v in v_completed if v["spo2_min_avg10"] is not None]
+            alerts = sum(v["low_spo2_alert_count"] for v in v_completed)
+            if hr_avgs and spo2_mins:
+                weekly_min_spo2 = min(spo2_mins)
+                hr_lo, hr_hi = min(hr_avgs), max(hr_avgs)
+                hr_typical = all(120 <= h <= 160 for h in hr_avgs)
+                low_days = [v for v in v_completed if v["spo2_min_avg10"] is not None and v["spo2_min_avg10"] < 90]
+                if low_days:
+                    n = len(low_days)
+                    status, headline = "concern", f"{n} day{'s' if n != 1 else ''} below 90% SpO₂"
+                    detail = (
+                        f"Lowest 10-min average this week: {weekly_min_spo2:.0f}%. "
+                        f"Worth raising at her next check-in. The sock continues to alert in "
+                        f"real time on its own thresholds."
+                    )
+                elif weekly_min_spo2 < 95:
+                    status, headline = "watch", "SpO₂ dipped this week"
+                    detail = (
+                        f"Lowest 10-min average: {weekly_min_spo2:.0f}%. Within the acceptable "
+                        f"preterm band, worth a glance but not a flag."
+                    )
+                elif not hr_typical:
+                    status, headline = "watch", "HR outside the typical band"
+                    detail = (
+                        f"Daily averages spanned {hr_lo:.0f}–{hr_hi:.0f} BPM. Newborn HR varies "
+                        f"with sleep and crying, context-dependent rather than automatic concern."
+                    )
+                else:
+                    status, headline = "good", "Vitals comfortable"
+                    detail = (
+                        f"HR averaged {hr_lo:.0f}–{hr_hi:.0f} BPM, lowest SpO₂ {weekly_min_spo2:.0f}% "
+                        f"across {len(v_completed)} monitored day{'s' if len(v_completed) != 1 else ''}."
+                        + (f" {alerts} alert{'s' if alerts != 1 else ''} this week." if alerts else " No alerts.")
+                    )
+                inds.append(OverviewIndicator(
+                    key="vitals", title="Vitals", status=status, headline=headline, detail=detail,
+                ))
+
     # Aggregate summary
     statuses = [i.status for i in inds if i.status != "unknown"]
     agg = _aggregate_status(statuses)

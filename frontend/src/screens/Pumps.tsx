@@ -9,7 +9,9 @@ import type { Pump } from '../api/types'
 const DETAIL_DAYS = 7
 const CHART_DAYS = 7
 
-export function PumpsScreen() {
+/** Inner content of the pumps view, mounted as a sub-tab inside Trends.
+ *  No outer page wrapper — the parent provides padding. */
+export function PumpsSection() {
   const readOnly = useIsReadOnly()
   const { data, isLoading } = usePumps(CHART_DAYS)
   const { data: feeds } = useFeeds(CHART_DAYS)
@@ -41,7 +43,7 @@ export function PumpsScreen() {
   if (isLoading) return <div className="p-8 text-center text-zinc-500">Loading…</div>
 
   return (
-    <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
+    <>
       {(pumps.length > 0 || (feeds ?? []).length > 0) && (
         <div className="rounded-xl bg-zinc-900/60 p-3 mb-4">
           <div className="text-[11px] uppercase tracking-wider text-zinc-500 mb-2">
@@ -108,6 +110,6 @@ export function PumpsScreen() {
         onDelete={editing ? () => del.mutate(editing, { onSuccess: () => setEditing(null) }) : undefined}
         saving={patch.isPending || del.isPending}
       />
-    </div>
+    </>
   )
 }

@@ -6,7 +6,6 @@ import { TabBar, type Tab } from './components/TabBar'
 import { AuthModeContext } from './lib/authMode'
 import { TodayScreen } from './screens/Today'
 import { OverviewScreen } from './screens/Overview'
-import { PumpsScreen } from './screens/Pumps'
 import { HistoryScreen } from './screens/History'
 import { SettingsScreen } from './screens/Settings'
 
@@ -37,7 +36,6 @@ function App() {
       <div className="min-h-dvh pt-[env(safe-area-inset-top)]">
         {activeTab === 'today' && <TodayScreen />}
         {activeTab === 'overview' && <OverviewScreen />}
-        {activeTab === 'pumps' && <PumpsScreen />}
         {activeTab === 'history' && <HistoryScreen />}
         {activeTab === 'settings' && <SettingsScreen />}
 

@@ -72,6 +72,8 @@ function phraseGood(i: OverviewIndicator): string {
       return i.status === 'over'
         ? 'hydration is on the high side'
         : 'hydration looks healthy'
+    case 'vitals':
+      return 'her heart rate and SpO₂ look comfortable'
     default:
       return i.headline.toLowerCase()
   }
@@ -87,6 +89,8 @@ function phraseWatch(i: OverviewIndicator): string {
       return 'today is running behind'
     case 'hydration':
       return 'wet-diaper count is on the lower side'
+    case 'vitals':
+      return 'SpO₂ has dipped a little this week'
     default:
       return i.headline.toLowerCase()
   }
@@ -102,6 +106,8 @@ function phraseConcern(i: OverviewIndicator): string {
       return 'today is well behind pace'
     case 'hydration':
       return 'wet-diaper count is low'
+    case 'vitals':
+      return 'SpO₂ has dipped below 90% on at least one day'
     default:
       return i.headline.toLowerCase()
   }

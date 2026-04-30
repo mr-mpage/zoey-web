@@ -181,7 +181,7 @@ const EDIT_SECTIONS: Section[] = [
       <>
         <H>Supply vs intake balance</H>
         <p className="mb-2">
-          Top of the Pumps tab shows three numbers: today's balance, the 4-day fridge cycle, and the
+          Top of the Trends → Pumps tab shows three numbers: today's balance, the 4-day fridge cycle, and the
           rolling 7-day balance. Each is <b>pumped minus bottle-fed</b>: a positive balance (emerald)
           means more was pumped than Zoey drank from a bottle, so the fridge or freezer is building.
           A negative balance (amber) means stored milk is being drawn down.
@@ -480,7 +480,7 @@ const VIEW_SECTIONS: Section[] = [
   },
   {
     id: 'pumps',
-    title: 'The Pumps tab',
+    title: 'Pumps (Trends)',
     blurb: 'Supply vs intake balance over the last week.',
     tone: 'sky',
     icon: Icons.pump,
@@ -683,7 +683,7 @@ export function HelpModal({ open, onClose }: Props) {
                 </li>
                 <li>
                   Use the tabs at the bottom: <b>Today</b> for the live picture, <b>Overview</b> for a
-                  weekly health-check paragraph, <b>Pumps</b> for milk supply, <b>Trends</b> for the full
+                  weekly health-check paragraph, <b>Trends</b> for the full
                   feed grid and the weight chart.
                 </li>
                 <li>

@@ -32,6 +32,11 @@ const KEY_ICON: Record<string, React.ReactNode> = {
       <path d="M12 3.2c-3.4 4-6.5 7.4-6.5 11.1a6.5 6.5 0 0 0 13 0c0-3.7-3.1-7.1-6.5-11.1z" />
     </svg>
   ),
+  vitals: (
+    <svg {...ICON_PROPS}>
+      <path d="M3 12h4l2-7 4 14 2-7h6" />
+    </svg>
+  ),
 }
 
 const TONE: Record<OverviewStatus, { border: string; bg: string; accent: string; dot: string; word: string }> = {

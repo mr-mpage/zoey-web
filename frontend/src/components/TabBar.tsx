@@ -1,4 +1,4 @@
-type Tab = 'today' | 'overview' | 'pumps' | 'history' | 'settings'
+type Tab = 'today' | 'overview' | 'history' | 'settings'
 
 type IconProps = { className?: string }
 
@@ -19,15 +19,6 @@ function OverviewIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
       <path d="M12 20.5s-7.5-4.6-7.5-10.3a4.2 4.2 0 0 1 7.5-2.6 4.2 4.2 0 0 1 7.5 2.6c0 5.7-7.5 10.3-7.5 10.3z" />
-    </svg>
-  )
-}
-
-function PumpIcon({ className }: IconProps) {
-  // Milk droplet
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
-      <path d="M12 3.2c-3.4 4-6.5 7.4-6.5 11.1a6.5 6.5 0 0 0 13 0c0-3.7-3.1-7.1-6.5-11.1z" />
     </svg>
   )
 }
@@ -57,7 +48,6 @@ function SettingsIcon({ className }: IconProps) {
 const TABS: { id: Tab; label: string; Icon: (p: IconProps) => React.ReactElement }[] = [
   { id: 'today', label: 'Today', Icon: TodayIcon },
   { id: 'overview', label: 'Overview', Icon: OverviewIcon },
-  { id: 'pumps', label: 'Pumps', Icon: PumpIcon },
   { id: 'history', label: 'Trends', Icon: HistoryIcon },
   { id: 'settings', label: 'Settings', Icon: SettingsIcon },
 ]
