@@ -21,7 +21,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from . import repo
-from .comparisons import TZ, now_local
+from .comparisons import TZ, feeding_day_for, now_local
 from .config import settings
 
 log = logging.getLogger(__name__)
@@ -315,6 +315,61 @@ def aggregate_for_feeding_day(day_iso: str) -> dict:
         computed_at=now_local(),
     )
     return agg
+
+
+def vitals_summary_for_range(days: int) -> list[dict]:
+    """Per-day aggregate dicts for the last `days` feeding days. Live-
+    computes for days within the retention window; reads from
+    vitals_daily for older days; returns zero rows for days with no
+    record. Shared by the API router and the doctor PDF report so both
+    surfaces report the same numbers.
+    """
+    from datetime import date as _date
+
+    s = repo.get_settings()
+    anchor_h = int(s.get("day_start_hour", "2"))
+    anchor_m = int(s.get("day_start_minute", "30"))
+    today = feeding_day_for(now_local(), anchor_h, anchor_m)
+    earliest = today - timedelta(days=days - 1)
+    retain_days = settings.vitals_raw_retain_days
+    raw_threshold = today - timedelta(days=retain_days)
+
+    stored = {
+        r["feeding_day"]: r
+        for r in repo.list_vitals_daily_between(earliest.isoformat(), today.isoformat())
+    }
+
+    out: list[dict] = []
+    for delta in range(days):
+        d = earliest + timedelta(days=delta)
+        d_iso = d.isoformat()
+        if d >= raw_threshold:
+            agg = aggregate_for_feeding_day(d_iso)
+            out.append({"feeding_day": d_iso, **agg})
+        elif d_iso in stored:
+            r = stored[d_iso]
+            out.append({
+                "feeding_day": d_iso,
+                "hr_avg": r["hr_avg"],
+                "hr_min": r["hr_min"],
+                "hr_max": r["hr_max"],
+                "spo2_avg": r["spo2_avg"],
+                "spo2_min_avg10": r["spo2_min_avg10"],
+                "monitoring_minutes": r["monitoring_minutes"],
+                "session_count": r["session_count"],
+                "low_spo2_alert_count": r["low_spo2_alert_count"],
+                "sample_count": r["sample_count"],
+            })
+        else:
+            out.append({
+                "feeding_day": d_iso,
+                "hr_avg": None, "hr_min": None, "hr_max": None,
+                "spo2_avg": None, "spo2_min_avg10": None,
+                "monitoring_minutes": 0, "session_count": 0,
+                "low_spo2_alert_count": 0, "sample_count": 0,
+            })
+    _ = _date  # keep flake happy if someone removes the import later
+    return out
 
 
 async def vitals_compaction_loop() -> None:

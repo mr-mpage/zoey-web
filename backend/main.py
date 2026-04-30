@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import secrets
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -41,32 +42,38 @@ app = FastAPI(title="Zoey Tracker", docs_url=None, redoc_url=None, openapi_url=N
 init_db()
 
 
-# Content Security Policy: same-origin only. Inline styles are allowed because
-# Tailwind v4's runtime injects them; inline scripts are not. PWA service
-# worker is at /sw.js, push subscriptions go to push.api.* via the platform
-# push service so connect-src has to allow https. data: in img-src is needed
-# for any inline-encoded assets the bundler emits.
-_CSP = (
-    "default-src 'self'; "
-    "img-src 'self' data:; "
-    "style-src 'self' 'unsafe-inline'; "
-    "script-src 'self'; "
-    "connect-src 'self' https:; "
-    "font-src 'self'; "
-    "frame-ancestors 'none'; "
-    "base-uri 'self'; "
-    "form-action 'self'; "
-    "object-src 'none'; "
-    "manifest-src 'self'; "
-    "worker-src 'self'"
-)
+# Content Security Policy: same-origin only. Inline styles allowed because
+# Tailwind v4's runtime injects them; inline scripts allowed only via a
+# per-request nonce (see security_headers middleware). data: in img-src
+# for inline assets the bundler emits; https: in connect-src for the
+# Push API endpoints.
+
+
+def _csp_for(nonce: str) -> str:
+    return (
+        "default-src 'self'; "
+        "img-src 'self' data:; "
+        "style-src 'self' 'unsafe-inline'; "
+        f"script-src 'self' 'nonce-{nonce}'; "
+        "connect-src 'self' https:; "
+        "font-src 'self'; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'; "
+        "object-src 'none'; "
+        "manifest-src 'self'; "
+        "worker-src 'self'"
+    )
 
 
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
+    # Per-request nonce so any HTML response with inline <script nonce="…">
+    # is allowed by CSP without enabling 'unsafe-inline' globally.
+    nonce = secrets.token_urlsafe(16)
+    request.state.csp_nonce = nonce
+
     response: Response = await call_next(request)
-    # Owned-content posture: same-origin only, no embedding, no sniffing,
-    # no referrer leakage, no indexing, no opt-in browser features.
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
@@ -78,7 +85,7 @@ async def security_headers(request: Request, call_next):
     response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive, nosnippet"
     response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
     response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
-    response.headers.setdefault("Content-Security-Policy", _CSP)
+    response.headers.setdefault("Content-Security-Policy", _csp_for(nonce))
     return response
 
 
