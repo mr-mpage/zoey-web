@@ -217,6 +217,82 @@ class AppSettings(BaseModel):
     birth_weight_grams: int = Field(ge=300, le=6000)
 
 
+class MedIn(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    doses_per_day: int = Field(default=1, ge=0, le=12)
+    sort_order: int = 0
+
+
+class MedPatch(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=80)
+    doses_per_day: Optional[int] = Field(default=None, ge=0, le=12)
+    sort_order: Optional[int] = None
+    archived: Optional[bool] = None
+
+
+class Med(BaseModel):
+    id: int
+    name: str
+    doses_per_day: int
+    sort_order: int
+    archived: bool
+
+
+class MedDoseIn(BaseModel):
+    med_id: Optional[int] = None
+    name: Optional[str] = Field(default=None, max_length=80)
+    given_at: Optional[datetime] = None
+    notes: Optional[str] = None
+    feeding_day_override: Optional[str] = Field(default=None, pattern=r"^(\d{4}-\d{2}-\d{2})?$")
+
+
+class MedDosePatch(BaseModel):
+    given_at: Optional[datetime] = None
+    notes: Optional[str] = None
+    feeding_day_override: Optional[str] = Field(default=None, pattern=r"^(\d{4}-\d{2}-\d{2})?$")
+
+
+class MedDose(BaseModel):
+    id: int
+    med_id: Optional[int] = None
+    name: Optional[str] = None
+    given_at: datetime
+    notes: Optional[str] = None
+    is_extra: bool = False
+    feeding_day_override: Optional[str] = None
+
+
+class MedDoseWithMed(BaseModel):
+    """A dose enriched with the resolved name (from the linked med, or the
+    one-off name field)."""
+    id: int
+    med_id: Optional[int] = None
+    name: str  # resolved: either med.name or the dose's own name field
+    given_at: datetime
+    notes: Optional[str] = None
+    is_extra: bool = False
+    feeding_day_override: Optional[str] = None
+
+
+class MedTodaySlot(BaseModel):
+    """One row in today's checklist: either a logged dose or a pending slot."""
+    slot_index: int
+    dose: Optional[MedDoseWithMed] = None  # None = pending
+    is_extra: bool = False  # true for slots beyond doses_per_day
+
+
+class MedTodayRow(BaseModel):
+    med: Med
+    slots: list[MedTodaySlot]
+    extras: list[MedDoseWithMed]
+
+
+class MedsToday(BaseModel):
+    feeding_day: str
+    rows: list[MedTodayRow]
+    one_offs: list[MedDoseWithMed]  # doses with med_id null (free-text events)
+
+
 class AppSettingsPatch(BaseModel):
     day_start_hour: Optional[int] = Field(default=None, ge=0, le=23)
     day_start_minute: Optional[int] = Field(default=None, ge=0, le=59)

@@ -2,7 +2,19 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
 import { useToast } from '../lib/toast'
 import { fmtClock } from '../lib/format'
-import type { AppSettings, Dashboard, Diaper, Feed, Overview, Pump, Weight, WeightStatus } from './types'
+import type {
+  AppSettings,
+  Dashboard,
+  Diaper,
+  Feed,
+  Med,
+  MedDoseWithMed,
+  MedsToday,
+  Overview,
+  Pump,
+  Weight,
+  WeightStatus,
+} from './types'
 
 export type AuthState = {
   authenticated: boolean
@@ -395,6 +407,138 @@ export function useUpdateAppSettings() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['settings'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
+// --- Meds -----------------------------------------------------------------
+
+function invalidateMeds(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ['meds'] })
+  qc.invalidateQueries({ queryKey: ['meds', 'today'] })
+  qc.invalidateQueries({ queryKey: ['meds', 'doses'] })
+}
+
+export function useMeds() {
+  return useQuery({
+    queryKey: ['meds'],
+    queryFn: () => api.get<Med[]>('/api/meds'),
+    staleTime: 60_000,
+  })
+}
+
+export function useMedsToday() {
+  return useQuery({
+    queryKey: ['meds', 'today'],
+    queryFn: () => api.get<MedsToday>('/api/meds/today'),
+    refetchInterval: 60_000,
+  })
+}
+
+export function useMedDoses(days = 14) {
+  return useQuery({
+    queryKey: ['meds', 'doses', days],
+    queryFn: () => api.get<MedDoseWithMed[]>(`/api/meds/doses?days=${days}`),
+  })
+}
+
+export function useCreateMed() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: (input: { name: string; doses_per_day: number; sort_order?: number }) =>
+      api.post<Med>('/api/meds', input),
+    onSuccess: (m) => {
+      invalidateMeds(qc)
+      toast.success(`"${m.name}" added`)
+    },
+  })
+}
+
+export function usePatchMed() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: ({ id, ...rest }: { id: number; name?: string; doses_per_day?: number; sort_order?: number; archived?: boolean }) =>
+      api.patch<Med>(`/api/meds/${id}`, rest),
+    onSuccess: (m) => {
+      invalidateMeds(qc)
+      toast.success(`"${m.name}" updated`)
+    },
+  })
+}
+
+export function useArchiveMed() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: async (med: Med) => {
+      await api.del(`/api/meds/${med.id}`)
+      return med
+    },
+    onSuccess: (m) => {
+      invalidateMeds(qc)
+      toast.undo(
+        `"${m.name}" archived`,
+        async () => {
+          await api.patch(`/api/meds/${m.id}`, { archived: false })
+          invalidateMeds(qc)
+        },
+      )
+    },
+  })
+}
+
+export function useCreateMedDose() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: (input: { med_id?: number | null; name?: string; given_at?: string; notes?: string; feeding_day_override?: string | null }) =>
+      api.post<MedDoseWithMed>('/api/meds/doses', input),
+    onSuccess: (d) => {
+      invalidateMeds(qc)
+      const t = fmtClock(d.given_at)
+      toast.success(`${d.name} logged · ${t}`)
+    },
+  })
+}
+
+export function usePatchMedDose() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: ({ id, ...rest }: { id: number; given_at?: string; notes?: string; feeding_day_override?: string | null }) =>
+      api.patch<MedDoseWithMed>(`/api/meds/doses/${id}`, rest),
+    onSuccess: () => {
+      invalidateMeds(qc)
+      toast.success('Dose updated')
+    },
+  })
+}
+
+export function useDeleteMedDose() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: async (dose: MedDoseWithMed) => {
+      await api.del(`/api/meds/doses/${dose.id}`)
+      return dose
+    },
+    onSuccess: (d) => {
+      invalidateMeds(qc)
+      toast.undo(
+        `${d.name} removed`,
+        async () => {
+          await api.post('/api/meds/doses', {
+            med_id: d.med_id,
+            name: d.med_id ? undefined : d.name,
+            given_at: d.given_at,
+            notes: d.notes ?? undefined,
+            feeding_day_override: d.feeding_day_override ?? undefined,
+          })
+          invalidateMeds(qc)
+        },
+      )
     },
   })
 }

@@ -130,3 +130,39 @@ export type AppSettings = {
   gestational_age_weeks: number
   birth_weight_grams: number
 }
+
+export type Med = {
+  id: number
+  name: string
+  doses_per_day: number
+  sort_order: number
+  archived: boolean
+}
+
+export type MedDoseWithMed = {
+  id: number
+  med_id: number | null
+  name: string  // resolved (med name or one-off label)
+  given_at: string
+  notes: string | null
+  is_extra: boolean
+  feeding_day_override: string | null
+}
+
+export type MedTodaySlot = {
+  slot_index: number
+  dose: MedDoseWithMed | null
+  is_extra: boolean
+}
+
+export type MedTodayRow = {
+  med: Med
+  slots: MedTodaySlot[]
+  extras: MedDoseWithMed[]
+}
+
+export type MedsToday = {
+  feeding_day: string
+  rows: MedTodayRow[]
+  one_offs: MedDoseWithMed[]
+}

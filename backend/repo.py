@@ -408,6 +408,159 @@ def list_vitals_daily_between(start_day: str, end_day: str) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def list_meds(include_archived: bool = False) -> list[dict]:
+    with get_conn() as c:
+        if include_archived:
+            rows = c.execute(
+                "SELECT id, name, doses_per_day, sort_order, archived FROM meds "
+                "ORDER BY archived ASC, sort_order ASC, id ASC"
+            ).fetchall()
+        else:
+            rows = c.execute(
+                "SELECT id, name, doses_per_day, sort_order, archived FROM meds "
+                "WHERE archived = 0 ORDER BY sort_order ASC, id ASC"
+            ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_med(med_id: int) -> Optional[dict]:
+    with get_conn() as c:
+        row = c.execute(
+            "SELECT id, name, doses_per_day, sort_order, archived FROM meds WHERE id = ?",
+            (med_id,),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def insert_med(name: str, doses_per_day: int, sort_order: int) -> int:
+    now_iso = datetime.now().astimezone().isoformat()
+    with get_conn() as c:
+        cur = c.execute(
+            "INSERT INTO meds (name, doses_per_day, sort_order, archived, created_at) "
+            "VALUES (?, ?, ?, 0, ?)",
+            (name, doses_per_day, sort_order, now_iso),
+        )
+        return cur.lastrowid
+
+
+def update_med(
+    med_id: int,
+    name: Optional[str] = None,
+    doses_per_day: Optional[int] = None,
+    sort_order: Optional[int] = None,
+    archived: Optional[bool] = None,
+) -> bool:
+    sets, args = [], []
+    if name is not None:
+        sets.append("name = ?")
+        args.append(name)
+    if doses_per_day is not None:
+        sets.append("doses_per_day = ?")
+        args.append(doses_per_day)
+    if sort_order is not None:
+        sets.append("sort_order = ?")
+        args.append(sort_order)
+    if archived is not None:
+        sets.append("archived = ?")
+        args.append(1 if archived else 0)
+    if not sets:
+        return False
+    args.append(med_id)
+    with get_conn() as c:
+        cur = c.execute(f"UPDATE meds SET {', '.join(sets)} WHERE id = ?", args)
+        return cur.rowcount > 0
+
+
+def insert_med_dose(
+    med_id: Optional[int],
+    name: Optional[str],
+    given_at: datetime,
+    notes: Optional[str],
+    is_extra: bool,
+    feeding_day_override: Optional[str],
+) -> int:
+    now_iso = datetime.now().astimezone().isoformat()
+    with get_conn() as c:
+        cur = c.execute(
+            "INSERT INTO med_doses (med_id, name, given_at, notes, is_extra, feeding_day_override, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                med_id,
+                name,
+                given_at.isoformat(),
+                notes,
+                1 if is_extra else 0,
+                feeding_day_override,
+                now_iso,
+            ),
+        )
+        return cur.lastrowid
+
+
+def update_med_dose(
+    dose_id: int,
+    given_at: Optional[datetime] = None,
+    notes: Optional[str] = None,
+    feeding_day_override: Optional[str] = None,
+    clear_feeding_day_override: bool = False,
+) -> bool:
+    sets, args = [], []
+    if given_at is not None:
+        sets.append("given_at = ?")
+        args.append(given_at.isoformat())
+    if notes is not None:
+        sets.append("notes = ?")
+        args.append(notes)
+    if clear_feeding_day_override:
+        sets.append("feeding_day_override = NULL")
+    elif feeding_day_override is not None:
+        sets.append("feeding_day_override = ?")
+        args.append(feeding_day_override)
+    if not sets:
+        return False
+    args.append(dose_id)
+    with get_conn() as c:
+        cur = c.execute(f"UPDATE med_doses SET {', '.join(sets)} WHERE id = ?", args)
+        return cur.rowcount > 0
+
+
+def delete_med_dose(dose_id: int) -> bool:
+    with get_conn() as c:
+        cur = c.execute("DELETE FROM med_doses WHERE id = ?", (dose_id,))
+        return cur.rowcount > 0
+
+
+def list_med_doses_between(start: datetime, end: datetime) -> list[dict]:
+    with get_conn() as c:
+        rows = c.execute(
+            "SELECT id, med_id, name, given_at, notes, is_extra, feeding_day_override "
+            "FROM med_doses WHERE given_at >= ? AND given_at < ? "
+            "ORDER BY given_at ASC",
+            (start.isoformat(), end.isoformat()),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def list_med_doses_recent(limit: int = 200) -> list[dict]:
+    with get_conn() as c:
+        rows = c.execute(
+            "SELECT id, med_id, name, given_at, notes, is_extra, feeding_day_override "
+            "FROM med_doses ORDER BY given_at DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_med_dose(dose_id: int) -> Optional[dict]:
+    with get_conn() as c:
+        row = c.execute(
+            "SELECT id, med_id, name, given_at, notes, is_extra, feeding_day_override "
+            "FROM med_doses WHERE id = ?",
+            (dose_id,),
+        ).fetchone()
+    return dict(row) if row else None
+
+
 def get_settings() -> dict[str, str]:
     with get_conn() as c:
         rows = c.execute("SELECT key, value FROM app_settings").fetchall()

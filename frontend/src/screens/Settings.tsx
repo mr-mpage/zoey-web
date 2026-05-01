@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react'
 import {
   useAppSettings,
+  useArchiveMed,
+  useCreateMed,
   useCreateViewerPasscode,
   useDeleteViewerPasscode,
   useLogout,
+  useMeds,
+  usePatchMed,
   useUpdateAppSettings,
   useViewerPasscodes,
   type ViewerPasscode,
@@ -11,6 +15,7 @@ import {
 import { api, ApiError } from '../api/client'
 import { disablePush, enablePush, getState as getPushState, isStandalone } from '../lib/push'
 import { fmtDate, fmtTime } from '../lib/format'
+import type { Med } from '../api/types'
 
 function ViewerPasscodesSection() {
   const { data: viewers } = useViewerPasscodes()
@@ -245,6 +250,158 @@ function BandRow({
         className="bg-zinc-800 rounded-lg px-3 py-2 tabular-nums w-20 text-center"
         placeholder={placeholder}
       />
+    </div>
+  )
+}
+
+function MedRow({ med }: { med: Med }) {
+  const patch = usePatchMed()
+  const archive = useArchiveMed()
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(med.name)
+  const [doses, setDoses] = useState(String(med.doses_per_day))
+
+  const save = () => {
+    const n = name.trim()
+    const d = parseInt(doses, 10)
+    if (!n || isNaN(d) || d < 0 || d > 12) return
+    patch.mutate(
+      { id: med.id, name: n, doses_per_day: d },
+      { onSuccess: () => setEditing(false) },
+    )
+  }
+
+  if (!editing) {
+    return (
+      <div
+        onClick={() => {
+          setName(med.name)
+          setDoses(String(med.doses_per_day))
+          setEditing(true)
+        }}
+        className="rounded-lg bg-zinc-900/50 px-3 py-2.5 flex items-center justify-between cursor-pointer"
+      >
+        <div>
+          <div className="text-sm text-zinc-100">{med.name}</div>
+          <div className="text-[11px] text-zinc-500">
+            {med.doses_per_day === 0 ? 'as needed' : `${med.doses_per_day}× per day`}
+          </div>
+        </div>
+        <div className="text-[11px] text-zinc-500">Edit</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-lg bg-zinc-900/50 p-3">
+      <div className="flex gap-2 mb-2">
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="flex-1 bg-zinc-800 rounded-lg px-3 py-2 text-sm"
+          maxLength={80}
+        />
+        <input
+          inputMode="numeric"
+          value={doses}
+          onChange={(e) => setDoses(e.target.value.replace(/\D/g, ''))}
+          className="w-16 bg-zinc-800 rounded-lg px-3 py-2 text-sm tabular-nums text-center"
+          placeholder="1"
+        />
+      </div>
+      <div className="text-[11px] text-zinc-500 mb-2">
+        Doses per day. Use 0 for "as needed" (no checklist slot, but still loggable).
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={() => archive.mutate(med, { onSuccess: () => setEditing(false) })}
+          disabled={archive.isPending}
+          className="flex-1 py-2 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-200 text-sm disabled:opacity-40"
+        >
+          Archive
+        </button>
+        <button
+          onClick={() => setEditing(false)}
+          className="flex-1 py-2 rounded-lg bg-zinc-800 text-zinc-300 text-sm"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={save}
+          disabled={patch.isPending}
+          className="flex-1 py-2 rounded-lg bg-pink-300 text-zinc-900 text-sm font-medium disabled:opacity-40"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function MedsSection() {
+  const { data: meds } = useMeds()
+  const create = useCreateMed()
+  const [name, setName] = useState('')
+  const [doses, setDoses] = useState('1')
+
+  const submit = () => {
+    const n = name.trim()
+    const d = parseInt(doses, 10)
+    if (!n || isNaN(d) || d < 0 || d > 12) return
+    create.mutate(
+      { name: n, doses_per_day: d, sort_order: (meds?.length ?? 0) },
+      {
+        onSuccess: () => {
+          setName('')
+          setDoses('1')
+        },
+      },
+    )
+  }
+
+  return (
+    <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">
+      <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Meds</div>
+      <p className="text-xs text-zinc-500 mb-3">
+        The Meds tab shows today's checklist for everything here. Set "doses per day" to 0 for
+        as-needed items (no checklist slot, but you can still log doses from the tab).
+      </p>
+
+      <div className="space-y-1.5 mb-3">
+        {(meds ?? []).map((m) => (
+          <MedRow key={m.id} med={m} />
+        ))}
+        {(meds ?? []).length === 0 && (
+          <div className="text-[11px] text-zinc-500 italic px-1">No meds configured.</div>
+        )}
+      </div>
+
+      <div className="text-[11px] uppercase tracking-wider text-zinc-500 mb-1.5">Add</div>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Name"
+          className="flex-1 bg-zinc-800 rounded-lg px-3 py-2 text-sm"
+          maxLength={80}
+        />
+        <input
+          inputMode="numeric"
+          value={doses}
+          onChange={(e) => setDoses(e.target.value.replace(/\D/g, ''))}
+          className="w-16 bg-zinc-800 rounded-lg px-3 py-2 text-sm tabular-nums text-center"
+          placeholder="1"
+        />
+        <button
+          onClick={submit}
+          disabled={create.isPending || !name.trim()}
+          className="px-4 py-2 rounded-lg bg-pink-300 text-zinc-900 text-sm font-medium disabled:opacity-40"
+        >
+          Add
+        </button>
+      </div>
     </div>
   )
 }
@@ -492,6 +649,8 @@ export function SettingsScreen() {
           {updateSettings.isPending ? 'Saving…' : 'Save bands'}
         </button>
       </div>
+
+      <MedsSection />
 
       <PushSection />
 

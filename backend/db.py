@@ -94,6 +94,33 @@ CREATE TABLE IF NOT EXISTS vitals_daily (
     sample_count INTEGER NOT NULL DEFAULT 0,
     computed_at TEXT NOT NULL
 );
+
+-- Recurring daily meds (iron, vitamin D, etc). Predefined list lives in
+-- this table; doses_per_day drives the today-checklist slot count.
+-- Archived = soft delete so historical doses still resolve a name.
+CREATE TABLE IF NOT EXISTS meds (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    doses_per_day INTEGER NOT NULL DEFAULT 1,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    archived INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+
+-- One row per dose given. med_id null = one-off (e.g. saline drops),
+-- name carries the free-text label in that case. is_extra marks doses
+-- beyond the scheduled count for the day, mirroring the feeds pattern.
+CREATE TABLE IF NOT EXISTS med_doses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    med_id INTEGER REFERENCES meds(id) ON DELETE SET NULL,
+    name TEXT,
+    given_at TEXT NOT NULL,
+    notes TEXT,
+    is_extra INTEGER NOT NULL DEFAULT 0,
+    feeding_day_override TEXT,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_med_doses_given_at ON med_doses(given_at);
 """
 
 DEFAULTS = {
@@ -136,6 +163,22 @@ def init_db() -> None:
             # feed logged at 02:20 (just before a 02:30 anchor) count as
             # feed #1 of the new day without having to fudge the timestamp.
             conn.execute("ALTER TABLE feeds ADD COLUMN feeding_day_override TEXT")
+        # Seed default meds on first creation so the checklist isn't empty.
+        # INSERT OR IGNORE keyed off name so manually-archived rows stay archived.
+        from datetime import datetime, timezone
+        now_iso = datetime.now(timezone.utc).isoformat()
+        existing = {r[0] for r in conn.execute("SELECT name FROM meds")}
+        seed_meds = [
+            ("Iron drops", 1, 0),
+            ("Vitamin D", 1, 1),
+        ]
+        for name, dpd, order in seed_meds:
+            if name not in existing:
+                conn.execute(
+                    "INSERT INTO meds (name, doses_per_day, sort_order, archived, created_at) "
+                    "VALUES (?, ?, ?, 0, ?)",
+                    (name, dpd, order, now_iso),
+                )
 
 
 @contextmanager

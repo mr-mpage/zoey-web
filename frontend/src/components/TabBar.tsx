@@ -1,4 +1,4 @@
-type Tab = 'today' | 'overview' | 'history' | 'settings'
+type Tab = 'today' | 'overview' | 'history' | 'meds' | 'settings'
 
 type IconProps = { className?: string }
 
@@ -45,10 +45,21 @@ function SettingsIcon({ className }: IconProps) {
   )
 }
 
+function MedsIcon({ className }: IconProps) {
+  // Pill — capsule shape, two halves
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      <rect x="3.5" y="9" width="17" height="6" rx="3" transform="rotate(-30 12 12)" />
+      <path d="M9.4 7.4l5.2 9" />
+    </svg>
+  )
+}
+
 const TABS: { id: Tab; label: string; Icon: (p: IconProps) => React.ReactElement }[] = [
   { id: 'today', label: 'Today', Icon: TodayIcon },
   { id: 'overview', label: 'Overview', Icon: OverviewIcon },
   { id: 'history', label: 'Trends', Icon: HistoryIcon },
+  { id: 'meds', label: 'Meds', Icon: MedsIcon },
   { id: 'settings', label: 'Settings', Icon: SettingsIcon },
 ]
 

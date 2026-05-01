@@ -7,6 +7,7 @@ import { AuthModeContext } from './lib/authMode'
 import { TodayScreen } from './screens/Today'
 import { OverviewScreen } from './screens/Overview'
 import { HistoryScreen } from './screens/History'
+import { MedsScreen } from './screens/Meds'
 import { SettingsScreen } from './screens/Settings'
 
 function App() {
@@ -36,6 +37,7 @@ function App() {
         {activeTab === 'today' && <TodayScreen />}
         {activeTab === 'overview' && <OverviewScreen />}
         {activeTab === 'history' && <HistoryScreen />}
+        {activeTab === 'meds' && <MedsScreen />}
         {activeTab === 'settings' && <SettingsScreen />}
 
         <button
