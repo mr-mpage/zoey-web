@@ -119,7 +119,7 @@ function TodayCard({ row }: { row: VitalsDay }) {
           <div className={`text-2xl font-light tabular-nums leading-none mt-1 ${spo2ColorClass(row.spo2_min_avg10)}`}>
             {fmtSpo2(row.spo2_min_avg10)}
           </div>
-          <div className="text-[11px] text-zinc-500 mt-1">10-min average</div>
+          <div className="text-[11px] text-zinc-500 mt-1">smoothed value from the sock</div>
         </div>
       </div>
 
@@ -174,59 +174,66 @@ function WeekChartCard({ days, today }: { days: VitalsDay[]; today: string }) {
         )}
       </div>
 
-      {/* HR range bars: thin background bar = min-max range, dot = average.
-          Dot colour reflects whether the daily average sits in the typical
-          preterm/newborn range. Shaded backdrop marks the typical band. */}
-      <div className="relative h-24 mb-2">
-        {/* Typical-range backdrop */}
-        {(() => {
-          const lowPct = ((HR_AVG_TYPICAL_LOW - barMin) / barRange) * 100
-          const highPct = ((HR_AVG_TYPICAL_HIGH - barMin) / barRange) * 100
-          if (highPct <= 0 || lowPct >= 100) return null
-          const top = Math.min(highPct, 100)
-          const bottom = Math.max(lowPct, 0)
-          return (
-            <div
-              className="absolute inset-x-0 bg-emerald-500/[0.06] border-y border-emerald-500/10 pointer-events-none"
-              style={{ bottom: `${bottom}%`, height: `${top - bottom}%` }}
-            />
-          )
-        })()}
-        <div className="flex items-end gap-1.5 h-full">
-          {days.map((d) => {
-            const isToday = d.feeding_day === today
-            if (d.hr_avg == null || d.hr_min == null || d.hr_max == null) {
-              return <div key={d.feeding_day} className="flex-1 h-full" />
-            }
-            const rangeBottom = ((d.hr_min - barMin) / barRange) * 100
-            const rangeTop = ((d.hr_max - barMin) / barRange) * 100
-            const avgPos = ((d.hr_avg - barMin) / barRange) * 100
+      {/* HR range bars: vertical bar = day's min-max, dot = day's average.
+          Y-axis = BPM (high at top), X-axis = days (left = oldest).
+          Y-axis labels live on the LEFT edge so they read as a vertical
+          scale, not as horizontal endpoints. */}
+      <div className="flex gap-2 mb-2">
+        <div className="relative w-8 h-24 text-[9px] text-zinc-500 tabular-nums">
+          <span className="absolute top-0 right-0">{barMax.toFixed(0)}</span>
+          <span className="absolute bottom-0 right-0">{barMin.toFixed(0)}</span>
+          <span className="absolute top-1/2 -translate-y-1/2 right-0 text-[8px] text-zinc-600">BPM</span>
+        </div>
+        <div className="relative h-24 flex-1">
+          {(() => {
+            const lowPct = ((HR_AVG_TYPICAL_LOW - barMin) / barRange) * 100
+            const highPct = ((HR_AVG_TYPICAL_HIGH - barMin) / barRange) * 100
+            if (highPct <= 0 || lowPct >= 100) return null
+            const top = Math.min(highPct, 100)
+            const bottom = Math.max(lowPct, 0)
             return (
               <div
-                key={d.feeding_day}
-                className="flex-1 relative h-full"
-                title={`${dayLabel(d.feeding_day, today)}: ${fmtHr(d.hr_min)}–${fmtHr(d.hr_max)}, avg ${fmtHr(d.hr_avg)}`}
-              >
-                <div
-                  className="absolute left-1/2 -translate-x-1/2 w-1 rounded-sm bg-zinc-500/40"
-                  style={{ bottom: `${rangeBottom}%`, height: `${rangeTop - rangeBottom}%` }}
-                />
-                <div
-                  className={`absolute left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full ${hrAvgBgClass(d.hr_avg, isToday)}`}
-                  style={{ bottom: `calc(${avgPos}% - 5px)` }}
-                />
-              </div>
+                className="absolute inset-x-0 bg-emerald-500/[0.07] border-y border-emerald-500/15 pointer-events-none"
+                style={{ bottom: `${bottom}%`, height: `${top - bottom}%` }}
+              />
             )
-          })}
+          })()}
+          <div className="flex items-end gap-1.5 h-full">
+            {days.map((d) => {
+              const isToday = d.feeding_day === today
+              if (d.hr_avg == null || d.hr_min == null || d.hr_max == null) {
+                return <div key={d.feeding_day} className="flex-1 h-full" />
+              }
+              const rangeBottom = ((d.hr_min - barMin) / barRange) * 100
+              const rangeTop = ((d.hr_max - barMin) / barRange) * 100
+              const avgPos = ((d.hr_avg - barMin) / barRange) * 100
+              return (
+                <div
+                  key={d.feeding_day}
+                  className="flex-1 relative h-full"
+                  title={`${dayLabel(d.feeding_day, today)}: ${fmtHr(d.hr_min)}–${fmtHr(d.hr_max)}, avg ${fmtHr(d.hr_avg)}`}
+                >
+                  <div
+                    className="absolute left-1/2 -translate-x-1/2 w-1 rounded-sm bg-zinc-500/50"
+                    style={{ bottom: `${rangeBottom}%`, height: `${rangeTop - rangeBottom}%` }}
+                  />
+                  <div
+                    className={`absolute left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full ${hrAvgBgClass(d.hr_avg, isToday)}`}
+                    style={{ bottom: `calc(${avgPos}% - 5px)` }}
+                  />
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
-      <div className="flex justify-between text-[9px] text-zinc-600 tabular-nums mb-3">
-        <span>{barMin.toFixed(0)} BPM</span>
-        <span className="text-emerald-400/60">typical {HR_AVG_TYPICAL_LOW}–{HR_AVG_TYPICAL_HIGH}</span>
-        <span>{barMax.toFixed(0)} BPM</span>
+      <div className="text-[9px] text-emerald-400/60 text-center mb-3">
+        green band: typical {HR_AVG_TYPICAL_LOW}–{HR_AVG_TYPICAL_HIGH} BPM (preterm/newborn)
       </div>
 
-      {/* SpO2 sparkline: lowest 10-min avg per day, coloured by band. */}
+      {/* SpO2 sparkline: lowest smoothed value per day, coloured by band.
+          Y-axis = SpO2 % (high at top), X-axis = days. Same layout pattern
+          as the HR chart so the axes read consistently. */}
       {(() => {
         const spo2s = days.map((d) => d.spo2_min_avg10)
         const validSpo2s = spo2s.filter((v): v is number => v != null)
@@ -236,28 +243,35 @@ function WeekChartCard({ days, today }: { days: VitalsDay[]; today: string }) {
         const sRange = sMax - sMin
         return (
           <div className="mb-3">
-            <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1.5">Lowest SpO₂ per day</div>
-            <div className="flex items-end gap-1.5 h-12">
-              {days.map((d) => {
-                const v = d.spo2_min_avg10
-                if (v == null) return <div key={d.feeding_day} className="flex-1 h-full" />
-                const h = ((v - sMin) / sRange) * 100
-                return (
-                  <div
-                    key={d.feeding_day}
-                    className={`flex-1 rounded-sm ${spo2BgFill(v)} ${
-                      d.feeding_day === today ? 'opacity-100' : 'opacity-70'
-                    }`}
-                    style={{ height: `${Math.max(h, 6)}%` }}
-                    title={`${dayLabel(d.feeding_day, today)}: ${fmtSpo2(v)}`}
-                  />
-                )
-              })}
+            <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1.5">
+              Lowest sustained SpO₂ per day
             </div>
-            <div className="flex justify-between text-[9px] text-zinc-600 tabular-nums mt-1">
-              <span>{sMin}%</span>
-              <span className="text-emerald-400/60">≥ {SPO2_HEALTHY}% healthy</span>
-              <span>{sMax}%</span>
+            <div className="flex gap-2">
+              <div className="relative w-8 h-12 text-[9px] text-zinc-500 tabular-nums">
+                <span className="absolute top-0 right-0">{sMax}</span>
+                <span className="absolute bottom-0 right-0">{sMin}</span>
+                <span className="absolute top-1/2 -translate-y-1/2 right-0 text-[8px] text-zinc-600">%</span>
+              </div>
+              <div className="flex items-end gap-1.5 h-12 flex-1">
+                {days.map((d) => {
+                  const v = d.spo2_min_avg10
+                  if (v == null) return <div key={d.feeding_day} className="flex-1 h-full" />
+                  const h = ((v - sMin) / sRange) * 100
+                  return (
+                    <div
+                      key={d.feeding_day}
+                      className={`flex-1 rounded-sm ${spo2BgFill(v)} ${
+                        d.feeding_day === today ? 'opacity-100' : 'opacity-75'
+                      }`}
+                      style={{ height: `${Math.max(h, 6)}%` }}
+                      title={`${dayLabel(d.feeding_day, today)}: ${fmtSpo2(v)}`}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+            <div className="text-[9px] text-emerald-400/60 text-center mt-1">
+              ≥ {SPO2_HEALTHY}% healthy
             </div>
           </div>
         )
@@ -285,7 +299,7 @@ function WeekChartCard({ days, today }: { days: VitalsDay[]; today: string }) {
 
       {minSpo2 !== Infinity && minSpo2 < SPO2_FLAG && minSpo2Day && (
         <div className="text-[11px] text-amber-300 mt-3 leading-relaxed pt-3 border-t border-zinc-800/60">
-          {dayLabel(minSpo2Day, today)}'s lowest SpO₂ was {Math.round(minSpo2)}% (10-min avg) — worth
+          {dayLabel(minSpo2Day, today)}'s lowest sustained SpO₂ was {Math.round(minSpo2)}% — worth
           mentioning at the next visit.
         </div>
       )}
@@ -396,7 +410,7 @@ export function VitalsHistorySection() {
           </p>
           <p>
             <span className="text-zinc-300">Lowest SpO₂</span> is the minimum value seen
-            on the sock's <em>10-minute rolling average</em>. Single-second dips happen
+            on the sock's <em>smoothed value</em> (it averages out brief blips so only sustained dips show). Single-second dips happen
             and don't matter; sustained dips are what doctors track.
           </p>
           <p>

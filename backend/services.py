@@ -414,14 +414,14 @@ def compute_overview() -> Overview:
                     n = len(low_days)
                     status, headline = "concern", f"{n} day{'s' if n != 1 else ''} below 90% SpO₂"
                     detail = (
-                        f"Lowest 10-min average this week: {weekly_min_spo2:.0f}%. "
+                        f"Lowest sustained SpO₂ this week: {weekly_min_spo2:.0f}%. "
                         f"Worth raising at her next check-in. The sock continues to alert in "
                         f"real time on its own thresholds."
                     )
                 elif weekly_min_spo2 < 95:
                     status, headline = "watch", "SpO₂ dipped this week"
                     detail = (
-                        f"Lowest 10-min average: {weekly_min_spo2:.0f}%. Within the acceptable "
+                        f"Lowest sustained SpO₂: {weekly_min_spo2:.0f}%. Within the acceptable "
                         f"preterm band, worth a glance but not a flag."
                     )
                 elif not hr_typical:

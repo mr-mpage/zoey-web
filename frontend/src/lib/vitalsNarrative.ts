@@ -66,7 +66,7 @@ export function buildVitalsNarrative(days: VitalsDay[]): VitalsNarrative | null 
     return {
       tone: 'concern',
       headline: `${flagDays.length} day${flagDays.length === 1 ? '' : 's'} below 90% SpO₂`,
-      detail: `Lowest 10-minute average this week: ${Math.round(weeklyMinSpo2)}%. Worth raising at her next check-in. The Owlet sock will continue to alert in real time on its own thresholds.`,
+      detail: `Lowest sustained SpO₂ this week: ${Math.round(weeklyMinSpo2)}% (smoothed value from the sock). Worth raising at her next check-in. Owlet continues to alert in real time on its own thresholds.`,
     }
   }
 
@@ -84,7 +84,7 @@ export function buildVitalsNarrative(days: VitalsDay[]): VitalsNarrative | null 
     return {
       tone: 'positive',
       headline: 'Steady week with one or two SpO₂ dips',
-      detail: `HR averaged ${Math.round(hrAvgMin)}–${Math.round(hrAvgMax)} BPM, comfortably in the typical preterm range. Lowest SpO₂ touched ${Math.round(weeklyMinSpo2)}% (10-min avg) — within the acceptable preterm band, worth a glance but not a flag.`,
+      detail: `HR averaged ${Math.round(hrAvgMin)}–${Math.round(hrAvgMax)} BPM, comfortably in the typical preterm range. Lowest sustained SpO₂ touched ${Math.round(weeklyMinSpo2)}% — within the acceptable preterm band, worth a glance but not a flag.`,
     }
   }
 

@@ -292,9 +292,9 @@ const EDIT_SECTIONS: Section[] = [
 
         <H>The SpO₂ sparkline</H>
         <p>
-          Below the heart-rate chart, one bar per day showing the lowest 10-minute average that day.
-          Single-second oxygen dips happen and don't matter; the metric doctors look at is the lowest
-          the <b>10-minute rolling average</b> from the sock dropped to. The bar's colour reflects
+          Below the heart-rate chart, one bar per day showing the lowest sustained SpO₂ that day.
+          The sock smooths short oxygen blips out of its own published value, so only persistent
+          dips register. The lowest that <b>smoothed value</b> reached is what matters; the bar's colour reflects
           where it landed (see ranges below).
         </p>
 
@@ -565,9 +565,9 @@ const VIEW_SECTIONS: Section[] = [
 
         <H>Why the lowest oxygen is what matters</H>
         <p>
-          Single-second oxygen dips happen and don't worry doctors. The number shown is a 10-minute
-          rolling average from the sock — the same metric the Owlet app uses for its overnight
-          summary. A sustained dip below 90% is what's worth raising at a check-up.
+          Single-second oxygen dips happen and don't worry doctors. The number shown is the sock's
+          own smoothed value (it averages out brief blips so only persistent dips register). A
+          sustained dip below 90% is what's worth raising at a check-up.
         </p>
 
         <H>Owlet does the alerting</H>

@@ -303,7 +303,7 @@ def _render(days: int, csp_nonce: str) -> str:
       <th>Day</th>
       <th class=num>HR avg</th>
       <th class=num>HR range</th>
-      <th class=num>Lowest SpO₂ <small>(10-min avg)</small></th>
+      <th class=num>Lowest SpO₂ <small>(sustained)</small></th>
       <th class=num>Monitoring</th>
       <th class=num>Sessions</th>
       <th class=num>Alerts</th>
