@@ -167,17 +167,28 @@ export function TodayScreen() {
 
   const dailyTarget = data.daily_target_ml
   const pct = dailyTarget > 0 ? data.feeds_total_ml / dailyTarget : 0
-  // "Average pace" tick — daily target spread evenly across the feeding
-  // day. Drifts smoothly forward through the day; pink will run ahead
-  // briefly after each bottle and the tick catches up between feeds.
-  // Read as: "if she ate continuously at target rate, here's where she'd
-  // be right now."
+  // "Next feed" pace tick — sits one feed-worth ahead of the currently
+  // due slot, so the tick reads as the goal pink should reach when the
+  // next bottle happens. Read as: pink behind white = work to do at the
+  // next feed; pink hits white = caught up; pink past white = banked
+  // ahead. Updates each minute via the timer above and steps forward
+  // every 3 hours as each scheduled feed comes due.
   const dayStartMs = new Date(data.feeding_day_start).getTime()
   const dayEndMs = new Date(data.feeding_day_end).getTime()
   const dayLenMs = dayEndMs - dayStartMs
-  const elapsedFrac = dayLenMs > 0 ? (nowMs - dayStartMs) / dayLenMs : 0
+  const feedsPerDay = appSettings?.feeds_per_day ?? 8
+  const intervalMs = feedsPerDay > 0 ? dayLenMs / feedsPerDay : 0
+  const elapsedMs = nowMs - dayStartMs
+  const slotsDue =
+    intervalMs > 0 && elapsedMs >= 0
+      ? Math.min(feedsPerDay, Math.floor(elapsedMs / intervalMs) + 1)
+      : 0
+  const nextTargetSlot = Math.min(feedsPerDay, slotsDue + 1)
+  const expectedAtNextFeedMl = nextTargetSlot * data.per_feed_target_ml
   const paceTickPct =
-    dailyTarget > 0 && elapsedFrac > 0 && elapsedFrac < 1 ? elapsedFrac : null
+    dailyTarget > 0 && expectedAtNextFeedMl > 0 && expectedAtNextFeedMl < dailyTarget
+      ? expectedAtNextFeedMl / dailyTarget
+      : null
 
   const todayDiapers = (diapers ?? []).filter((d) => {
     const start = data.feeding_day_start
