@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useAppSettings, useDiapers, useFeeds, useWeight } from '../api/hooks'
-import { MlPerKgSparkline, buildSparklinePoints } from '../components/MlPerKgSparkline'
+import { MlPerKgBandLegend, MlPerKgSparkline, buildSparklinePoints } from '../components/MlPerKgSparkline'
 import { feedingDayKeyOfFeed } from '../lib/feedingday'
 import { fmtDate } from '../lib/format'
 import type { Weight } from '../api/types'
@@ -276,12 +276,9 @@ function FeedsHistorySection({
             </div>
             <div className="mt-1.5 flex justify-between items-center text-[10px] text-zinc-600">
               <span>← {sparkPoints.length} days ago</span>
-              <span>
-                <span className="inline-block w-2 h-2 rounded-sm bg-emerald-500/30 mr-1 align-middle" />
-                target zone {bands.low}–{bands.high}
-              </span>
               <span>yesterday →</span>
             </div>
+            <MlPerKgBandLegend bands={bands} />
 
             {(() => {
               // Plain-language paragraph beneath the sparkline. State where
