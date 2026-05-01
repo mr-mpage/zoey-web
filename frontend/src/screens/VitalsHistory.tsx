@@ -393,10 +393,15 @@ export function VitalsHistorySection() {
 
   if (!anyData) return <NoDataYetCard />
 
+  // Narrative summarises *completed* days only — today is incomplete and
+  // shown separately in TodayCard. Matches the Overview tab's logic so the
+  // monitored-day count agrees across views.
+  const completedDays = data.days.slice(0, -1).slice(-7)
+
   return (
     <>
       {todayRow && <TodayCard row={todayRow} />}
-      <NarrativeCard days={data.days.slice(-7)} />
+      <NarrativeCard days={completedDays} />
       <WeekChartCard days={data.days.slice(-7)} today={today} />
       <PerDayList days={data.days} today={today} />
 

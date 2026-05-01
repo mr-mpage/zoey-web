@@ -408,6 +408,13 @@ def compute_overview() -> Overview:
             if hr_avgs and spo2_mins:
                 weekly_min_spo2 = min(spo2_mins)
                 hr_lo, hr_hi = min(hr_avgs), max(hr_avgs)
+                # Collapse the range when one day, or when rounding makes it
+                # degenerate ("averaged 150–150 BPM" reads strangely).
+                hr_phrase = (
+                    f"{hr_lo:.0f} BPM"
+                    if round(hr_lo) == round(hr_hi)
+                    else f"{hr_lo:.0f}–{hr_hi:.0f} BPM"
+                )
                 hr_typical = all(120 <= h <= 160 for h in hr_avgs)
                 # Per CHOP Neonatal Oxygen Targeting Consensus 2024, the
                 # preterm target floor for ≥32 wk PMA is 92%. Sustained <88%
@@ -430,14 +437,19 @@ def compute_overview() -> Overview:
                     )
                 elif not hr_typical:
                     status, headline = "watch", "HR outside the typical band"
+                    span_phrase = (
+                        f"Daily average sat at {hr_lo:.0f} BPM"
+                        if round(hr_lo) == round(hr_hi)
+                        else f"Daily averages spanned {hr_lo:.0f}–{hr_hi:.0f} BPM"
+                    )
                     detail = (
-                        f"Daily averages spanned {hr_lo:.0f}–{hr_hi:.0f} BPM. Newborn HR varies "
+                        f"{span_phrase}. Newborn HR varies "
                         f"with sleep and crying, context-dependent rather than automatic concern."
                     )
                 else:
                     status, headline = "good", "Vitals comfortable"
                     detail = (
-                        f"HR averaged {hr_lo:.0f}–{hr_hi:.0f} BPM, lowest SpO₂ {weekly_min_spo2:.0f}% "
+                        f"HR averaged {hr_phrase}, lowest SpO₂ {weekly_min_spo2:.0f}% "
                         f"across {len(v_completed)} monitored day{'s' if len(v_completed) != 1 else ''}."
                         + (f" {alerts} alert{'s' if alerts != 1 else ''} this week." if alerts else " No alerts.")
                     )

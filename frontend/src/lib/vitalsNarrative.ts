@@ -64,6 +64,12 @@ export function buildVitalsNarrative(days: VitalsDay[]): VitalsNarrative | null 
   const hrAvgMin = Math.min(...hrAvgs)
   const hrAvgMax = Math.max(...hrAvgs)
   const weeklyMinSpo2 = Math.min(...lowSpo2s)
+  // Collapse the range when one day or when rounding makes it degenerate —
+  // "150–150 BPM" reads as a typo.
+  const hrRangePhrase =
+    Math.round(hrAvgMin) === Math.round(hrAvgMax)
+      ? `${Math.round(hrAvgMin)} BPM`
+      : `${Math.round(hrAvgMin)}–${Math.round(hrAvgMax)} BPM`
   const hrTypical = hrAvgs.every((v) => v >= HR_AVG_TYPICAL_LOW && v <= HR_AVG_TYPICAL_HIGH)
   const spo2Healthy = lowSpo2s.every((v) => v >= SPO2_HEALTHY)
   const anySpo2Flag = lowSpo2s.some((v) => v < SPO2_FLAG)
@@ -84,7 +90,7 @@ export function buildVitalsNarrative(days: VitalsDay[]): VitalsNarrative | null 
     return {
       tone: 'celebrate',
       headline: 'Vitals looking comfortable this week',
-      detail: `Heart rate held ${Math.round(hrAvgMin)}–${Math.round(hrAvgMax)} BPM average across ${monitored.length} monitored day${monitored.length === 1 ? '' : 's'}, lowest SpO₂ ${Math.round(weeklyMinSpo2)}%. All in the typical preterm range, no alerts.`,
+      detail: `Heart rate held ${hrRangePhrase} average across ${monitored.length} monitored day${monitored.length === 1 ? '' : 's'}, lowest SpO₂ ${Math.round(weeklyMinSpo2)}%. All in the typical preterm range, no alerts.`,
     }
   }
 
@@ -93,7 +99,7 @@ export function buildVitalsNarrative(days: VitalsDay[]): VitalsNarrative | null 
     return {
       tone: 'positive',
       headline: 'Steady week with a brief SpO₂ dip',
-      detail: `HR averaged ${Math.round(hrAvgMin)}–${Math.round(hrAvgMax)} BPM, comfortably in the typical preterm range. Lowest sustained SpO₂ touched ${Math.round(weeklyMinSpo2)}% — just below the 92% preterm target floor, worth a glance but not a flag.`,
+      detail: `HR averaged ${hrRangePhrase}, comfortably in the typical preterm range. Lowest sustained SpO₂ touched ${Math.round(weeklyMinSpo2)}% — just below the 92% preterm target floor, worth a glance but not a flag.`,
     }
   }
 
@@ -101,6 +107,10 @@ export function buildVitalsNarrative(days: VitalsDay[]): VitalsNarrative | null 
   if (!hrTypical) {
     const above = hrAvgs.some((v) => v > HR_AVG_TYPICAL_HIGH)
     const below = hrAvgs.some((v) => v < HR_AVG_TYPICAL_LOW)
+    const spanPhrase =
+      Math.round(hrAvgMin) === Math.round(hrAvgMax)
+        ? `Daily average sat at ${Math.round(hrAvgMin)} BPM`
+        : `Daily averages spanned ${Math.round(hrAvgMin)}–${Math.round(hrAvgMax)} BPM`
     return {
       tone: 'positive',
       headline: above && below
@@ -108,7 +118,7 @@ export function buildVitalsNarrative(days: VitalsDay[]): VitalsNarrative | null 
         : above
           ? 'Heart rate running on the higher end'
           : 'Heart rate running on the lower end',
-      detail: `Daily averages spanned ${Math.round(hrAvgMin)}–${Math.round(hrAvgMax)} BPM. Newborn HR is naturally wide and varies with sleep and crying — context-dependent, not automatic concern. Lowest SpO₂ ${Math.round(weeklyMinSpo2)}%.`,
+      detail: `${spanPhrase}. Newborn HR is naturally wide and varies with sleep and crying — context-dependent, not automatic concern. Lowest SpO₂ ${Math.round(weeklyMinSpo2)}%.`,
     }
   }
 
@@ -116,6 +126,6 @@ export function buildVitalsNarrative(days: VitalsDay[]): VitalsNarrative | null 
   return {
     tone: 'positive',
     headline: 'Vitals tracking nicely',
-    detail: `${totalHours.toFixed(0)} h monitored across ${monitored.length} days. HR ${Math.round(hrAvgMin)}–${Math.round(hrAvgMax)} BPM avg, lowest SpO₂ ${Math.round(weeklyMinSpo2)}%.`,
+    detail: `${totalHours.toFixed(0)} h monitored across ${monitored.length} days. HR ${hrRangePhrase} avg, lowest SpO₂ ${Math.round(weeklyMinSpo2)}%.`,
   }
 }
