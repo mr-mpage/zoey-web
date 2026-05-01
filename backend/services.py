@@ -409,20 +409,23 @@ def compute_overview() -> Overview:
                 weekly_min_spo2 = min(spo2_mins)
                 hr_lo, hr_hi = min(hr_avgs), max(hr_avgs)
                 hr_typical = all(120 <= h <= 160 for h in hr_avgs)
-                low_days = [v for v in v_completed if v["spo2_min_avg10"] is not None and v["spo2_min_avg10"] < 90]
+                # Preterm SpO2 target is 90–95%. Brief sustained dips into the
+                # low 90s are normal; only sustained < 85 is worth flagging.
+                low_days = [v for v in v_completed if v["spo2_min_avg10"] is not None and v["spo2_min_avg10"] < 85]
                 if low_days:
                     n = len(low_days)
-                    status, headline = "concern", f"{n} day{'s' if n != 1 else ''} below 90% SpO₂"
+                    status, headline = "concern", f"{n} day{'s' if n != 1 else ''} below 85% SpO₂"
                     detail = (
                         f"Lowest sustained SpO₂ this week: {weekly_min_spo2:.0f}%. "
-                        f"Worth raising at her next check-in. The sock continues to alert in "
-                        f"real time on its own thresholds."
+                        f"That's below the level where occasional dips are normal. "
+                        f"Worth raising at her next check-in. The sock continues to alert "
+                        f"in real time on its own thresholds."
                     )
-                elif weekly_min_spo2 < 95:
+                elif weekly_min_spo2 < 87:
                     status, headline = "watch", "SpO₂ dipped this week"
                     detail = (
-                        f"Lowest sustained SpO₂: {weekly_min_spo2:.0f}%. Within the acceptable "
-                        f"preterm band, worth a glance but not a flag."
+                        f"Lowest sustained SpO₂: {weekly_min_spo2:.0f}%. Just below the "
+                        f"preterm target window, worth a glance but not a flag."
                     )
                 elif not hr_typical:
                     status, headline = "watch", "HR outside the typical band"

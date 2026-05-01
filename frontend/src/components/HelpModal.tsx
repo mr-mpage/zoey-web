@@ -309,10 +309,10 @@ const EDIT_SECTIONS: Section[] = [
         <ul className="space-y-1 list-none pl-0">
           <li><span className="text-emerald-300">HR avg 120–160 BPM</span> — typical preterm/newborn band</li>
           <li><span className="text-yellow-300">HR avg outside that</span> — context-dependent (sleep, crying, illness)</li>
-          <li><span className="text-emerald-300">SpO₂ ≥ 95%</span> — healthy</li>
-          <li><span className="text-yellow-300">SpO₂ 92–94%</span> — within acceptable preterm band, worth watching</li>
-          <li><span className="text-amber-300">SpO₂ 90–91%</span> — worth a glance</li>
-          <li><span className="text-rose-300">SpO₂ &lt; 90%</span> — worth raising at the next visit</li>
+          <li><span className="text-emerald-300">SpO₂ ≥ 90%</span> — in the acceptable preterm range (target 90–95%)</li>
+          <li><span className="text-yellow-300">SpO₂ 87–89%</span> — just below target, worth a glance</li>
+          <li><span className="text-amber-300">SpO₂ 85–86%</span> — worth attention</li>
+          <li><span className="text-rose-300">SpO₂ &lt; 85%</span> — worth raising at the next visit</li>
         </ul>
         <p className="mt-2 text-[11px] text-zinc-500">
           Bands reflect general AAP newborn / NICU preterm guidance, not a clinical protocol. The
@@ -566,8 +566,9 @@ const VIEW_SECTIONS: Section[] = [
         <H>Why the lowest oxygen is what matters</H>
         <p>
           Single-second oxygen dips happen and don't worry doctors. The number shown is the sock's
-          own smoothed value (it averages out brief blips so only persistent dips register). A
-          sustained dip below 90% is what's worth raising at a check-up.
+          own sustained reading — it filters out brief blips, so only oxygen levels that lasted
+          several minutes register. The preterm target window is 90–95%, so anything in that range
+          (or just below) is normal. A sustained dip below 85% is what's worth raising at a check-up.
         </p>
 
         <H>Owlet does the alerting</H>

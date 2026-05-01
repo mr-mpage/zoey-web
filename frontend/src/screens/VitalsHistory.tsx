@@ -119,7 +119,7 @@ function TodayCard({ row }: { row: VitalsDay }) {
           <div className={`text-2xl font-light tabular-nums leading-none mt-1 ${spo2ColorClass(row.spo2_min_avg10)}`}>
             {fmtSpo2(row.spo2_min_avg10)}
           </div>
-          <div className="text-[11px] text-zinc-500 mt-1">smoothed value from the sock</div>
+          <div className="text-[11px] text-zinc-500 mt-1">sustained reading (brief blips are filtered out)</div>
         </div>
       </div>
 
@@ -271,7 +271,7 @@ function WeekChartCard({ days, today }: { days: VitalsDay[]; today: string }) {
               </div>
             </div>
             <div className="text-[9px] text-emerald-400/60 text-center mt-1">
-              ≥ {SPO2_HEALTHY}% healthy
+              ≥ {SPO2_HEALTHY}% acceptable (preterm target 90–95%)
             </div>
           </div>
         )
@@ -432,9 +432,9 @@ export function VitalsHistorySection() {
           <ul className="space-y-1 list-none pl-0">
             <li><span className="text-emerald-300">HR avg {HR_AVG_TYPICAL_LOW}–{HR_AVG_TYPICAL_HIGH} BPM</span> — typical preterm/newborn band</li>
             <li><span className="text-yellow-300">HR avg outside that</span> — context-dependent (sleep, crying, illness)</li>
-            <li><span className="text-emerald-300">SpO₂ ≥ {SPO2_HEALTHY}%</span> — healthy</li>
-            <li><span className="text-yellow-300">SpO₂ {SPO2_WATCH}–{SPO2_HEALTHY - 1}%</span> — within acceptable preterm band, watch</li>
-            <li><span className="text-amber-300">SpO₂ {SPO2_FLAG}–{SPO2_WATCH - 1}%</span> — worth a glance</li>
+            <li><span className="text-emerald-300">SpO₂ ≥ {SPO2_HEALTHY}%</span> — in the acceptable preterm range (target is 90–95%)</li>
+            <li><span className="text-yellow-300">SpO₂ {SPO2_WATCH}–{SPO2_HEALTHY - 1}%</span> — just below target, worth a glance</li>
+            <li><span className="text-amber-300">SpO₂ {SPO2_FLAG}–{SPO2_WATCH - 1}%</span> — worth attention</li>
             <li><span className="text-rose-300">SpO₂ &lt; {SPO2_FLAG}%</span> — worth raising at the next visit</li>
           </ul>
           <p className="mt-2 text-[11px] text-zinc-600">

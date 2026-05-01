@@ -7,16 +7,17 @@ export type VitalsNarrative = {
 }
 
 /** Reference ranges. Sources: AAP newborn vitals, NICU/preterm clinical
- *  practice. These are intentionally generous on HR (preterm and newborn
- *  HR ranges run wide) and conservative on SpO2 (the metric doctors
- *  actually flag). */
+ *  practice (AAP preterm SpO2 target is 90–95%). HR ranges run wide for
+ *  preterm/newborn, so the "typical" band is generous; SpO2 thresholds
+ *  are calibrated to flag genuine sustained low oxygen rather than
+ *  ordinary occasional dips into the low 90s. */
 export const HR_NORMAL_LOW = 100
 export const HR_NORMAL_HIGH = 175
 export const HR_AVG_TYPICAL_LOW = 120
 export const HR_AVG_TYPICAL_HIGH = 160
-export const SPO2_HEALTHY = 95
-export const SPO2_WATCH = 92
-export const SPO2_FLAG = 90
+export const SPO2_HEALTHY = 90 // ≥ green: in preterm acceptable range
+export const SPO2_WATCH = 87 // 87–89 yellow: just below target, worth a glance
+export const SPO2_FLAG = 85 // 85–86 amber, < 85 rose: worth raising at the next visit
 
 export function hrAvgTone(v: number | null): 'good' | 'watch' | 'unknown' {
   if (v == null) return 'unknown'
@@ -60,13 +61,13 @@ export function buildVitalsNarrative(days: VitalsDay[]): VitalsNarrative | null 
   const anySpo2Flag = lowSpo2s.some((v) => v < SPO2_FLAG)
   const spo2Watch = lowSpo2s.some((v) => v < SPO2_HEALTHY && v >= SPO2_FLAG)
 
-  // Concern: any night/day below 90% sustained
+  // Concern: any sustained drop below SPO2_FLAG (85%)
   if (anySpo2Flag) {
     const flagDays = monitored.filter((d) => d.spo2_min_avg10 != null && d.spo2_min_avg10 < SPO2_FLAG)
     return {
       tone: 'concern',
-      headline: `${flagDays.length} day${flagDays.length === 1 ? '' : 's'} below 90% SpO₂`,
-      detail: `Lowest sustained SpO₂ this week: ${Math.round(weeklyMinSpo2)}% (smoothed value from the sock). Worth raising at her next check-in. Owlet continues to alert in real time on its own thresholds.`,
+      headline: `${flagDays.length} day${flagDays.length === 1 ? '' : 's'} below ${SPO2_FLAG}% SpO₂`,
+      detail: `Lowest sustained SpO₂ this week: ${Math.round(weeklyMinSpo2)}%. That's below the level where occasional dips are normal. Worth raising at her next check-in. Owlet continues to alert in real time on its own thresholds.`,
     }
   }
 
@@ -79,12 +80,12 @@ export function buildVitalsNarrative(days: VitalsDay[]): VitalsNarrative | null 
     }
   }
 
-  // Watch: SpO2 dipped between 90 and 95
+  // Watch: SpO2 dipped into the 87–89 range
   if (spo2Watch && hrTypical) {
     return {
       tone: 'positive',
-      headline: 'Steady week with one or two SpO₂ dips',
-      detail: `HR averaged ${Math.round(hrAvgMin)}–${Math.round(hrAvgMax)} BPM, comfortably in the typical preterm range. Lowest sustained SpO₂ touched ${Math.round(weeklyMinSpo2)}% — within the acceptable preterm band, worth a glance but not a flag.`,
+      headline: 'Steady week with a brief SpO₂ dip',
+      detail: `HR averaged ${Math.round(hrAvgMin)}–${Math.round(hrAvgMax)} BPM, comfortably in the typical preterm range. Lowest sustained SpO₂ touched ${Math.round(weeklyMinSpo2)}% — just below the preterm target window, worth a glance but not a flag.`,
     }
   }
 
