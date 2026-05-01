@@ -10,15 +10,14 @@ type Props = {
   height?: number
 }
 
-/** Compact 30-day sparkline of ml/kg/day with FIXED y-axis showing every
- *  band as a labelled tinted zone, so the line's position relative to the
- *  clinical thresholds is read from the chart itself rather than inferred
- *  from numbers alone.
+/** Sparkline of ml/kg/day with FIXED y-axis showing every band as a
+ *  labelled tinted zone. The y-axis never auto-scales: band positions
+ *  stay put as data moves, so the line's clinical meaning is read off
+ *  the zone backdrop rather than inferred from numbers.
  *
- *  The "green" target zone is the [solid, high] band (typical 160–180);
- *  zones above and below it are tinted distinctly so a sustained dip into
- *  the under-target band reads as a visible drop, not just a pixel shift. */
-export function MlPerKgSparkline({ points, bands, width = 320, height = 80 }: Props) {
+ *  Threshold lines, axis labels on the right, and a moderate height
+ *  (140 px default) keep the line and the band edges readable. */
+export function MlPerKgSparkline({ points, bands, width = 320, height = 140 }: Props) {
   if (points.length < 2) {
     return (
       <div className="text-[11px] text-zinc-500 text-center py-3">
@@ -28,12 +27,13 @@ export function MlPerKgSparkline({ points, bands, width = 320, height = 80 }: Pr
   }
 
   const padX = 2
+  const padRight = 30 // reserve space for right-side axis labels
   const padY = 4
-  const innerW = width - padX * 2
+  const innerW = width - padX - padRight
   const innerH = height - padY * 2
 
-  // Y-axis is FIXED so the band positions never shift with the data. Always
-  // include all band thresholds with breathing room above and below.
+  // Y-axis is FIXED so the band positions never shift with the data.
+  // Always include all band thresholds with breathing room above and below.
   const observedMin = Math.min(...points.map((p) => p.mlPerKg))
   const observedMax = Math.max(...points.map((p) => p.mlPerKg))
   const yMin = Math.max(0, Math.min(observedMin - 8, bands.concern - 15))
@@ -51,26 +51,63 @@ export function MlPerKgSparkline({ points, bands, width = 320, height = 80 }: Pr
     })
     .join(' ')
 
-  // Build the five band rectangles top-to-bottom (above, target, edge,
-  // under, below-safe). Each gets a low-opacity fill so the data line
-  // remains the focal element.
   type Zone = { from: number; to: number; fill: string }
   const zones: Zone[] = [
-    { from: bands.high, to: yMax,         fill: 'rgb(125 211 252 / 0.10)' },  // sky
-    { from: bands.solid, to: bands.high,  fill: 'rgb(16 185 129 / 0.14)' },   // emerald (target)
-    { from: bands.low, to: bands.solid,   fill: 'rgb(190 242 100 / 0.10)' },  // lime
-    { from: bands.concern, to: bands.low, fill: 'rgb(251 191 36 / 0.10)' },   // amber
-    { from: yMin, to: bands.concern,      fill: 'rgb(251 113 133 / 0.10)' },  // rose
+    { from: bands.high, to: yMax,         fill: 'rgb(125 211 252 / 0.16)' },  // sky
+    { from: bands.solid, to: bands.high,  fill: 'rgb(16 185 129 / 0.22)' },   // emerald (target)
+    { from: bands.low, to: bands.solid,   fill: 'rgb(190 242 100 / 0.16)' },  // lime
+    { from: bands.concern, to: bands.low, fill: 'rgb(251 191 36 / 0.16)' },   // amber
+    { from: yMin, to: bands.concern,      fill: 'rgb(251 113 133 / 0.16)' },  // rose
+  ]
+
+  // Threshold lines + right-side labels for each band edge
+  const thresholds: { v: number; tone: string }[] = [
+    { v: bands.high, tone: 'rgb(125 211 252 / 0.55)' },
+    { v: bands.solid, tone: 'rgb(110 231 183 / 0.55)' },
+    { v: bands.low, tone: 'rgb(190 242 100 / 0.55)' },
+    { v: bands.concern, tone: 'rgb(251 191 36 / 0.55)' },
   ]
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="w-full block" style={{ height }} aria-hidden>
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full block" style={{ height }} aria-hidden>
       {zones.map((z, i) => {
         const yTop = yPos(z.to)
         const yBot = yPos(z.from)
         return <rect key={i} x={padX} y={yTop} width={innerW} height={Math.max(yBot - yTop, 0)} fill={z.fill} />
       })}
-      <path d={path} fill="none" stroke="rgb(244 175 195)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+      {thresholds.map((t) => {
+        const y = yPos(t.v)
+        return (
+          <g key={t.v}>
+            <line
+              x1={padX}
+              x2={padX + innerW}
+              y1={y}
+              y2={y}
+              stroke={t.tone}
+              strokeWidth={0.8}
+              strokeDasharray="3 3"
+            />
+            <text
+              x={padX + innerW + 3}
+              y={y + 3}
+              fontSize={9}
+              fill="rgb(113 113 122)"
+              className="tabular-nums"
+            >
+              {t.v}
+            </text>
+          </g>
+        )
+      })}
+      <path
+        d={path}
+        fill="none"
+        stroke="rgb(244 175 195)"
+        strokeWidth={2.2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       {points.map((p, i) => {
         const [x, y] = xy(i, p.mlPerKg)
         const colour =
@@ -83,7 +120,12 @@ export function MlPerKgSparkline({ points, bands, width = 320, height = 80 }: Pr
                 : p.mlPerKg >= bands.concern
                   ? 'rgb(251 191 36)'
                   : 'rgb(251 113 133)'
-        return <circle key={i} cx={x} cy={y} r={1.8} fill={colour} />
+        return (
+          <g key={i}>
+            <circle cx={x} cy={y} r={3} fill="rgb(24 24 27)" />
+            <circle cx={x} cy={y} r={2.4} fill={colour} />
+          </g>
+        )
       })}
     </svg>
   )

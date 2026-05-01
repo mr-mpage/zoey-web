@@ -265,17 +265,13 @@ function FeedsHistorySection({
                 <div className="mt-0.5 text-zinc-600">{sparkPoints.length}-day trend below</div>
               </div>
             </div>
-            <div className="relative">
-              <MlPerKgSparkline points={sparkPoints} bands={bands} />
-              <div className="absolute top-0 left-1 text-[10px] text-zinc-600 tabular-nums">
-                {Math.max(...sparkPoints.map((p) => p.mlPerKg)).toFixed(0)}
-              </div>
-              <div className="absolute bottom-0 left-1 text-[10px] text-zinc-600 tabular-nums">
-                {Math.min(...sparkPoints.map((p) => p.mlPerKg)).toFixed(0)}
-              </div>
-            </div>
+            <MlPerKgSparkline points={sparkPoints} bands={bands} />
             <div className="mt-1.5 flex justify-between items-center text-[10px] text-zinc-600">
               <span>← {sparkPoints.length} days ago</span>
+              <span className="tabular-nums">
+                window range {Math.min(...sparkPoints.map((p) => p.mlPerKg)).toFixed(0)}–
+                {Math.max(...sparkPoints.map((p) => p.mlPerKg)).toFixed(0)} ml/kg/day
+              </span>
               <span>yesterday →</span>
             </div>
             <MlPerKgBandLegend bands={bands} />
