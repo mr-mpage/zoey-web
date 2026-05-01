@@ -167,24 +167,22 @@ export function TodayScreen() {
 
   const dailyTarget = data.daily_target_ml
   const pct = dailyTarget > 0 ? data.feeds_total_ml / dailyTarget : 0
-  // "Next feed" pace tick — sits one feed-worth ahead of the currently
-  // due slot, so the tick reads as the goal pink should reach when the
-  // next bottle happens. Read as: pink behind white = work to do at the
-  // next feed; pink hits white = caught up; pink past white = banked
-  // ahead. Updates each minute via the timer above and steps forward
-  // every 3 hours as each scheduled feed comes due.
+  // Live "next feed" pace line — moves smoothly at a fixed speed of one
+  // feed-worth per scheduled interval, sitting exactly at scheduled-feed
+  // N's target at scheduled-feed N's due time. Read as: pink hits white
+  // each time a bottle is logged on schedule; pink falls behind by up to
+  // one feed's worth between feeds, then catches up. Pink past white =
+  // banked ahead. Recomputed each minute via the nowMs timer above.
   const dayStartMs = new Date(data.feeding_day_start).getTime()
   const dayEndMs = new Date(data.feeding_day_end).getTime()
   const dayLenMs = dayEndMs - dayStartMs
   const feedsPerDay = appSettings?.feeds_per_day ?? 8
   const intervalMs = feedsPerDay > 0 ? dayLenMs / feedsPerDay : 0
   const elapsedMs = nowMs - dayStartMs
-  const slotsDue =
+  const expectedAtNextFeedMl =
     intervalMs > 0 && elapsedMs >= 0
-      ? Math.min(feedsPerDay, Math.floor(elapsedMs / intervalMs) + 1)
+      ? Math.min(dailyTarget, (1 + elapsedMs / intervalMs) * data.per_feed_target_ml)
       : 0
-  const nextTargetSlot = Math.min(feedsPerDay, slotsDue + 1)
-  const expectedAtNextFeedMl = nextTargetSlot * data.per_feed_target_ml
   const paceTickPct =
     dailyTarget > 0 && expectedAtNextFeedMl > 0 && expectedAtNextFeedMl < dailyTarget
       ? expectedAtNextFeedMl / dailyTarget
