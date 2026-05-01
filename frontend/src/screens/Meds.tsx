@@ -26,10 +26,10 @@ function PendingPill({
     <button
       onClick={onTap}
       disabled={disabled}
-      className="w-full flex items-center justify-between rounded-lg bg-zinc-900/40 border border-dashed border-zinc-700/60 px-3 py-2.5 text-left active:scale-[0.99] transition disabled:opacity-50"
+      className="w-full flex items-center justify-between rounded-lg bg-zinc-900/40 border border-dashed border-zinc-700/60 px-3 py-2.5 text-left active:scale-[0.99] transition disabled:opacity-60 disabled:active:scale-100"
     >
       <span className="text-zinc-300">{label}</span>
-      <span className="text-[11px] text-zinc-500">Tap to log now</span>
+      <span className="text-[11px] text-zinc-500">{disabled ? 'Pending' : 'Tap to log now'}</span>
     </button>
   )
 }
