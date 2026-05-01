@@ -184,8 +184,8 @@ export function TodayScreen() {
       ? Math.min(dailyTarget, (1 + elapsedMs / intervalMs) * data.per_feed_target_ml)
       : 0
   const paceTickPct =
-    dailyTarget > 0 && expectedAtNextFeedMl > 0 && expectedAtNextFeedMl < dailyTarget
-      ? expectedAtNextFeedMl / dailyTarget
+    dailyTarget > 0 && expectedAtNextFeedMl > 0
+      ? Math.min(1, expectedAtNextFeedMl / dailyTarget)
       : null
 
   const todayDiapers = (diapers ?? []).filter((d) => {

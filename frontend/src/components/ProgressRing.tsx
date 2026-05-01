@@ -16,7 +16,7 @@ export function ProgressRing({ pct, paceTickPct, size = 168, stroke = 12, childr
   const offset = c * (1 - clamped)
 
   let tick: { x1: number; y1: number; x2: number; y2: number } | null = null
-  if (paceTickPct != null && paceTickPct > 0 && paceTickPct < 1) {
+  if (paceTickPct != null && paceTickPct > 0 && paceTickPct <= 1) {
     // SVG element has -rotate-90, so angle 0 in SVG coords sits at 12 o'clock visually.
     const θ = paceTickPct * 2 * Math.PI
     const cx = size / 2
