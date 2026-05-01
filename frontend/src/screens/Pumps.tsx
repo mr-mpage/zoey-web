@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useDeletePump, useFeeds, usePatchPump, usePumps } from '../api/hooks'
+import { useAppSettings, useDeletePump, useFeeds, usePatchPump, usePumps } from '../api/hooks'
 import { AmountModal } from '../components/AmountModal'
 import { PumpDailyChart } from '../components/PumpDailyChart'
 import { useIsReadOnly } from '../lib/authMode'
@@ -15,11 +15,13 @@ export function PumpsSection() {
   const readOnly = useIsReadOnly()
   const { data, isLoading } = usePumps(CHART_DAYS)
   const { data: feeds } = useFeeds(CHART_DAYS)
+  const { data: appSettings } = useAppSettings()
   const patch = usePatchPump()
   const del = useDeletePump()
   const [editing, setEditing] = useState<Pump | null>(null)
 
   const pumps = data ?? []
+  const bottlePrepMl = appSettings?.bottle_prep_ml ?? 60
 
   const recent = useMemo(() => {
     const cutoff = new Date()
@@ -49,12 +51,13 @@ export function PumpsSection() {
           <div className="text-[11px] uppercase tracking-wider text-zinc-500 mb-2">
             Supply vs intake · last {CHART_DAYS} days
           </div>
-          <PumpDailyChart pumps={pumps} feeds={feeds ?? []} days={CHART_DAYS} />
+          <PumpDailyChart pumps={pumps} feeds={feeds ?? []} bottlePrepMl={bottlePrepMl} days={CHART_DAYS} />
           <div className="text-[10px] text-zinc-500 mt-2 leading-relaxed">
-            Positive balance means Sabrina pumped more than Zoey drank from a bottle, so stored milk is
-            building. Negative means it's being drawn down. The 4-day tile matches how long fresh milk
-            keeps in the fridge. Breastfeeds aren't counted on either side, since they don't go through
-            the bottle supply.
+            Each bottle counts at the prep volume ({bottlePrepMl} ml) regardless of how much Zoey
+            actually drank — the leftover is discarded once thawed. Positive balance means Sabrina is
+            pumping faster than the bottles are drawing down storage. The 4-day tile matches how long
+            fresh milk keeps in the fridge. Breastfeeds don't show on either side. Update the prep
+            volume in Settings when bottle size changes.
           </div>
         </div>
       )}

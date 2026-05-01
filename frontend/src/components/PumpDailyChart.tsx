@@ -3,6 +3,10 @@ import type { Feed, Pump } from '../api/types'
 type Props = {
   pumps: Pump[]
   feeds: Feed[]
+  /** ml poured into each bottle. Supply draw is counted at this fixed
+   *  volume per bottle feed, not at what Zoey actually drank, since
+   *  leftover is discarded. */
+  bottlePrepMl: number
   days?: number
   width?: number
   height?: number
@@ -10,7 +14,7 @@ type Props = {
 
 type DayTotals = { date: Date; pumped: number; bottled: number }
 
-function bucketize(pumps: Pump[], feeds: Feed[], days: number): DayTotals[] {
+function bucketize(pumps: Pump[], feeds: Feed[], bottlePrepMl: number, days: number): DayTotals[] {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const buckets: DayTotals[] = []
@@ -31,7 +35,7 @@ function bucketize(pumps: Pump[], feeds: Feed[], days: number): DayTotals[] {
   for (const f of feeds) {
     if (f.method === 'breast') continue
     const i = indexFor(new Date(f.fed_at))
-    if (i >= 0) buckets[i].bottled += f.amount_ml
+    if (i >= 0) buckets[i].bottled += bottlePrepMl
   }
   return buckets
 }
@@ -41,12 +45,14 @@ function formatBalance(v: number): string {
   return `${v > 0 ? '+' : ''}${v.toFixed(0)} ml`
 }
 
-/** Daily pumped vs bottle-fed comparison so it's visible whether Sabrina
- *  is over- or under-producing relative to Zoey's intake. Dual bars per
- *  day (sky = pumped, pink = bottle fed); summary tiles above show today,
- *  the 4-day fridge cycle, and the 7-day rolling balance. */
-export function PumpDailyChart({ pumps, feeds, days = 7, width = 320, height = 100 }: Props) {
-  const buckets = bucketize(pumps, feeds, days)
+/** Daily pumped vs bottle-prep comparison so it's visible whether Sabrina
+ *  is over- or under-producing relative to what's drawn from storage. Each
+ *  bottle counts at the configured prep volume (not what Zoey drank — the
+ *  leftover is discarded once thawed). Dual bars per day (sky = pumped,
+ *  pink = bottle prep); summary tiles show today, the 4-day fridge cycle,
+ *  and the 7-day rolling balance. */
+export function PumpDailyChart({ pumps, feeds, bottlePrepMl, days = 7, width = 320, height = 100 }: Props) {
+  const buckets = bucketize(pumps, feeds, bottlePrepMl, days)
   const todayB = buckets[buckets.length - 1]
   const last4 = buckets.slice(-4)
   const last7 = buckets.slice(-7)
@@ -156,7 +162,7 @@ export function PumpDailyChart({ pumps, feeds, days = 7, width = 320, height = 1
         </span>
         <span className="inline-flex items-center gap-1">
           <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: 'rgb(244 175 195)' }} />
-          bottle fed
+          bottle prep ({bottlePrepMl} ml)
         </span>
         <span className="ml-auto tabular-nums">peak {max.toFixed(0)} ml</span>
       </div>

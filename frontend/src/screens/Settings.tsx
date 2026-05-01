@@ -256,6 +256,7 @@ export function SettingsScreen() {
 
   const [anchor, setAnchor] = useState<string>('02:30')
   const [feedsPerDay, setFeedsPerDay] = useState<string>('8')
+  const [bottlePrep, setBottlePrep] = useState<string>('60')
   const [bandConcern, setBandConcern] = useState<string>('130')
   const [bandLow, setBandLow] = useState<string>('150')
   const [bandSolid, setBandSolid] = useState<string>('165')
@@ -270,6 +271,7 @@ export function SettingsScreen() {
       const mm = String(appSettings.day_start_minute).padStart(2, '0')
       setAnchor(`${hh}:${mm}`)
       setFeedsPerDay(String(appSettings.feeds_per_day))
+      setBottlePrep(String(appSettings.bottle_prep_ml))
       setBandConcern(String(appSettings.target_concern_ml_per_kg))
       setBandLow(String(appSettings.target_low_ml_per_kg))
       setBandSolid(String(appSettings.target_solid_ml_per_kg))
@@ -283,8 +285,15 @@ export function SettingsScreen() {
   const saveAnchor = () => {
     const [hh, mm] = anchor.split(':').map((s) => parseInt(s, 10))
     const n = parseInt(feedsPerDay, 10)
+    const bp = parseInt(bottlePrep, 10)
     if (isNaN(hh) || isNaN(mm) || isNaN(n) || n < 4 || n > 12) return
-    updateSettings.mutate({ day_start_hour: hh, day_start_minute: mm, feeds_per_day: n })
+    if (isNaN(bp) || bp < 10 || bp > 500) return
+    updateSettings.mutate({
+      day_start_hour: hh,
+      day_start_minute: mm,
+      feeds_per_day: n,
+      bottle_prep_ml: bp,
+    })
   }
 
   const saveBirth = () => {
@@ -412,6 +421,21 @@ export function SettingsScreen() {
               onChange={(e) => setFeedsPerDay(e.target.value.replace(/\D/g, ''))}
               className="bg-zinc-800 rounded-lg px-3 py-2 tabular-nums w-20 text-center"
               placeholder="8"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <div className="text-sm">Bottle prep volume</div>
+              <div className="text-[11px] text-zinc-500">
+                ml poured into each bottle — supply tracking counts this per bottle, not what she drank
+              </div>
+            </div>
+            <input
+              inputMode="numeric"
+              value={bottlePrep}
+              onChange={(e) => setBottlePrep(e.target.value.replace(/\D/g, ''))}
+              className="bg-zinc-800 rounded-lg px-3 py-2 tabular-nums w-20 text-center"
+              placeholder="60"
             />
           </div>
         </div>

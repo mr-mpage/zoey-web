@@ -13,6 +13,7 @@ def _current() -> AppSettings:
         day_start_hour=int(s.get("day_start_hour", "2")),
         day_start_minute=int(s.get("day_start_minute", "30")),
         feeds_per_day=int(s.get("feeds_per_day", "8")),
+        bottle_prep_ml=int(s.get("bottle_prep_ml", "60")),
         target_concern_ml_per_kg=int(s.get("target_concern_ml_per_kg", "135")),
         target_low_ml_per_kg=int(s.get("target_low_ml_per_kg", "150")),
         target_solid_ml_per_kg=int(s.get("target_solid_ml_per_kg", "160")),
@@ -37,6 +38,8 @@ def patch_settings(payload: AppSettingsPatch) -> AppSettings:
         updates["day_start_minute"] = str(payload.day_start_minute)
     if payload.feeds_per_day is not None:
         updates["feeds_per_day"] = str(payload.feeds_per_day)
+    if payload.bottle_prep_ml is not None:
+        updates["bottle_prep_ml"] = str(payload.bottle_prep_ml)
     if payload.target_concern_ml_per_kg is not None:
         updates["target_concern_ml_per_kg"] = str(payload.target_concern_ml_per_kg)
     if payload.target_low_ml_per_kg is not None:
