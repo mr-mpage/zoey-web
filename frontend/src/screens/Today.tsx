@@ -167,20 +167,25 @@ export function TodayScreen() {
 
   const dailyTarget = data.daily_target_ml
   const pct = dailyTarget > 0 ? data.feeds_total_ml / dailyTarget : 0
-  // Live "where she should be NOW" tick — fraction of the feeding day elapsed,
-  // which equals expected_ml / daily_target under the linear-pace assumption.
-  // Drifts forward continuously thanks to the minute timer above.
+  // Step-based "where she should be now" tick: counts the feed slots whose
+  // scheduled time has arrived (feed #1 due at day start, #2 at +interval,
+  // etc.) and multiplies by the per-feed target. Honest for a discrete
+  // 3-hour feeding rhythm — pink past tick = genuinely ahead, pink behind
+  // tick = a feed got missed or under-consumed. Updates each minute.
   const dayStartMs = new Date(data.feeding_day_start).getTime()
   const dayEndMs = new Date(data.feeding_day_end).getTime()
   const dayLenMs = dayEndMs - dayStartMs
-  const elapsedFrac = dayLenMs > 0 ? (nowMs - dayStartMs) / dayLenMs : 0
+  const feedsPerDay = appSettings?.feeds_per_day ?? 8
+  const intervalMs = feedsPerDay > 0 ? dayLenMs / feedsPerDay : 0
+  const elapsedMs = nowMs - dayStartMs
+  const slotsDue =
+    intervalMs > 0 && elapsedMs >= 0
+      ? Math.min(feedsPerDay, Math.floor(elapsedMs / intervalMs) + 1)
+      : 0
+  const expectedNowMl = slotsDue * data.per_feed_target_ml
   const paceTickPct =
-    dailyTarget > 0 && elapsedFrac > 0 && elapsedFrac < 1 ? elapsedFrac : null
-  // Preview arc: where the suggested next feed would land today's total.
-  const nextTarget = data.next_feed?.target_ml ?? 0
-  const previewPct =
-    dailyTarget > 0 && nextTarget > 0
-      ? (data.feeds_total_ml + nextTarget) / dailyTarget
+    dailyTarget > 0 && slotsDue > 0 && slotsDue < feedsPerDay
+      ? expectedNowMl / dailyTarget
       : null
 
   const todayDiapers = (diapers ?? []).filter((d) => {
@@ -309,7 +314,7 @@ export function TodayScreen() {
             />
           </div>
         )}
-        <ProgressRing pct={pct} paceTickPct={paceTickPct} previewPct={previewPct}>
+        <ProgressRing pct={pct} paceTickPct={paceTickPct}>
           <svg
             width={16}
             height={16}
