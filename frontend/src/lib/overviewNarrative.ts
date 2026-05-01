@@ -107,7 +107,7 @@ function phraseConcern(i: OverviewIndicator): string {
     case 'hydration':
       return 'wet-diaper count is low'
     case 'vitals':
-      return 'SpO₂ has dipped below 85% on at least one day'
+      return 'SpO₂ has dipped below 88% on at least one day'
     default:
       return i.headline.toLowerCase()
   }

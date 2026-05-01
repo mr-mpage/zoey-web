@@ -271,7 +271,7 @@ function WeekChartCard({ days, today }: { days: VitalsDay[]; today: string }) {
               </div>
             </div>
             <div className="text-[9px] text-emerald-400/60 text-center mt-1">
-              ≥ {SPO2_HEALTHY}% acceptable (preterm target 90–95%)
+              ≥ {SPO2_HEALTHY}% in target (preterm ≥32w PMA: 92–98%)
             </div>
           </div>
         )
@@ -432,14 +432,16 @@ export function VitalsHistorySection() {
           <ul className="space-y-1 list-none pl-0">
             <li><span className="text-emerald-300">HR avg {HR_AVG_TYPICAL_LOW}–{HR_AVG_TYPICAL_HIGH} BPM</span> — typical preterm/newborn band</li>
             <li><span className="text-yellow-300">HR avg outside that</span> — context-dependent (sleep, crying, illness)</li>
-            <li><span className="text-emerald-300">SpO₂ ≥ {SPO2_HEALTHY}%</span> — in the acceptable preterm range (target is 90–95%)</li>
-            <li><span className="text-yellow-300">SpO₂ {SPO2_WATCH}–{SPO2_HEALTHY - 1}%</span> — just below target, worth a glance</li>
-            <li><span className="text-amber-300">SpO₂ {SPO2_FLAG}–{SPO2_WATCH - 1}%</span> — worth attention</li>
-            <li><span className="text-rose-300">SpO₂ &lt; {SPO2_FLAG}%</span> — worth raising at the next visit</li>
+            <li><span className="text-emerald-300">SpO₂ ≥ {SPO2_HEALTHY}%</span> — in target window (CHOP consensus floor for ≥32w PMA)</li>
+            <li><span className="text-yellow-300">SpO₂ {SPO2_WATCH}–{SPO2_HEALTHY - 1}%</span> — just below target, normal occasional dip</li>
+            <li><span className="text-amber-300">SpO₂ {SPO2_FLAG}–{SPO2_WATCH - 1}%</span> — near standard alarm threshold, worth attention</li>
+            <li><span className="text-rose-300">SpO₂ &lt; {SPO2_FLAG}%</span> — at or below the alarm threshold, worth raising at the next visit</li>
           </ul>
           <p className="mt-2 text-[11px] text-zinc-600">
-            Bands reflect general AAP newborn / NICU preterm guidance, not a clinical
-            protocol. The doctor's thresholds always take precedence.
+            Bands reflect the CHOP 2024 Neonatal Oxygen Targeting Consensus and the
+            Royal Children's Hospital Melbourne guideline (target 91–95%, alarm at 89%),
+            with corroboration from SUPPORT/BOOST II findings. Not a clinical protocol —
+            the doctor's thresholds always take precedence.
           </p>
         </div>
       </details>

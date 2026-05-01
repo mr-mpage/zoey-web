@@ -309,10 +309,10 @@ const EDIT_SECTIONS: Section[] = [
         <ul className="space-y-1 list-none pl-0">
           <li><span className="text-emerald-300">HR avg 120–160 BPM</span> — typical preterm/newborn band</li>
           <li><span className="text-yellow-300">HR avg outside that</span> — context-dependent (sleep, crying, illness)</li>
-          <li><span className="text-emerald-300">SpO₂ ≥ 90%</span> — in the acceptable preterm range (target 90–95%)</li>
-          <li><span className="text-yellow-300">SpO₂ 87–89%</span> — just below target, worth a glance</li>
-          <li><span className="text-amber-300">SpO₂ 85–86%</span> — worth attention</li>
-          <li><span className="text-rose-300">SpO₂ &lt; 85%</span> — worth raising at the next visit</li>
+          <li><span className="text-emerald-300">SpO₂ ≥ 92%</span> — in target window (CHOP consensus floor for ≥32w PMA)</li>
+          <li><span className="text-yellow-300">SpO₂ 90–91%</span> — just below target, normal occasional dip</li>
+          <li><span className="text-amber-300">SpO₂ 88–89%</span> — near standard alarm threshold, worth attention</li>
+          <li><span className="text-rose-300">SpO₂ &lt; 88%</span> — at or below alarm threshold, worth raising at the next visit</li>
         </ul>
         <p className="mt-2 text-[11px] text-zinc-500">
           Bands reflect general AAP newborn / NICU preterm guidance, not a clinical protocol. The
@@ -567,8 +567,9 @@ const VIEW_SECTIONS: Section[] = [
         <p>
           Single-second oxygen dips happen and don't worry doctors. The number shown is the sock's
           own sustained reading — it filters out brief blips, so only oxygen levels that lasted
-          several minutes register. The preterm target window is 90–95%, so anything in that range
-          (or just below) is normal. A sustained dip below 85% is what's worth raising at a check-up.
+          several minutes register. The CHOP consensus target window for ≥32w PMA preterm is
+          92–98%, so the floor is 92%. A sustained dip below 88% is at or below the standard
+          alarm threshold and worth raising at a check-up.
         </p>
 
         <H>Owlet does the alerting</H>

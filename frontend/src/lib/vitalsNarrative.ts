@@ -6,18 +6,26 @@ export type VitalsNarrative = {
   detail: string
 }
 
-/** Reference ranges. Sources: AAP newborn vitals, NICU/preterm clinical
- *  practice (AAP preterm SpO2 target is 90–95%). HR ranges run wide for
- *  preterm/newborn, so the "typical" band is generous; SpO2 thresholds
- *  are calibrated to flag genuine sustained low oxygen rather than
- *  ordinary occasional dips into the low 90s. */
+/** Reference ranges, calibrated against multiple sources:
+ *
+ *  - CHOP Neonatal Oxygen Targeting Consensus (2024): for ≥32 wk PMA
+ *    preterm infants, target 92–98% on supplemental O2 and >92% off it.
+ *  - Royal Children's Hospital (Melbourne) guideline: 91–95% target,
+ *    89% lower alarm limit (with caveat that 89% on the pulse-ox can
+ *    reflect true arterial sat as low as <80%).
+ *  - SUPPORT and BOOST II trials: targeting <90% in extremely preterm
+ *    infants is associated with increased mortality.
+ *
+ *  Zoey is ≥32 wk PMA, so 92% is the consensus floor for "in target".
+ *  Below 88% is the standard clinical alarm threshold. HR ranges run
+ *  wide for preterm/newborn, so the "typical" band stays generous. */
 export const HR_NORMAL_LOW = 100
 export const HR_NORMAL_HIGH = 175
 export const HR_AVG_TYPICAL_LOW = 120
 export const HR_AVG_TYPICAL_HIGH = 160
-export const SPO2_HEALTHY = 90 // ≥ green: in preterm acceptable range
-export const SPO2_WATCH = 87 // 87–89 yellow: just below target, worth a glance
-export const SPO2_FLAG = 85 // 85–86 amber, < 85 rose: worth raising at the next visit
+export const SPO2_HEALTHY = 92 // ≥ green: in target window for ≥32w PMA
+export const SPO2_WATCH = 90 // 90–91 yellow: below target, normal occasional dip
+export const SPO2_FLAG = 88 // 88–89 amber (near alarm threshold), <88 rose
 
 export function hrAvgTone(v: number | null): 'good' | 'watch' | 'unknown' {
   if (v == null) return 'unknown'
@@ -61,13 +69,13 @@ export function buildVitalsNarrative(days: VitalsDay[]): VitalsNarrative | null 
   const anySpo2Flag = lowSpo2s.some((v) => v < SPO2_FLAG)
   const spo2Watch = lowSpo2s.some((v) => v < SPO2_HEALTHY && v >= SPO2_FLAG)
 
-  // Concern: any sustained drop below SPO2_FLAG (85%)
+  // Concern: any sustained drop below SPO2_FLAG (88%, near standard alarm)
   if (anySpo2Flag) {
     const flagDays = monitored.filter((d) => d.spo2_min_avg10 != null && d.spo2_min_avg10 < SPO2_FLAG)
     return {
       tone: 'concern',
       headline: `${flagDays.length} day${flagDays.length === 1 ? '' : 's'} below ${SPO2_FLAG}% SpO₂`,
-      detail: `Lowest sustained SpO₂ this week: ${Math.round(weeklyMinSpo2)}%. That's below the level where occasional dips are normal. Worth raising at her next check-in. Owlet continues to alert in real time on its own thresholds.`,
+      detail: `Lowest sustained SpO₂ this week: ${Math.round(weeklyMinSpo2)}%. That's at or below the standard NICU alarm threshold. Worth raising at her next check-in. Owlet continues to alert in real time on its own thresholds.`,
     }
   }
 
@@ -80,12 +88,12 @@ export function buildVitalsNarrative(days: VitalsDay[]): VitalsNarrative | null 
     }
   }
 
-  // Watch: SpO2 dipped into the 87–89 range
+  // Watch: SpO2 dipped into 88–91 range (below target but above alarm)
   if (spo2Watch && hrTypical) {
     return {
       tone: 'positive',
       headline: 'Steady week with a brief SpO₂ dip',
-      detail: `HR averaged ${Math.round(hrAvgMin)}–${Math.round(hrAvgMax)} BPM, comfortably in the typical preterm range. Lowest sustained SpO₂ touched ${Math.round(weeklyMinSpo2)}% — just below the preterm target window, worth a glance but not a flag.`,
+      detail: `HR averaged ${Math.round(hrAvgMin)}–${Math.round(hrAvgMax)} BPM, comfortably in the typical preterm range. Lowest sustained SpO₂ touched ${Math.round(weeklyMinSpo2)}% — just below the 92% preterm target floor, worth a glance but not a flag.`,
     }
   }
 
