@@ -55,6 +55,12 @@ const Icons = {
   shield: (
     <svg {...ICON_PROPS}><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z" /><path d="M9 12l2 2 4-4" /></svg>
   ),
+  pill: (
+    <svg {...ICON_PROPS}>
+      <rect x="3.5" y="9" width="17" height="6" rx="3" transform="rotate(-30 12 12)" />
+      <path d="M9.4 7.4l5.2 9" />
+    </svg>
+  ),
 }
 
 const EDIT_SECTIONS: Section[] = [
@@ -170,6 +176,53 @@ const EDIT_SECTIONS: Section[] = [
         entry from there. Six wet diapers/day is the rough floor for adequate hydration; the Overview tab
         shows the rolling status.
       </p>
+    ),
+  },
+  {
+    id: 'meds',
+    title: 'Meds',
+    blurb: 'Daily checklist for iron, vitamin D, anything else.',
+    tone: 'lime',
+    icon: Icons.pill,
+    body: (
+      <>
+        <H>Today's checklist</H>
+        <p className="mb-2">
+          Each med you've configured shows one row per scheduled dose. Tap a{' '}
+          <span className="bg-zinc-800 text-zinc-100 px-1.5 rounded">pending</span> slot to log it
+          at the current time — confirmation toast appears. Tap a completed{' '}
+          <span className="text-emerald-300">✓</span> dose to adjust the time, add a note (e.g.
+          "spit a bit up"), or delete it (with undo).
+        </p>
+        <p>
+          Doses logged beyond the day's expected count are flagged{' '}
+          <span className="text-amber-300">extra</span> in amber so they don't blend into routine
+          completions.
+        </p>
+
+        <H>Logging extras and one-offs</H>
+        <p>
+          Below the checklist, <b>+ Log other / extra dose</b> opens a chooser. Pick an existing
+          med to log another dose of it (auto-flagged extra once the daily count is reached), or{' '}
+          <b>+ One-off</b> to type a free-text name for something not in the regular list (saline
+          drops, gripe water, a one-time antibiotic). One-offs show as their own block on the day.
+        </p>
+
+        <H>Managing the list</H>
+        <p>
+          <b>Settings → Meds</b> is where you add, rename, change doses-per-day, or archive items.
+          Use <b>0</b> doses-per-day for "as-needed" things — they stay loggable from the tab but
+          don't take a checklist slot.  Archiving keeps historical doses readable; nothing is
+          permanently deleted just because the routine changes.
+        </p>
+
+        <H>What it's for</H>
+        <p>
+          Forgetting a dose has real consequences (especially iron). The status-aware checklist
+          gives you a one-look answer to "did we already give it?" without scanning the day's log.
+          Pediatric meds tend to come in routines; this matches that.
+        </p>
+      </>
     ),
   },
   {
@@ -443,6 +496,39 @@ const VIEW_SECTIONS: Section[] = [
         <p>
           A small pink chip near the top celebrates one-time events when they happen: birth weight regained,
           term-equivalent age reached, first 60 ml feed, doubled birth weight, and so on.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: 'meds',
+    title: 'The Meds tab',
+    blurb: 'Daily checklist for iron, vitamin D, and anything else.',
+    tone: 'lime',
+    icon: Icons.pill,
+    body: (
+      <>
+        <H>What you see</H>
+        <p className="mb-2">
+          The top section shows today's medication checklist. Each med (iron, vitamin D, etc.) has
+          one row per scheduled dose — completed doses show as <span className="text-emerald-300">✓</span>{' '}
+          with the time given; not-yet-given doses show as a dashed pending row. Doses given
+          beyond the day's expected count are flagged <span className="text-amber-300">extra</span>{' '}
+          in amber.
+        </p>
+        <p className="mb-2">
+          Below the checklist, "one-offs" (free-text things like saline drops or a single
+          antibiotic) get their own block when present.
+        </p>
+        <p>
+          Below today, the last 14 days of doses are listed by date so you can see the routine
+          history.
+        </p>
+
+        <H>What you can do</H>
+        <p>
+          Read-only — you can see everything but can't log or change doses. The active parent on
+          their edit-mode session does the logging from here.
         </p>
       </>
     ),
