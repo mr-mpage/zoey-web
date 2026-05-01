@@ -130,8 +130,10 @@ export function HistoryScreen() {
     return map
   }, [feeds, anchorH, anchorM])
 
+  // 7-day window matches the headline average. A wider window would compress
+  // the line as data accumulates, making day-to-day movement harder to read.
   const sparkPoints = useMemo(
-    () => buildSparklinePoints(feeds ?? [], weights, anchorH, anchorM, 30),
+    () => buildSparklinePoints(feeds ?? [], weights, anchorH, anchorM, 7),
     [feeds, weights, anchorH, anchorM],
   )
 
