@@ -4,16 +4,39 @@ type Props = {
    *  Renders a small notch on the ring at that position so the gap
    *  between current fill and expected pace reads at a glance. */
   paceTickPct?: number | null
+  /** Optional preview arc end position (0..1+). When provided, a faint
+   *  arc segment is drawn from `pct` to `previewPct` to show where the
+   *  next suggested feed would land today's total. */
+  previewPct?: number | null
   size?: number
   stroke?: number
   children?: React.ReactNode
 }
 
-export function ProgressRing({ pct, paceTickPct, size = 168, stroke = 12, children }: Props) {
+export function ProgressRing({
+  pct,
+  paceTickPct,
+  previewPct,
+  size = 168,
+  stroke = 12,
+  children,
+}: Props) {
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r
   const clamped = Math.min(1, Math.max(0, pct))
   const offset = c * (1 - clamped)
+
+  // Preview segment (faint pink) from current fill to projected post-feed fill.
+  // Only meaningful when previewPct sits beyond current pct and below 1.
+  let preview: { dashArray: string; dashOffset: number } | null = null
+  if (previewPct != null && previewPct > clamped && clamped < 1) {
+    const previewClamped = Math.min(1, previewPct)
+    const segLen = c * (previewClamped - clamped)
+    preview = {
+      dashArray: `${segLen} ${c - segLen}`,
+      dashOffset: -c * clamped,
+    }
+  }
 
   let tick: { x1: number; y1: number; x2: number; y2: number } | null = null
   if (paceTickPct != null && paceTickPct > 0 && paceTickPct < 1) {
@@ -35,6 +58,20 @@ export function ProgressRing({ pct, paceTickPct, size = 168, stroke = 12, childr
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
         <circle cx={size / 2} cy={size / 2} r={r} stroke="rgb(39 39 42)" strokeWidth={stroke} fill="none" />
+        {preview && (
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            stroke="rgb(244 175 195)"
+            strokeOpacity={0.28}
+            strokeWidth={stroke}
+            fill="none"
+            strokeLinecap="butt"
+            strokeDasharray={preview.dashArray}
+            strokeDashoffset={preview.dashOffset}
+          />
+        )}
         <circle
           cx={size / 2}
           cy={size / 2}

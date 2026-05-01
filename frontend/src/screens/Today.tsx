@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   useAppSettings,
   useCreateDiaper,
@@ -137,6 +137,14 @@ export function TodayScreen() {
   const [boundaryPrompt, setBoundaryPrompt] = useState<BoundaryPrompt | null>(null)
   const [diaperList, setDiaperList] = useState<'wet' | 'dirty' | null>(null)
 
+  // Re-render once a minute so the "expected now" tick on the progress ring
+  // advances continuously through the day instead of only when feeds are logged.
+  const [nowMs, setNowMs] = useState<number>(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 60_000)
+    return () => clearInterval(id)
+  }, [])
+
   const milestone = useMemo(() => {
     if (!data || !appSettings) return null
     const todayMaxFeedMl = data.feeds_today
@@ -159,12 +167,20 @@ export function TodayScreen() {
 
   const dailyTarget = data.daily_target_ml
   const pct = dailyTarget > 0 ? data.feeds_total_ml / dailyTarget : 0
-  // Where the day's intake should be by now: actual minus signed gap.
-  // Only meaningful once at least one scheduled feed has happened.
-  const expectedSoFar = data.feeds_total_ml - data.gap_ml
+  // Live "where she should be NOW" tick — fraction of the feeding day elapsed,
+  // which equals expected_ml / daily_target under the linear-pace assumption.
+  // Drifts forward continuously thanks to the minute timer above.
+  const dayStartMs = new Date(data.feeding_day_start).getTime()
+  const dayEndMs = new Date(data.feeding_day_end).getTime()
+  const dayLenMs = dayEndMs - dayStartMs
+  const elapsedFrac = dayLenMs > 0 ? (nowMs - dayStartMs) / dayLenMs : 0
   const paceTickPct =
-    dailyTarget > 0 && expectedSoFar > 0 && data.feeds_today.some((f) => !f.is_extra)
-      ? expectedSoFar / dailyTarget
+    dailyTarget > 0 && elapsedFrac > 0 && elapsedFrac < 1 ? elapsedFrac : null
+  // Preview arc: where the suggested next feed would land today's total.
+  const nextTarget = data.next_feed?.target_ml ?? 0
+  const previewPct =
+    dailyTarget > 0 && nextTarget > 0
+      ? (data.feeds_total_ml + nextTarget) / dailyTarget
       : null
 
   const todayDiapers = (diapers ?? []).filter((d) => {
@@ -293,7 +309,7 @@ export function TodayScreen() {
             />
           </div>
         )}
-        <ProgressRing pct={pct} paceTickPct={paceTickPct}>
+        <ProgressRing pct={pct} paceTickPct={paceTickPct} previewPct={previewPct}>
           <svg
             width={16}
             height={16}
