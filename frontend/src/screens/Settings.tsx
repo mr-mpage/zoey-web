@@ -420,6 +420,7 @@ export function SettingsScreen() {
   const [bandSolid, setBandSolid] = useState<string>('165')
   const [bandHigh, setBandHigh] = useState<string>('180')
   const [babyName, setBabyName] = useState<string>('')
+  const [parentNames, setParentNames] = useState<string>('')
   const [birthDate, setBirthDate] = useState<string>('')
   const [gaWeeks, setGaWeeks] = useState<string>('')
   const [birthWeight, setBirthWeight] = useState<string>('')
@@ -436,6 +437,7 @@ export function SettingsScreen() {
       setBandSolid(String(appSettings.target_solid_ml_per_kg))
       setBandHigh(String(appSettings.target_high_ml_per_kg))
       setBabyName(appSettings.baby_name)
+      setParentNames(appSettings.parent_names)
       setBirthDate(appSettings.birth_date)
       setGaWeeks(String(appSettings.gestational_age_weeks))
       setBirthWeight(String(appSettings.birth_weight_grams))
@@ -460,6 +462,8 @@ export function SettingsScreen() {
     const updates: Partial<AppSettings> = {}
     const trimmedName = babyName.trim()
     if (trimmedName) updates.baby_name = trimmedName
+    // parent_names is allowed to be empty (clears the variant strings).
+    updates.parent_names = parentNames.trim()
     if (birthDate) {
       const ga = parseInt(gaWeeks, 10)
       const bw = parseInt(birthWeight, 10)
@@ -510,6 +514,20 @@ export function SettingsScreen() {
               onChange={(e) => setBabyName(e.target.value)}
               className="bg-zinc-800 rounded-lg px-3 py-2 text-center"
               placeholder="Baby"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <div className="text-sm">Parent names</div>
+              <div className="text-[11px] text-zinc-500">optional · viewer narratives only</div>
+            </div>
+            <input
+              type="text"
+              value={parentNames}
+              maxLength={80}
+              onChange={(e) => setParentNames(e.target.value)}
+              className="bg-zinc-800 rounded-lg px-3 py-2 text-center"
+              placeholder="e.g. Alex and Sam"
             />
           </div>
           <div className="flex items-center gap-3">
