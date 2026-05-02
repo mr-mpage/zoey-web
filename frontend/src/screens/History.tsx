@@ -142,7 +142,7 @@ export function HistoryScreen() {
   const visibleGrid = grid
 
   return (
-    <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
+    <div className="px-4 pt-6 pb-6 max-w-xl mx-auto">
       <div className="text-center text-zinc-500 text-sm mb-3">Trends</div>
 
       <div className="grid grid-cols-4 gap-1 bg-zinc-800/40 rounded-lg p-1 mb-4">

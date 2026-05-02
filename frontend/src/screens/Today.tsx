@@ -278,7 +278,7 @@ export function TodayScreen() {
   }
 
   return (
-    <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
+    <div className="px-4 pt-6 pb-6 max-w-xl mx-auto">
       <div className="text-center">
         <div className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-zinc-100 text-base">
           <span className="inline-flex items-center gap-1.5">

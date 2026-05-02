@@ -482,7 +482,7 @@ export function SettingsScreen() {
   }
 
   return (
-    <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
+    <div className="px-4 pt-6 pb-6 max-w-xl mx-auto">
       <div className="text-center text-zinc-500 text-sm mb-4">Settings</div>
 
       <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">

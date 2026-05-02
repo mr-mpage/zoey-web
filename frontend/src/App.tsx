@@ -33,12 +33,20 @@ function App() {
 
   return (
     <AuthModeContext.Provider value={{ mode, label }}>
-      <div className="min-h-dvh pt-[env(safe-area-inset-top)]">
-        {activeTab === 'today' && <TodayScreen />}
-        {activeTab === 'overview' && <OverviewScreen />}
-        {activeTab === 'history' && <HistoryScreen />}
-        {activeTab === 'meds' && <MedsScreen />}
-        {activeTab === 'settings' && <SettingsScreen />}
+      {/* Inner-scrolling layout: outer fills the dynamic viewport and
+          doesn't scroll itself; <main> scrolls; the tab bar is the
+          static last child of the flex column. iOS Safari's
+          position-fixed-during-scroll quirks (the bar drifting up
+          mid-page on tab/scroll combos) don't apply when the bar
+          isn't fixed. */}
+      <div className="h-dvh flex flex-col pt-[env(safe-area-inset-top)] overflow-hidden">
+        <main className="flex-1 overflow-y-auto overscroll-contain">
+          {activeTab === 'today' && <TodayScreen />}
+          {activeTab === 'overview' && <OverviewScreen />}
+          {activeTab === 'history' && <HistoryScreen />}
+          {activeTab === 'meds' && <MedsScreen />}
+          {activeTab === 'settings' && <SettingsScreen />}
+        </main>
 
         <button
           onClick={() => setHelpOpen(true)}
