@@ -124,7 +124,12 @@ def _ml_per_kg_last_n_days(n: int) -> tuple[Optional[float], int]:
 
 
 def _rolling_gain_g_per_kg_per_day(window_days: int = 7) -> Optional[float]:
-    weights = sorted(repo.list_weights(), key=lambda w: w["recorded_at"])
+    # Auto entries are derived from this very rate, so including them folds
+    # the rate back into its own calculation. Manual entries only.
+    weights = sorted(
+        [w for w in repo.list_weights() if not w.get("is_auto")],
+        key=lambda w: w["recorded_at"],
+    )
     if len(weights) < 2:
         return None
     latest = weights[-1]
