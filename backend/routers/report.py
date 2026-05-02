@@ -106,7 +106,10 @@ def _render(days: int, csp_nonce: str) -> str:
 
     feeds = repo.list_feeds_between(range_start.isoformat(), range_end.isoformat())
     diapers = repo.list_diapers_between(range_start.isoformat(), range_end.isoformat())
-    weights_all = repo.list_weights()
+    # Doctor-facing report: only show real weigh-ins. Auto-fill estimates
+    # are app-internal context for the daily ml target — clinicians need to
+    # see measured values and the gaps between them honestly.
+    weights_all = [w for w in repo.list_weights() if not w.get("is_auto")]
     weights_chrono = sorted(weights_all, key=lambda w: w["recorded_at"])
     weights_in_range = [
         w for w in weights_chrono if w["recorded_at"][:10] >= start_day.isoformat()
