@@ -1,14 +1,16 @@
 /**
- * Seed a demo DB with realistic feeds + weights + diapers so the
- * README screenshots show a populated app rather than the empty
- * first-run state. Talks to the same backend the screenshot tool
- * uses (./e2e/serve.sh on :8081, passcode 9999).
+ * Seed a demo DB with realistic *thriving* data — the README
+ * screenshots are read by potential users, not by Zoey's doctor, and
+ * we don't want the example numbers to look like a child in trouble.
+ * Targets are tuned so all three Overview indicators land in 'good',
+ * the trends headline reads 'solidly in target zone', and the Today
+ * pace chip shows on-track. Talks to the same backend the screenshot
+ * tool uses (./e2e/serve.sh on :8081, passcode 9999).
  *
  *   npx tsx e2e/seed-demo.ts
  *
- * Idempotent-ish: appends; if the DB already has data the new rows
- * stack on top. Use a fresh DB (kill+restart serve.sh) if you want a
- * clean slate.
+ * Not idempotent: re-running stacks duplicate rows. Use a fresh DB
+ * (kill + restart serve.sh) for a clean slate.
  */
 
 import { chromium } from '@playwright/test'
@@ -44,11 +46,11 @@ async function main() {
     patch: (url: string, opts: { data: unknown }) => ctxRaw.patch(url, { ...opts, headers }),
   }
 
-  /* Set sensible birth context first so the PMA/age-aware bands
-   * have something realistic to chew on. 35w preterm, 17 days ago,
-   * 2455 g birth weight — typical numbers a viewer would recognise. */
+  /* Birth context — 35w preterm 21 days ago (PMA ≈ 38w, expected
+   * gain band 12–17 g/kg/day). Numbers a viewer recognises as
+   * "preterm but doing well". */
   const today = new Date()
-  const birth = new Date(today.getTime() - 17 * 86_400_000)
+  const birth = new Date(today.getTime() - 21 * 86_400_000)
   const birthIso = birth.toISOString().slice(0, 10)
   await ctx.patch(`${BASE_URL}/api/settings`, {
     data: {
@@ -58,30 +60,74 @@ async function main() {
     },
   })
 
-  /* Two manual weights so the auto-fill regenerator has a slope to
-   * extrapolate from; the rest of the days fill in automatically. */
-  const earlierWeight = await ctx.post(BASE_URL + '/api/weight', {
-    data: { weight_grams: 2280, ml_per_kg_per_day: 160, notes: 'imported from medical records' },
-  })
-  if (!earlierWeight.ok()) throw new Error(`earlier weight failed: ${earlierWeight.status()}`)
-
-  /* Backdate the first weight by patching its recorded_at (POST always
-   * uses now). */
-  const earlier = await earlierWeight.json()
-  const earlierAt = new Date(today.getTime() - 9 * 86_400_000).toISOString()
-  await ctx.patch(`${BASE_URL}/api/weight/${earlier.id}`, { data: { recorded_at: earlierAt } })
-
-  await ctx.post(BASE_URL + '/api/weight', {
-    data: { weight_grams: 2480, ml_per_kg_per_day: 160, notes: 'morning weigh-in' },
-  })
-
-  /* Today's feeds — a typical day pattern of ~50 ml every 3 hours
-   * starting at 04:00, ending at 13:00 (so the day is in progress and
-   * the progress ring + next-feed card both have something to show). */
-  const feedTimes = [
-    [4, 30, 45], [7, 35, 60], [10, 30, 55], [13, 25, 60],
+  /* Weight trajectory aimed so the trailing 7-day gain rate lands at
+   * ~12 g/kg/day — solidly inside the 10–15 band the Fenton/AAP
+   * tables expect at PMA 38w, so the Overview growth indicator reads
+   * 'On track' rather than 'watch'. The auto-fill regenerator
+   * interpolates the days between for the headline 'estimated'
+   * display. */
+  type W = { grams: number; daysAgo: number; notes: string }
+  const weights: W[] = [
+    { grams: 2680, daysAgo: 14, notes: 'discharge weigh-in' },
+    { grams: 2880, daysAgo: 7, notes: 'one-week check' },
+    { grams: 3140, daysAgo: 0, notes: 'morning weigh-in' },
   ]
-  for (const [h, m, ml] of feedTimes) {
+  for (const w of weights) {
+    const r = await ctx.post(BASE_URL + '/api/weight', {
+      data: { weight_grams: w.grams, ml_per_kg_per_day: 165, notes: w.notes },
+    })
+    if (!r.ok()) throw new Error(`weight ${w.grams} failed: ${r.status()}`)
+    /* Backdate non-today rows. */
+    if (w.daysAgo > 0) {
+      const id = (await r.json()).id
+      const at = new Date(today.getTime() - w.daysAgo * 86_400_000)
+      at.setHours(9, 0, 0, 0)
+      await ctx.patch(`${BASE_URL}/api/weight/${id}`, { data: { recorded_at: at.toISOString() } })
+    }
+  }
+
+  /* Daily feed schedule: 8 feeds q3h. Per-feed volume scales with
+   * weight so the headline ml/kg/day stays flat as Zoey grows —
+   * otherwise the trends-tab narrative reads "trending down" purely
+   * because the kg denominator is increasing. Helper picks a base
+   * volume from the day's interpolated weight to keep ~165
+   * ml/kg/day. */
+  /* All eight feeds within the same feeding day (anchor 02:30) — a
+   * 00:00 feed would bucket into the *previous* feeding day, leaving
+   * each historical day with 7 feeds and pulling the trends sparkline
+   * down ~10 ml/kg/day vs. the no-rollover days. The 23:30 slot keeps
+   * everything in one bucket. */
+  const baseHours: Array<[number, number]> = [
+    [3, 0], [6, 0], [9, 0], [12, 0], [15, 0], [18, 0], [21, 0], [23, 30],
+  ]
+  function feedsForDay(daysAgo: number): Array<[number, number, number]> {
+    /* Linear interp between known weights for the per-feed kg. */
+    const points = [
+      { daysAgo: 21, kg: 2.455 },
+      { daysAgo: 14, kg: 2.680 },
+      { daysAgo: 7, kg: 2.880 },
+      { daysAgo: 0, kg: 3.140 },
+    ]
+    let kg = points[points.length - 1].kg
+    for (let i = 0; i < points.length - 1; i++) {
+      const a = points[i], b = points[i + 1]
+      if (daysAgo <= a.daysAgo && daysAgo >= b.daysAgo) {
+        const t = (a.daysAgo - daysAgo) / (a.daysAgo - b.daysAgo)
+        kg = a.kg + (b.kg - a.kg) * t
+        break
+      }
+    }
+    const dailyMl = 165 * kg
+    const perFeed = Math.round(dailyMl / 8)
+    return baseHours.map(([h, m]) => [h, m, perFeed])
+  }
+  const fullDay = feedsForDay(0)
+
+  /* Today: only the early-morning + mid-day feeds done so the
+   * progress ring is partway and the 'next feed' card has work to
+   * show. Picking the four feeds that land before ~13:30. */
+  const todayFeeds = fullDay.filter(([h]) => h >= 3 && h <= 12)
+  for (const [h, m, ml] of todayFeeds) {
     const at = new Date()
     at.setHours(h, m, 0, 0)
     if (at > today) at.setDate(at.getDate() - 1)
@@ -90,30 +136,60 @@ async function main() {
     })
   }
 
-  /* A handful of diapers so the Today counters aren't all zero. */
-  for (const [h, m, kind] of [[5, 0, 'wet'], [8, 0, 'wet'], [11, 0, 'wet'], [9, 0, 'dirty']] as const) {
+  /* Diapers — 7 wet + 2 dirty so far today (well above the 6-wet
+   * hydration floor the Overview indicator looks for). */
+  const todayDiapers: Array<[number, number, 'wet' | 'dirty']> = [
+    [3, 30, 'wet'], [5, 0, 'wet'], [6, 30, 'wet'], [8, 0, 'dirty'],
+    [9, 30, 'wet'], [11, 0, 'wet'], [11, 30, 'dirty'], [12, 30, 'wet'], [13, 0, 'wet'],
+  ]
+  for (const [h, m, kind] of todayDiapers) {
     const at = new Date()
     at.setHours(h, m, 0, 0)
     if (at > today) at.setDate(at.getDate() - 1)
     await ctx.post(BASE_URL + '/api/diapers', { data: { kind, recorded_at: at.toISOString() } })
   }
 
-  /* A few pumps for the supply chart. */
-  for (let day = 0; day < 7; day++) {
-    for (const [h, m, ml] of [[6, 0, 90], [12, 0, 75], [18, 0, 80], [22, 0, 70]] as const) {
+  /* Pumps — 5/day, total ~520 ml so the supply chart trends near
+   * intake (slightly above, building a small reserve). */
+  for (let day = 0; day < 14; day++) {
+    for (const [h, m, ml] of [[6, 0, 110], [10, 0, 100], [14, 0, 105], [19, 0, 110], [23, 0, 95]] as const) {
       const at = new Date(today.getTime() - day * 86_400_000)
       at.setHours(h, m, 0, 0)
       await ctx.post(BASE_URL + '/api/pumps', { data: { amount_ml: ml, pumped_at: at.toISOString() } })
     }
   }
 
-  /* Backdate feeds across the last 7 days too so per-feed-of-day
-   * comparisons have history. */
-  for (let day = 1; day <= 7; day++) {
-    for (const [h, m, ml] of feedTimes) {
+  /* Backdate the full 8-feed schedule across the last 14 days so the
+   * Trends grid + per-feed-of-day comparisons + sparkline all have
+   * history. Per-feed volume is sized for that day's weight so
+   * ml/kg/day stays flat. Small random jitter so the grid doesn't
+   * read as obviously synthetic. */
+  for (let day = 1; day <= 14; day++) {
+    const daySchedule = feedsForDay(day)
+    for (const [h, m, ml] of daySchedule) {
       const at = new Date(today.getTime() - day * 86_400_000)
       at.setHours(h, m, 0, 0)
-      await ctx.post(BASE_URL + '/api/feeds', { data: { amount_ml: ml + Math.round((Math.random() - 0.5) * 8), fed_at: at.toISOString(), method: 'bottle' } })
+      /* No jitter: small day-over-day fluctuations push the
+       * trends-tab "trending down" detector over its 5 ml/kg/day
+       * threshold even when the underlying schedule is flat. */
+      await ctx.post(BASE_URL + '/api/feeds', {
+        data: { amount_ml: ml, fed_at: at.toISOString(), method: 'bottle' },
+      })
+    }
+  }
+
+  /* Diapers across the last 14 days too — 8 wet + 3 dirty, tilted
+   * toward 'in target' for the Hydration indicator. */
+  for (let day = 1; day <= 14; day++) {
+    const pattern: Array<[number, number, 'wet' | 'dirty']> = [
+      [3, 30, 'wet'], [6, 0, 'wet'], [8, 0, 'dirty'], [9, 30, 'wet'],
+      [12, 0, 'wet'], [14, 30, 'wet'], [16, 0, 'dirty'], [18, 0, 'wet'],
+      [20, 30, 'wet'], [23, 0, 'dirty'], [1, 0, 'wet'],
+    ]
+    for (const [h, m, kind] of pattern) {
+      const at = new Date(today.getTime() - day * 86_400_000)
+      at.setHours(h, m, 0, 0)
+      await ctx.post(BASE_URL + '/api/diapers', { data: { kind, recorded_at: at.toISOString() } })
     }
   }
 

@@ -28,6 +28,19 @@ const TAB_LABELS: Record<string, RegExp> = {
   settings: /^Settings/,
 }
 
+/** Per-tab marker that only appears once the screen has finished
+ *  fetching + rendering. Without this the screenshot fires while
+ *  'Loading…' is still on screen, because TanStack Query's idle
+ *  state precedes the data render by a few frames. Markers picked
+ *  to be above-the-fold so they're in the visible viewport. */
+const READY_MARKERS: Record<string, RegExp> = {
+  today: /ml today/,
+  overview: /How is .* doing\?/,
+  trends: /\d+\s+ml\/kg\/day|No feeds logged yet/,
+  meds: /^TODAY$/,
+  settings: /^Settings$/,
+}
+
 async function main() {
   const requested = process.argv.slice(2)
   const tabs = requested.length ? requested : Object.keys(TAB_LABELS)
@@ -54,6 +67,9 @@ async function main() {
   for (const tab of tabs) {
     await page.getByRole('button', { name: TAB_LABELS[tab] }).click()
     await page.waitForLoadState('networkidle')
+    /* Wait for tab-specific content; networkidle fires before TanStack
+     * Query's data render lands. */
+    await page.getByText(READY_MARKERS[tab]).first().waitFor({ timeout: 8_000 })
     const out = path.join(OUT_DIR, `${tab}.png`)
     await page.screenshot({ path: out, fullPage: false })
     console.log(`✓ ${tab} → ${path.relative(process.cwd(), out)}`)
