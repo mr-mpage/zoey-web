@@ -44,6 +44,10 @@ strings that reference "Zoey" if you want them gone.
   (intake table, weight history with gains, all feed notes); manual weights
   only, so estimates don't bleed into the clinical view. iOS Safari "Save to
   Files → PDF" handles export.
+- **Read-only sharing** — issue separate viewer PINs so grandparents, family,
+  and the partner-on-night-shift can see live status without being able to
+  log, edit, delete, or reach Settings. The UI hides destructive affordances
+  in viewer mode; the API enforces it independently.
 - **Symmetrical toasts** — every save flashes a confirmation; every delete
   shows a 5-second undo toast that re-creates the snapshot via the existing
   POST.
