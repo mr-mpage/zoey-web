@@ -4,7 +4,7 @@ const PORT = 8081
 const BASE_URL = `http://127.0.0.1:${PORT}`
 
 export default defineConfig({
-  testDir: './e2e/specs',
+  testDir: './specs',
   fullyParallel: false, // backend has shared state (single SQLite file)
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
@@ -31,7 +31,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: './e2e/serve.sh',
+    /* Playwright resolves webServer.command relative to the config file's
+     * directory (e2e/), not the cwd. serve.sh cd's to the repo root
+     * itself, so calling it as ./serve.sh from e2e/ Just Works. */
+    command: './serve.sh',
     url: `${BASE_URL}/api/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

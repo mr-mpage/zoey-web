@@ -1,0 +1,11 @@
+# Tool config lives here so the repo root has one Python config file
+# rather than several. No build-system block: the backend isn't
+# pip-installable; it ships as a Docker image, not a wheel.
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+addopts = "-ra --strict-markers"
+filterwarnings = [
+    "ignore::DeprecationWarning:pydantic",
+    "ignore::DeprecationWarning:pywebpush",
+]
