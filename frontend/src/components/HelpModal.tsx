@@ -274,9 +274,27 @@ const EDIT_SECTIONS: Section[] = [
       <>
         <H>Updating her weight</H>
         <p>
-          Go to <b>Trends → Weight</b>. Tap <b>+ Add weight</b> to log a new entry, or tap any row to edit
-          or delete. Enter the new weight in grams and (if it changed) the ml/kg/day rate. The daily target
-          recalculates immediately; past-day rows keep using the weight current at the time.
+          Go to <b>Trends → Weight</b>. Tap <b>+ Add weight</b> to log a new entry, or tap any manual row to
+          edit or delete. Enter the new weight in grams and (if it changed) the ml/kg/day rate. The daily
+          target recalculates immediately.
+        </p>
+
+        <H>Days you don't weigh: auto-fill</H>
+        <p className="mb-2">
+          Now that she's home and not weighed every day, days without a manual entry are filled in
+          automatically so the daily ml target keeps tracking her growth. Auto rows are tagged{' '}
+          <span className="text-[9px] uppercase tracking-wider text-amber-300/80 bg-amber-300/10 px-1 py-px rounded">est</span>
+          {' '}in the history list and can't be tapped to edit.
+        </p>
+        <ul className="space-y-1 list-none pl-0">
+          <li>· <b>Between weigh-ins</b>, gaps are filled by linear interpolation between the surrounding manual entries.</li>
+          <li>· <b>After the latest weigh-in</b>, each new day adds the trailing 7-day daily gain (the same rate the headline shows).</li>
+          <li>· When you log a fresh manual, the auto rows wipe and rebuild — so a backfilled or edited weight reshapes the trend retroactively.</li>
+        </ul>
+        <p className="mt-2 text-zinc-400 text-[11px]">
+          The "Current weight" card shows <span className="text-amber-300/80">· estimated</span> when today
+          is auto, plus the auto-fill rate currently in effect. Per-row deltas on est rows show the g/day
+          actually applied to that row.
         </p>
 
         <H>Fenton 2025 percentile chart</H>
@@ -616,6 +634,15 @@ const VIEW_SECTIONS: Section[] = [
           roughly parallel to the reference lines, i.e. follow her own curve. It's normal for preemies to
           start at lower percentiles. Crossing percentiles upward over weeks is catch-up growth; crossing
           downward repeatedly is what doctors flag.
+        </p>
+
+        <H>Auto-fill on days without a weigh-in</H>
+        <p>
+          Now that she's home she's not weighed daily, so days without a manual entry are filled in
+          automatically — interpolated between weigh-ins, or extrapolated forward from the latest one
+          using the trailing 7-day gain. Auto rows are tagged{' '}
+          <span className="text-[9px] uppercase tracking-wider text-amber-300/80 bg-amber-300/10 px-1 py-px rounded">est</span>
+          {' '}so you can tell estimated days from real measurements at a glance.
         </p>
 
         <H>The narrative card</H>

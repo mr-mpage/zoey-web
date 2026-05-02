@@ -130,14 +130,17 @@ export function buildWeightNarrative({
   const sinceBirthDays = day
   const sinceBirthGain = sinceBirthDays > 0 ? Math.round(deltaFromBirth) : 0
 
-  // Headline picks the "biggest news"
+  // Headline picks the "biggest news". The page already shows the current
+  // weight at the top of the tab; restating it here would conflict with the
+  // auto-fill estimate when today is an auto row, so the narrative speaks
+  // only in deltas/labels.
   let headline: string
   if (deltaFromBirth >= 0 && deltaFromBirth < 100) {
-    headline = `Just past birth weight · ${grams} g`
+    headline = 'Just past birth weight'
   } else if (deltaFromBirth > 0) {
-    headline = `${grams} g · ${sinceBirthGain >= 0 ? '+' : ''}${sinceBirthGain} g since birth`
+    headline = `${sinceBirthGain >= 0 ? '+' : ''}${sinceBirthGain} g since birth`
   } else {
-    headline = `${grams} g`
+    headline = `${Math.abs(deltaFromBirth)} g below birth weight`
   }
 
   // Detail: describe percentile + trajectory + recent gain rate
