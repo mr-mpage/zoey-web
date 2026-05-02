@@ -279,23 +279,28 @@ export function TodayScreen() {
 
   return (
     <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
+      {/* Header. The milestone chip drops to its own line below the name —
+          long labels like "Term-equivalent age reached" don't fit on a
+          narrow viewport next to the name + help-button overlay, and
+          flex-wrap on a single inline row kept clipping rather than
+          wrapping reliably. */}
       <div className="text-center">
-        <div className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-zinc-100 text-base">
-          <span className="inline-flex items-center gap-1.5">
-            <svg width={14} height={14} viewBox="0 0 24 24" fill="rgb(244 175 195)" aria-hidden>
-              <path d="M12 21s-7.5-4.6-7.5-10.3a4.2 4.2 0 0 1 7.5-2.6 4.2 4.2 0 0 1 7.5 2.6c0 5.7-7.5 10.3-7.5 10.3z" />
-            </svg>
-            Zoey{appSettings?.birth_date ? ` · ${friendlyAge(appSettings.birth_date)}` : ''}
-          </span>
-          {milestone && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-pink-300/15 border border-pink-300/25 text-pink-100 text-[12px] px-2.5 py-0.5">
-              <svg width={10} height={10} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+        <div className="inline-flex items-center gap-1.5 text-zinc-100 text-base">
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="rgb(244 175 195)" aria-hidden>
+            <path d="M12 21s-7.5-4.6-7.5-10.3a4.2 4.2 0 0 1 7.5-2.6 4.2 4.2 0 0 1 7.5 2.6c0 5.7-7.5 10.3-7.5 10.3z" />
+          </svg>
+          Zoey{appSettings?.birth_date ? ` · ${friendlyAge(appSettings.birth_date)}` : ''}
+        </div>
+        {milestone && (
+          <div className="mt-1.5">
+            <span className="inline-flex items-center gap-1 rounded-full bg-pink-300/15 border border-pink-300/25 text-pink-100 text-[12px] px-2.5 py-0.5 max-w-full">
+              <svg width={10} height={10} viewBox="0 0 24 24" fill="currentColor" aria-hidden className="shrink-0">
                 <path d="M12 21s-7.5-4.6-7.5-10.3a4.2 4.2 0 0 1 7.5-2.6 4.2 4.2 0 0 1 7.5 2.6c0 5.7-7.5 10.3-7.5 10.3z" />
               </svg>
-              {milestone.text}
+              <span className="truncate">{milestone.text}</span>
             </span>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="relative flex justify-center mt-4">
