@@ -33,13 +33,13 @@ function App() {
 
   return (
     <AuthModeContext.Provider value={{ mode, label }}>
-      {/* Inner-scrolling layout: html/body/#root are pinned to the visual
-          viewport in globals.css (`height: 100%; overflow: hidden`), so
-          this `h-full` reliably matches the screen — no `dvh` involved.
-          <main> scrolls; the tab bar is the static last child of the flex
-          column, naturally at the screen bottom. */}
-      <div className="h-full flex flex-col pt-[env(safe-area-inset-top)]">
-        <main className="flex-1 overflow-y-auto overscroll-contain">
+      {/* html/body/#root are locked to height:100% + overflow:hidden in
+          globals.css, so the document never scrolls. <main> is the only
+          scroller; the TabBar is fixed to the visual viewport bottom
+          (cleanest pinning on iOS PWA) and its safe-area padding extends
+          the bar through the home-indicator zone. */}
+      <div className="h-full pt-[env(safe-area-inset-top)]">
+        <main className="h-full overflow-y-auto overscroll-contain pb-[calc(theme(spacing.20)+env(safe-area-inset-bottom))]">
           {activeTab === 'today' && <TodayScreen />}
           {activeTab === 'overview' && <OverviewScreen />}
           {activeTab === 'history' && <HistoryScreen />}
