@@ -12,6 +12,12 @@ and originally built for, our daughter Zoey (born 35w preterm). To use it for
 your own child, fork it, set the birth context in **Settings**, and update the
 strings that reference "Zoey" if you want them gone.
 
+<p align="center">
+  <img src="docs/screenshots/today.png" alt="Today screen — progress ring, pace chip, next-feed card" width="32%" />
+  <img src="docs/screenshots/overview.png" alt="Overview screen — at-a-glance status across intake, growth, today's pace" width="32%" />
+  <img src="docs/screenshots/trends.png" alt="Trends → Feeds — daily intake chart with PMA-aware bands, 14-day grid" width="32%" />
+</p>
+
 ## Features
 
 - **Today** — progress ring vs daily target, 7-tier pace chip, next-feed
@@ -192,12 +198,16 @@ harness — boot `./e2e/serve.sh` separately, then:
 ```bash
 npm run screenshot                       # all five tabs
 npm run screenshot -- today overview     # specific tabs
+
+# Want a populated UI for product-page screenshots? Seed first:
+npx tsx e2e/seed-demo.ts && npm run screenshot
 ```
 
-PNGs land in `e2e/screenshots/`. Note: chromium-mobile is not iOS Safari,
-so iOS-specific PWA layout bugs (safe-area handling, position:fixed
-quirks) won't reproduce here — for those, a real device screenshot is
-still the ground truth.
+PNGs land in `e2e/screenshots/`. The screenshots embedded above were
+captured this way and live in `docs/screenshots/`. Note:
+chromium-mobile is not iOS Safari, so iOS-specific PWA layout bugs
+(safe-area handling, position:fixed quirks) won't reproduce here — for
+those, a real device screenshot is still the ground truth.
 
 ## Security
 
@@ -206,4 +216,4 @@ and how to report vulnerabilities.
 
 ## License
 
-MIT.
+MIT — see [LICENSE](LICENSE).

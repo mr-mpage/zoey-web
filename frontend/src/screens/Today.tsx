@@ -279,11 +279,9 @@ export function TodayScreen() {
 
   return (
     <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
-      {/* Header. The milestone chip drops to its own line below the name —
-          long labels like "Term-equivalent age reached" don't fit on a
-          narrow viewport next to the name + help-button overlay, and
-          flex-wrap on a single inline row kept clipping rather than
-          wrapping reliably. */}
+      {/* Name + age on one line; each milestone chip on its own line so
+          long labels render fully on a narrow viewport without
+          flex-wrap clipping. */}
       <div className="text-center">
         <div className="inline-flex items-center gap-1.5 text-zinc-100 text-base">
           <svg width={14} height={14} viewBox="0 0 24 24" fill="rgb(244 175 195)" aria-hidden>
