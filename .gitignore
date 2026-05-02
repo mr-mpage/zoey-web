@@ -13,3 +13,10 @@ frontend/dist/
 backend/static/
 .venv/
 venv/
+
+# Test artefacts
+/static
+test-results/
+playwright-report/
+.pytest_cache/
+

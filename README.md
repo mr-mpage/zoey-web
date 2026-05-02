@@ -165,11 +165,26 @@ SQLite at `/data/zoey.db` (bind-mount this volume to persist the database):
 - `app_settings` — anchor time, feeds per day, colour bands, birth date,
   GA weeks, etc. (mutable via Settings UI)
 
-## No tests
+## Tests
 
-There's no test suite yet. The code's been built and refined live against
-real data over several weeks; please don't take this repo as a template for
-how to organise testing in a Python+TS project.
+Three layers, run from the repo root:
+
+```bash
+# Backend unit + integration (pytest + FastAPI TestClient + tmp SQLite)
+.venv/bin/pip install -r backend/requirements-dev.txt
+.venv/bin/pytest
+
+# Frontend unit (vitest, pure libs only — no DOM rendering)
+cd frontend && npm test
+
+# End-to-end (Playwright, single chromium browser, mobile viewport)
+npm install && npx playwright install chromium
+npm run e2e
+```
+
+The E2E harness builds the frontend, symlinks `frontend/dist` to `static/`,
+and starts a real FastAPI process on port 8081 with a tmp DB and a known
+passcode (`9999`). Specs live in `e2e/specs/`.
 
 ## Security
 

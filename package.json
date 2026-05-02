@@ -1,0 +1,15 @@
+{
+  "name": "zoey-tracker-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Repo root — hosts Playwright config + E2E specs. The frontend lives in ./frontend, the backend in ./backend.",
+  "type": "module",
+  "scripts": {
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed",
+    "e2e:install": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0"
+  }
+}
