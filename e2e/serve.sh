@@ -28,9 +28,13 @@ fi
 # Point the FastAPI app's static_dir at the freshly built bundle.
 ln -sfn frontend/dist static
 
-# Per-run DB so each suite starts clean.
+# Per-run DB so each suite starts clean. Writes the path to a sentinel
+# file so external processes (seed-demo.ts, seed-vitals.py) can find it
+# without the user copy-pasting from logs.
 DB="$(mktemp -t zoey-e2e.XXXXXX.db)"
-trap 'rm -f "$DB"' EXIT
+SENTINEL="/tmp/zoey-e2e-db.path"
+echo -n "$DB" > "$SENTINEL"
+trap 'rm -f "$DB" "$SENTINEL"' EXIT
 
 # Test passcode + matching bcrypt hash, generated once and reused.
 # Numeric, since the lock-screen UI is a digit keypad.
@@ -40,10 +44,11 @@ HASH="$(.venv/bin/python -c 'import bcrypt; print(bcrypt.hashpw(b"9999", bcrypt.
 export SESSION_SECRET="e2e-session-secret"
 export ZOEY_PASSCODE_HASH="$HASH"
 export DB_PATH="$DB"
-# Disable Owlet polling so a missing test account doesn't spam logs.
-unset ZOEY_OWLET_EMAIL
-# Anyone hitting the loopback port is "trusted" for XFF purposes.
-export TRUSTED_PROXIES="127.0.0.1,::1,testclient"
+# Inherit ZOEY_OWLET_EMAIL if set (e.g. screenshot demos that want the
+# Vitals tab to render as 'configured'); the poller itself stays inert
+# unless ZOEY_OWLET_PASSWORD is also present.
+# Loopback only — TRUSTED_PROXIES is parsed as IPs/CIDRs.
+export TRUSTED_PROXIES="127.0.0.1,::1"
 
 echo "[e2e] starting backend on http://127.0.0.1:8081"
 exec .venv/bin/uvicorn backend.main:app --host 127.0.0.1 --port 8081 --log-level warning

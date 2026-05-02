@@ -6,10 +6,8 @@
  *   npx tsx e2e/screenshot.ts                  # full set
  *   npx tsx e2e/screenshot.ts today overview   # just these
  *
- * Routes are tab names ('today' | 'overview' | 'trends' | 'meds' |
- * 'settings'); the script clicks the matching tab button and waits for
- * a network-idle moment before snapping. Use this when you need to see
- * the rendered UI without firing up the dev server by hand.
+ * Captures cover the five top-level tabs (today, overview, trends, meds,
+ * settings) plus the three Trends sub-tabs (pumps, weight, vitals).
  */
 
 import { chromium, devices } from '@playwright/test'
@@ -20,34 +18,35 @@ const BASE_URL = process.env.SCREENSHOT_URL ?? 'http://127.0.0.1:8081'
 const PASSCODE = process.env.SCREENSHOT_PASSCODE ?? '9999'
 const OUT_DIR = path.resolve(process.cwd(), 'e2e/screenshots')
 
-const TAB_LABELS: Record<string, RegExp> = {
-  today: /^Today/,
-  overview: /^Overview/,
-  trends: /^Trends/,
-  meds: /^Meds/,
-  settings: /^Settings/,
-}
+/** Per-shot navigation:
+ *   - parent: top-level nav tab to click
+ *   - subtab: optional Trends sub-tab to click after parent
+ *   - ready:  text marker that only appears once data has rendered
+ *             (TanStack Query's idle state precedes render by a few frames). */
+type Capture = { parent: RegExp; subtab?: RegExp; ready: RegExp }
 
-/** Per-tab marker that only appears once the screen has finished
- *  fetching + rendering. Without this the screenshot fires while
- *  'Loading…' is still on screen, because TanStack Query's idle
- *  state precedes the data render by a few frames. Markers picked
- *  to be above-the-fold so they're in the visible viewport. */
-const READY_MARKERS: Record<string, RegExp> = {
-  today: /ml today/,
-  overview: /How is .* doing\?/,
-  trends: /\d+\s+ml\/kg\/day|No feeds logged yet/,
-  meds: /^TODAY$/,
-  settings: /^Settings$/,
+const CAPTURES: Record<string, Capture> = {
+  today: { parent: /^Today/, ready: /ml today/ },
+  overview: { parent: /^Overview/, ready: /How is .* doing\?/ },
+  trends: { parent: /^Trends/, ready: /\d+\s+ml\/kg\/day|No feeds logged yet/ },
+  meds: { parent: /^Meds/, ready: /^TODAY$/ },
+  settings: { parent: /^Settings/, ready: /^Settings$/ },
+  pumps: { parent: /^Trends/, subtab: /^Pumps$/, ready: /Supply vs intake|No pumps logged yet/ },
+  weight: { parent: /^Trends/, subtab: /^Weight$/, ready: /Weight history/ },
+  vitals: {
+    parent: /^Trends/,
+    subtab: /^Vitals$/,
+    ready: /Heart rate|Vitals integration not configured|Waiting for first readings/,
+  },
 }
 
 async function main() {
   const requested = process.argv.slice(2)
-  const tabs = requested.length ? requested : Object.keys(TAB_LABELS)
-  const unknown = tabs.filter((t) => !(t in TAB_LABELS))
+  const tabs = requested.length ? requested : Object.keys(CAPTURES)
+  const unknown = tabs.filter((t) => !(t in CAPTURES))
   if (unknown.length) {
     console.error(`unknown tab(s): ${unknown.join(', ')}`)
-    console.error(`valid: ${Object.keys(TAB_LABELS).join(', ')}`)
+    console.error(`valid: ${Object.keys(CAPTURES).join(', ')}`)
     process.exit(1)
   }
 
@@ -65,11 +64,18 @@ async function main() {
   await page.getByRole('button', { name: /^Overview/ }).waitFor()
 
   for (const tab of tabs) {
-    await page.getByRole('button', { name: TAB_LABELS[tab] }).click()
+    const cap = CAPTURES[tab]
+    await page.getByRole('button', { name: cap.parent }).click()
     await page.waitForLoadState('networkidle')
-    /* Wait for tab-specific content; networkidle fires before TanStack
-     * Query's data render lands. */
-    await page.getByText(READY_MARKERS[tab]).first().waitFor({ timeout: 8_000 })
+    if (cap.subtab) {
+      await page.getByRole('button', { name: cap.subtab }).click()
+      await page.waitForLoadState('networkidle')
+    }
+    await page.getByText(cap.ready).first().waitFor({ timeout: 8_000 })
+    /* Tab buttons use a Tailwind `transition` (~150ms) on the active-state
+     * background fill; let it settle so the highlighted tab in the
+     * screenshot actually matches the rendered content. */
+    await page.waitForTimeout(250)
     const out = path.join(OUT_DIR, `${tab}.png`)
     await page.screenshot({ path: out, fullPage: false })
     console.log(`✓ ${tab} → ${path.relative(process.cwd(), out)}`)

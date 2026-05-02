@@ -13,10 +13,17 @@
  * (kill + restart serve.sh) for a clean slate.
  */
 
+import { execFileSync } from 'node:child_process'
+import { existsSync, readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 import { chromium } from '@playwright/test'
 
 const BASE_URL = process.env.SCREENSHOT_URL ?? 'http://127.0.0.1:8081'
 const PASSCODE = process.env.SCREENSHOT_PASSCODE ?? '9999'
+const DB_SENTINEL = '/tmp/zoey-e2e-db.path'
+const HERE = path.dirname(fileURLToPath(import.meta.url))
 
 async function main() {
   /* Drive everything through a Page so Secure cookies set by the login
@@ -191,6 +198,21 @@ async function main() {
       at.setHours(h, m, 0, 0)
       await ctx.post(BASE_URL + '/api/diapers', { data: { kind, recorded_at: at.toISOString() } })
     }
+  }
+
+  /* Vitals — there's no API for inserting raw samples (the Owlet poller
+   * writes them in production), so shell out to a Python helper that
+   * does it via direct sqlite3. Skips silently if the serve.sh sentinel
+   * isn't present, since the user might be running against a different
+   * backend setup. */
+  if (existsSync(DB_SENTINEL)) {
+    const dbPath = readFileSync(DB_SENTINEL, 'utf8').trim()
+    const repoRoot = path.resolve(HERE, '..')
+    const py = path.join(repoRoot, '.venv', 'bin', 'python')
+    const script = path.join(HERE, 'seed-vitals.py')
+    execFileSync(py, [script], { env: { ...process.env, DB_PATH: dbPath }, stdio: 'inherit' })
+  } else {
+    console.warn(`vitals seed: skipped (no ${DB_SENTINEL} — start ./e2e/serve.sh first)`)
   }
 
   console.log('demo seed: ok')
