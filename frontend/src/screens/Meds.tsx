@@ -389,7 +389,7 @@ export function MedsScreen() {
   const medsList = meds.data ?? []
 
   return (
-    <div className="px-4 pt-6 pb-6 max-w-xl mx-auto">
+    <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
       <div className="text-center text-zinc-500 text-sm mb-4">Meds</div>
 
       {todayData && (

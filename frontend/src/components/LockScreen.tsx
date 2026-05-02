@@ -63,7 +63,7 @@ export function LockScreen() {
   const dotCount = Math.max(4, Math.min(8, pin.length))
 
   return (
-    <div className="h-full flex flex-col items-center justify-center px-6 select-none pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+    <div className="min-h-dvh flex flex-col items-center justify-center px-6 select-none pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       <div className="text-center mb-10">
         <img
           src="/icon-192.png"
