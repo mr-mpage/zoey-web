@@ -33,13 +33,13 @@ function App() {
 
   return (
     <AuthModeContext.Provider value={{ mode, label }}>
-      {/* Inner-scrolling layout: outer fills the dynamic viewport and
-          doesn't scroll itself; <main> scrolls; the tab bar is the
-          static last child of the flex column. iOS Safari's
-          position-fixed-during-scroll quirks (the bar drifting up
-          mid-page on tab/scroll combos) don't apply when the bar
-          isn't fixed. */}
-      <div className="h-dvh flex flex-col pt-[env(safe-area-inset-top)] overflow-hidden">
+      {/* Inner-scrolling layout pinned to the viewport with fixed/inset-0
+          rather than h-dvh: in iOS PWA standalone mode the dynamic-viewport
+          height occasionally reports stale values mid-transition, leaving
+          a gap between the bottom of the flex column and the screen edge.
+          fixed/inset-0 sidesteps that — the container is anchored to the
+          visual viewport directly. */}
+      <div className="fixed inset-0 flex flex-col pt-[env(safe-area-inset-top)] overflow-hidden">
         <main className="flex-1 overflow-y-auto overscroll-contain">
           {activeTab === 'today' && <TodayScreen />}
           {activeTab === 'overview' && <OverviewScreen />}
