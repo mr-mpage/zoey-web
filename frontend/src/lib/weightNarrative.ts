@@ -58,7 +58,11 @@ export function buildWeightNarrative({
   gestationalAgeWeeks,
   birthWeightGrams,
 }: Args): WeightNarrative | null {
-  if (weights.length === 0) {
+  // Trend/percentile calls only make sense against real measurements; auto
+  // entries are derived from the very rate we'd then "describe" back, which
+  // would give a number divorced from what the headline shows.
+  const manualWeights = weights.filter((w) => !w.is_auto)
+  if (manualWeights.length === 0) {
     return {
       tone: 'neutral',
       headline: 'No weights logged yet',
@@ -66,7 +70,7 @@ export function buildWeightNarrative({
     }
   }
 
-  const sorted = [...weights].sort((a, b) => a.recorded_at.localeCompare(b.recorded_at))
+  const sorted = [...manualWeights].sort((a, b) => a.recorded_at.localeCompare(b.recorded_at))
   const latest = sorted[sorted.length - 1]
   const latestDate = new Date(latest.recorded_at)
   const day = daysSinceBirth(birthDateIso, latestDate)

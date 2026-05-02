@@ -45,6 +45,28 @@ export function WeightHistorySection() {
 
   const sevenDayGain = rollingGainRate(manuals, 7)
 
+  // For auto rows we want to show the daily gain *that was actually applied*
+  // when the row was generated — i.e. weight minus the previous chronological
+  // row's weight (manual or auto). This makes the rate visible per-row, so a
+  // change in the underlying manuals (which retroactively shifts auto rows)
+  // is legible after the fact.
+  const dailyDeltaById = useMemo(() => {
+    const sortedAsc = [...weights].sort((a, b) => a.recorded_at.localeCompare(b.recorded_at))
+    const map = new Map<number, number>()
+    for (let i = 1; i < sortedAsc.length; i++) {
+      map.set(sortedAsc[i].id, sortedAsc[i].weight_grams - sortedAsc[i - 1].weight_grams)
+    }
+    return map
+  }, [weights])
+
+  // Forward auto-fill rate currently in effect: the gain applied to the most
+  // recent auto row. This is what's being added to the daily ml target each
+  // day until a fresh manual lands.
+  const forwardFillRateGPerDay = useMemo(() => {
+    if (!latestIsAuto || !latest) return null
+    return dailyDeltaById.get(latest.id) ?? null
+  }, [latestIsAuto, latest, dailyDeltaById])
+
   const ctxToday = appSettings
     ? pmaAtDate(new Date().toISOString(), appSettings.birth_date, appSettings.gestational_age_weeks)
     : null
@@ -71,6 +93,11 @@ export function WeightHistorySection() {
                 {latestIsAuto
                   ? `extrapolated · last weighed ${manuals[0] ? fmtDate(manuals[0].recorded_at) : '—'}`
                   : `weighed ${fmtDate(latest.recorded_at)}`}
+              </div>
+            )}
+            {latestIsAuto && forwardFillRateGPerDay !== null && (
+              <div className="text-[11px] text-amber-300/80 tabular-nums mt-0.5">
+                auto-fill rate · {forwardFillRateGPerDay >= 0 ? '+' : ''}{forwardFillRateGPerDay.toFixed(0)} g/day
               </div>
             )}
           </div>
@@ -180,6 +207,11 @@ export function WeightHistorySection() {
                   {gain && !isAuto && (
                     <div className={`text-[11px] tabular-nums text-right ${gainTone(gain.g_per_kg_per_day, ctx?.pma, ctx?.postnatalDays)}`}>
                       {gain.g_per_day >= 0 ? '+' : ''}{gain.g_per_day.toFixed(0)} g/day · {gain.g_per_kg_per_day >= 0 ? '+' : ''}{gain.g_per_kg_per_day.toFixed(1)} g/kg/day
+                    </div>
+                  )}
+                  {isAuto && dailyDeltaById.has(w.id) && (
+                    <div className="text-[11px] tabular-nums text-right text-zinc-500">
+                      {(dailyDeltaById.get(w.id) ?? 0) >= 0 ? '+' : ''}{(dailyDeltaById.get(w.id) ?? 0).toFixed(0)} g · est rate
                     </div>
                   )}
                   {w.notes && <div className="text-[11px] text-zinc-500 mt-0.5">{w.notes}</div>}
