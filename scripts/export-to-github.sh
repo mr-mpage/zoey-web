@@ -45,6 +45,12 @@ pumps = list(db.execute("SELECT id, pumped_at, amount_ml, notes FROM pumps ORDER
 weights = list(db.execute("SELECT id, recorded_at, weight_grams, ml_per_kg_per_day, notes, is_auto FROM weight_entries ORDER BY recorded_at"))
 diapers = list(db.execute("SELECT id, recorded_at, kind, notes FROM diapers ORDER BY recorded_at"))
 settings = {r["key"]: r["value"] for r in db.execute("SELECT key, value FROM app_settings")}
+# Defence-in-depth: exclude Owlet credentials from the off-site backup
+# even though the password is stored Fernet-encrypted in the DB. The
+# backup repo is private but a copy that lives outside the home server
+# shouldn't carry integration credentials at all.
+for k in ("owlet_email", "owlet_password_encrypted", "owlet_region"):
+    settings.pop(k, None)
 # Daily vitals aggregates: tiny and worth backing up. Raw vitals are
 # transient (rolled up after 14 days) so we skip them.
 try:

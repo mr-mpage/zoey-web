@@ -143,7 +143,8 @@ async def owlet_poll_loop() -> None:
     """Outer loop. Authenticates once, then polls every configured interval.
     Re-auths if the API rejects the cached session. Exponential backoff on
     repeated failure, capped at 10 minutes between retries."""
-    if not settings.zoey_owlet_email or not settings.zoey_owlet_password:
+    creds = repo.get_owlet_credentials()
+    if creds is None:
         log.info("owlet poller: no credentials configured, skipping")
         return
 
@@ -157,7 +158,7 @@ async def owlet_poll_loop() -> None:
 
     log.info(
         "owlet poller: starting · region=%s · interval=%ds",
-        settings.zoey_owlet_region, settings.owlet_poll_interval_s,
+        creds["region"], settings.owlet_poll_interval_s,
     )
 
     api = None
@@ -170,9 +171,9 @@ async def owlet_poll_loop() -> None:
         try:
             if api is None or not socks:
                 api = OwletAPI(
-                    settings.zoey_owlet_region,
-                    settings.zoey_owlet_email,
-                    settings.zoey_owlet_password,
+                    creds["region"],
+                    creds["email"],
+                    creds["password"],
                 )
                 await api.authenticate()
                 raw = await api.get_devices()
@@ -370,6 +371,41 @@ def vitals_summary_for_range(days: int) -> list[dict]:
                 "low_spo2_alert_count": 0, "sample_count": 0,
             })
     return out
+
+
+# ─── Hot-reload task management ──────────────────────────────────────────
+# Owlet credentials live in app_settings (encrypted) and can be edited via
+# the Settings UI. When they change, the running poller's cached email /
+# password no longer match the DB — we cancel it and start a fresh task.
+# This module-level ref is the single owner of the live poll task.
+
+_poll_task: "asyncio.Task | None" = None
+
+
+async def stop_owlet_poller() -> None:
+    """Cancel the live poll task (if any) and wait for it to exit. Safe to
+    call when no task is running."""
+    global _poll_task
+    if _poll_task is None or _poll_task.done():
+        _poll_task = None
+        return
+    _poll_task.cancel()
+    try:
+        await _poll_task
+    except asyncio.CancelledError:
+        pass
+    except Exception:  # noqa: BLE001
+        log.exception("owlet poller: error during shutdown")
+    _poll_task = None
+
+
+async def start_owlet_poller() -> None:
+    """(Re)start the poll loop. Cancels any existing task first, so calling
+    this after Settings → Owlet vitals saves picks up new credentials
+    without restarting the whole app."""
+    await stop_owlet_poller()
+    global _poll_task
+    _poll_task = asyncio.create_task(owlet_poll_loop())
 
 
 async def vitals_compaction_loop() -> None:

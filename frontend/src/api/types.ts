@@ -137,6 +137,24 @@ export type AppSettings = {
   birth_weight_grams: number
 }
 
+export type OwletSettings = {
+  email: string
+  region: 'europe' | 'world'
+  /** Whether a password is currently stored. The plaintext is never
+   *  returned by the API — the form uses this to show "●●●●●●" as a
+   *  placeholder for email-only edits. */
+  has_password: boolean
+  configured: boolean
+}
+
+export type OwletSettingsPatch = {
+  email?: string
+  /** undefined → leave the saved password alone. ""  → clear it
+   *  (disables the integration). Anything else → new password. */
+  password?: string
+  region?: 'europe' | 'world'
+}
+
 export type Med = {
   id: number
   name: string

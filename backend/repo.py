@@ -620,3 +620,47 @@ def set_settings(updates: dict[str, str]) -> None:
                 "INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
                 (k, v),
             )
+
+
+# ─── Owlet credentials ───────────────────────────────────────────────────
+# The integration password is kept encrypted-at-rest (see backend/crypto.py);
+# these helpers are the only place that reads or writes the plaintext, so the
+# rest of the app can't accidentally serialise it into a log line or response.
+
+def get_owlet_credentials() -> dict | None:
+    """Returns ``{email, password, region}`` or ``None`` if unconfigured.
+    Decrypts the stored password on read; raises ``InvalidToken`` if the
+    SESSION_SECRET has rotated since the password was saved (operator
+    needs to re-enter via Settings)."""
+    from .crypto import decrypt_str
+    s = get_settings()
+    email = (s.get("owlet_email") or "").strip()
+    enc = s.get("owlet_password_encrypted") or ""
+    if not email or not enc:
+        return None
+    return {
+        "email": email,
+        "password": decrypt_str(enc),
+        "region": s.get("owlet_region") or "europe",
+    }
+
+
+def set_owlet_credentials(email: str, password: str | None, region: str) -> None:
+    """Write Owlet credentials. Pass ``password=None`` to leave the existing
+    password untouched (e.g. an email-only edit). Pass ``password=""`` to
+    explicitly clear and disable the integration."""
+    from .crypto import encrypt_str
+    updates: dict[str, str] = {
+        "owlet_email": email.strip(),
+        "owlet_region": region.strip() or "europe",
+    }
+    if password is not None:
+        updates["owlet_password_encrypted"] = encrypt_str(password) if password else ""
+    set_settings(updates)
+
+
+def has_owlet_password() -> bool:
+    """Cheap predicate for the GET endpoint — answers 'is a password
+    stored?' without decrypting it."""
+    s = get_settings()
+    return bool((s.get("owlet_password_encrypted") or "").strip())

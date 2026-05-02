@@ -313,3 +313,22 @@ class AppSettingsPatch(BaseModel):
     birth_date: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     gestational_age_weeks: Optional[int] = Field(default=None, ge=22, le=42)
     birth_weight_grams: Optional[int] = Field(default=None, ge=300, le=6000)
+
+
+class OwletSettings(BaseModel):
+    """Owlet integration state for the Settings UI. Never returns the
+    password — only whether one is stored."""
+    email: str
+    region: str
+    has_password: bool
+    configured: bool
+
+
+class OwletSettingsPatch(BaseModel):
+    email: Optional[str] = Field(default=None, max_length=200)
+    # password=None means "leave the existing password alone" (so the UI
+    # can save email-only edits without forcing the user to re-type the
+    # password). password="" explicitly clears it and disables the
+    # integration. Anything else is the new password.
+    password: Optional[str] = Field(default=None, max_length=200)
+    region: Optional[str] = Field(default=None, pattern=r"^(europe|world)$")

@@ -1,3 +1,4 @@
+import logging
 import sqlite3
 from contextlib import contextmanager
 from typing import Iterator
@@ -153,6 +154,14 @@ DEFAULTS = {
     "birth_date": "",
     "gestational_age_weeks": "40",
     "birth_weight_grams": "3000",
+    # Owlet integration — credentials for the Owlet/Ayla cloud poller.
+    # Empty by default so the poller stays dormant until the operator
+    # configures the integration via Settings → Owlet vitals.
+    # owlet_password_encrypted holds a Fernet token (see backend/crypto.py),
+    # so a leak of the SQLite file alone isn't a leak of the password.
+    "owlet_email": "",
+    "owlet_password_encrypted": "",
+    "owlet_region": "europe",
 }
 
 
@@ -190,6 +199,41 @@ def init_db() -> None:
         cols_w = {r[1] for r in conn.execute("PRAGMA table_info(weight_entries)")}
         if "is_auto" not in cols_w:
             conn.execute("ALTER TABLE weight_entries ADD COLUMN is_auto INTEGER NOT NULL DEFAULT 0")
+        # One-time bootstrap from legacy ZOEY_OWLET_* env vars. Existing
+        # deployments configured the integration via .env; we want them to
+        # keep working without manual intervention. After this runs once,
+        # the DB is the source of truth and the env vars can (and should)
+        # be removed from .env.
+        from .config import settings as _settings
+        existing_owlet_email = conn.execute(
+            "SELECT value FROM app_settings WHERE key = 'owlet_email'"
+        ).fetchone()
+        if (
+            (not existing_owlet_email or not (existing_owlet_email[0] or "").strip())
+            and _settings.zoey_owlet_email
+            and _settings.zoey_owlet_password
+        ):
+            from .crypto import encrypt_str
+            enc = encrypt_str(_settings.zoey_owlet_password)
+            conn.execute(
+                "INSERT INTO app_settings (key, value) VALUES (?, ?) "
+                "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                ("owlet_email", _settings.zoey_owlet_email),
+            )
+            conn.execute(
+                "INSERT INTO app_settings (key, value) VALUES (?, ?) "
+                "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                ("owlet_password_encrypted", enc),
+            )
+            conn.execute(
+                "INSERT INTO app_settings (key, value) VALUES (?, ?) "
+                "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                ("owlet_region", _settings.zoey_owlet_region or "europe"),
+            )
+            logging.getLogger(__name__).info(
+                "owlet: migrated legacy ZOEY_OWLET_* env vars into encrypted DB settings; "
+                "you can now drop them from .env"
+            )
         # Seed default meds on first creation so the checklist isn't empty.
         # INSERT OR IGNORE keyed off name so manually-archived rows stay archived.
         from datetime import datetime, timezone

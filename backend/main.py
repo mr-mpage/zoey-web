@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import settings
 from .db import init_db
-from .owlet import owlet_poll_loop, vitals_compaction_loop
+from .owlet import start_owlet_poller, stop_owlet_poller, vitals_compaction_loop
 from .routers import auth, dashboard, diapers, feeds, meds, overview, pumps, push, report, settings as settings_router, vitals, weight
 from .scheduler import reminder_loop
 
@@ -37,14 +37,18 @@ def _verify_required_secrets() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    # Owlet poller is managed via the start/stop helpers so that the
+    # Settings router can hot-reload it after credentials change without
+    # bouncing the whole app.
+    await start_owlet_poller()
     tasks = [
         asyncio.create_task(reminder_loop()),
-        asyncio.create_task(owlet_poll_loop()),
         asyncio.create_task(vitals_compaction_loop()),
     ]
     try:
         yield
     finally:
+        await stop_owlet_poller()
         for t in tasks:
             t.cancel()
         for t in tasks:

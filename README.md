@@ -178,6 +178,13 @@ The seeded `app_settings` are intentionally generic (today's date as
 those with the actual values before relying on the PMA-aware bands and the
 Fenton percentile chart.
 
+Owlet vitals integration is configured from **Settings → Owlet vitals** —
+email, password, and region are stored in the DB (the password is encrypted
+at rest with a key derived from `SESSION_SECRET`). Saving a new password
+hot-reloads the poll task within seconds; no restart needed. Legacy
+`ZOEY_OWLET_*` env vars from earlier releases are migrated into the DB on
+first boot and can then be removed from `.env`.
+
 ## Auth
 
 - Single shared passcode stored as a bcrypt hash (cost factor 12). Designed

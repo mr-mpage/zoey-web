@@ -7,8 +7,10 @@ import {
   useDeleteViewerPasscode,
   useLogout,
   useMeds,
+  useOwletSettings,
   usePatchMed,
   useUpdateAppSettings,
+  useUpdateOwletSettings,
   useViewerPasscodes,
   type ViewerPasscode,
 } from '../api/hooks'
@@ -16,6 +18,182 @@ import { api, ApiError } from '../api/client'
 import { disablePush, enablePush, getState as getPushState, isStandalone } from '../lib/push'
 import { fmtDate, fmtTime } from '../lib/format'
 import type { AppSettings, Med } from '../api/types'
+
+function OwletIntegrationSection() {
+  const { data: owlet } = useOwletSettings()
+  const update = useUpdateOwletSettings()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [passwordTouched, setPasswordTouched] = useState(false)
+  const [region, setRegion] = useState<'europe' | 'world'>('europe')
+  const [showPassword, setShowPassword] = useState(false)
+  const [msg, setMsg] = useState<string | null>(null)
+
+  /* Hydrate the form once the GET resolves. The password placeholder is
+   * synthetic ("●●●●●●") and never sent back to the server unless the
+   * operator actually types something — see the patch payload below. */
+  useEffect(() => {
+    if (!owlet) return
+    setEmail(owlet.email)
+    setRegion(owlet.region)
+    setPassword(owlet.has_password ? '••••••' : '')
+    setPasswordTouched(false)
+  }, [owlet])
+
+  const save = () => {
+    setMsg(null)
+    /* password=undefined → leave the saved password untouched (so an
+     * email-only edit doesn't require re-typing); password="" → clear
+     * (disables the integration); otherwise send the new password. */
+    const patch: { email: string; region: 'europe' | 'world'; password?: string } = {
+      email: email.trim(),
+      region,
+    }
+    if (passwordTouched) patch.password = password
+    update.mutate(patch, {
+      onSuccess: (s) => {
+        setMsg(s.configured ? 'Saved · poller restarted' : 'Saved · integration disabled')
+        setPasswordTouched(false)
+        if (s.has_password) setPassword('••••••')
+      },
+      onError: (e) => setMsg(e instanceof Error ? e.message : 'Save failed'),
+    })
+  }
+
+  const clear = () => {
+    setMsg(null)
+    update.mutate(
+      { email: '', password: '', region: 'europe' },
+      {
+        onSuccess: () => {
+          setEmail('')
+          setPassword('')
+          setPasswordTouched(false)
+          setRegion('europe')
+          setMsg('Cleared · integration disabled')
+        },
+      },
+    )
+  }
+
+  const dotClass = owlet?.configured ? 'bg-emerald-300' : 'bg-zinc-600'
+  const statusText = owlet?.configured ? 'Configured · polling active' : 'Not configured'
+
+  return (
+    <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">
+      <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Owlet vitals</div>
+      <p className="text-xs text-zinc-500 mb-3">
+        Optional. Polls heart rate and SpO₂ from your Owlet Dream Sock account so the Vitals tab
+        has data. The password is encrypted at rest in the database.
+      </p>
+
+      <div className="flex items-center gap-2 mb-3 text-[11px]">
+        <span className={`w-2 h-2 rounded-full ${dotClass}`} />
+        <span className="text-zinc-400">{statusText}</span>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <div className="text-sm">Email</div>
+          </div>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            className="bg-zinc-800 rounded-lg px-3 py-2 text-center min-w-0 flex-shrink"
+            placeholder="you@example.com"
+          />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <div className="text-sm">Password</div>
+          </div>
+          <div className="flex items-center gap-1">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value)
+                setPasswordTouched(true)
+              }}
+              onFocus={() => {
+                /* If the field still holds the synthetic placeholder, clear
+                 * on focus so the operator types into an empty box rather
+                 * than appending to bullet characters. */
+                if (!passwordTouched && owlet?.has_password) {
+                  setPassword('')
+                  setPasswordTouched(true)
+                }
+              }}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              className="bg-zinc-800 rounded-lg px-3 py-2 text-center min-w-0 flex-shrink"
+              placeholder="•••••••"
+            />
+            <button
+              onClick={() => setShowPassword((v) => !v)}
+              className="text-zinc-400 text-xs px-2 py-2 rounded-lg bg-zinc-800"
+              type="button"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <div className="text-sm">Region</div>
+            <div className="text-[11px] text-zinc-500">europe or world</div>
+          </div>
+          <div className="flex bg-zinc-800 rounded-lg p-0.5">
+            {(['europe', 'world'] as const).map((r) => (
+              <button
+                key={r}
+                onClick={() => setRegion(r)}
+                className={`px-3 py-1.5 rounded-md text-xs ${
+                  region === r ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400'
+                }`}
+                type="button"
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-2 mt-3">
+        <button
+          onClick={save}
+          disabled={update.isPending}
+          className="flex-1 py-2.5 rounded-lg bg-pink-300 text-zinc-900 text-sm font-medium disabled:opacity-40"
+        >
+          {update.isPending ? 'Saving…' : 'Save'}
+        </button>
+        {owlet?.configured && (
+          <button
+            onClick={clear}
+            disabled={update.isPending}
+            className="px-3 py-2.5 rounded-lg bg-zinc-800 text-rose-300 text-sm"
+            type="button"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {msg && <div className="mt-2 text-[11px] text-zinc-400 text-center">{msg}</div>}
+    </div>
+  )
+}
+
 
 function ViewerPasscodesSection() {
   const { data: viewers } = useViewerPasscodes()
@@ -691,6 +869,8 @@ export function SettingsScreen() {
       <MedsSection />
 
       <PushSection />
+
+      <OwletIntegrationSection />
 
       <ViewerPasscodesSection />
 

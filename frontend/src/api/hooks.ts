@@ -411,6 +411,26 @@ export function useUpdateAppSettings() {
   })
 }
 
+export function useOwletSettings() {
+  return useQuery({
+    queryKey: ['owlet-settings'],
+    queryFn: () => api.get<import('./types').OwletSettings>('/api/settings/owlet'),
+    staleTime: 60_000,
+  })
+}
+
+export function useUpdateOwletSettings() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: import('./types').OwletSettingsPatch) =>
+      api.patch<import('./types').OwletSettings>('/api/settings/owlet', input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['owlet-settings'] })
+      qc.invalidateQueries({ queryKey: ['vitals'] })
+    },
+  })
+}
+
 // --- Meds -----------------------------------------------------------------
 
 function invalidateMeds(qc: ReturnType<typeof useQueryClient>) {
