@@ -101,14 +101,18 @@ def main() -> int:
 
         for w in weights:
             conn.execute(
-                "INSERT INTO weight_entries (id, recorded_at, weight_grams, ml_per_kg_per_day, notes) "
-                "VALUES (:id, :recorded_at, :weight_grams, :ml_per_kg_per_day, :notes)",
+                "INSERT INTO weight_entries (id, recorded_at, weight_grams, ml_per_kg_per_day, notes, is_auto) "
+                "VALUES (:id, :recorded_at, :weight_grams, :ml_per_kg_per_day, :notes, :is_auto)",
                 {
                     "id": w.get("id"),
                     "recorded_at": w["recorded_at"],
                     "weight_grams": w["weight_grams"],
                     "ml_per_kg_per_day": w["ml_per_kg_per_day"],
                     "notes": w.get("notes"),
+                    # Snapshots predating the auto-fill feature don't carry
+                    # this column; default to manual so the regenerator can
+                    # rebuild autos cleanly on first read.
+                    "is_auto": 1 if w.get("is_auto") else 0,
                 },
             )
 

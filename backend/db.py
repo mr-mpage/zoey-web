@@ -128,19 +128,22 @@ DEFAULTS = {
     "day_start_hour": "2",
     "day_start_minute": "30",
     "feeds_per_day": "8",
-    # Intake bands (ml/kg/day) — defaults align with ESPGHAN 2022 + Brigham/UCD/
-    # Hopkins NICU goal of 150–160; below 135 is the "below safe stable phase"
-    # threshold cited by ESPGHAN.
+    "bottle_prep_ml": "60",
+    # Intake bands (ml/kg/day) — defaults align with ESPGHAN 2022 + Brigham/
+    # UCD / Hopkins NICU goal of 150–160; below 135 is the "below safe
+    # stable phase" threshold cited by ESPGHAN. Operators can adjust these
+    # in the Settings UI; this is the seed for a fresh DB only.
     "target_concern_ml_per_kg": "135",
     "target_low_ml_per_kg": "150",
     "target_solid_ml_per_kg": "160",
     "target_high_ml_per_kg": "180",
     # Birth context — used by the PMA-aware growth indicator on Overview
-    # and the milestone chip on Today.
-    # Defaults are Zoey's: 2026-04-15 at 35 weeks gestational age, 2455 g.
-    "birth_date": "2026-04-15",
-    "gestational_age_weeks": "35",
-    "birth_weight_grams": "2455",
+    # and the milestone chip on Today. Operators set these in Settings on
+    # first run. Neutral defaults so a fresh install isn't pre-seeded with
+    # someone else's birth info.
+    "birth_date": "",
+    "gestational_age_weeks": "40",
+    "birth_weight_grams": "3000",
 }
 
 
@@ -149,7 +152,14 @@ def init_db() -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(path) as conn:
         conn.executescript(SCHEMA)
-        for k, v in DEFAULTS.items():
+        # Seed today's date as birth_date so a fresh install doesn't
+        # ship someone else's child's birthday in the DB. Operator should
+        # replace this in Settings on first run; until then, age-based
+        # calcs render against day 0 / 40w PMA which is harmless.
+        from datetime import date
+        seeded = dict(DEFAULTS)
+        seeded["birth_date"] = date.today().isoformat()
+        for k, v in seeded.items():
             conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", (k, v))
         # Migrations: add columns introduced after initial release
         cols = {r[1] for r in conn.execute("PRAGMA table_info(feeds)")}

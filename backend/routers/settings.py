@@ -2,25 +2,33 @@ from fastapi import APIRouter, Depends
 
 from .. import repo
 from ..auth import require_auth, require_edit
+from ..db import DEFAULTS
 from ..models import AppSettings, AppSettingsPatch
 
 router = APIRouter(prefix="/api/settings", tags=["settings"], dependencies=[Depends(require_auth)])
 
 
+def _get(s: dict[str, str], key: str) -> str:
+    """Read a settings key, falling back to the seed dict in db.py rather
+    than re-stating defaults inline. init_db seeds these on first boot;
+    the fallback only matters in test setups that skip init."""
+    return s.get(key, DEFAULTS.get(key, ""))
+
+
 def _current() -> AppSettings:
     s = repo.get_settings()
     return AppSettings(
-        day_start_hour=int(s.get("day_start_hour", "2")),
-        day_start_minute=int(s.get("day_start_minute", "30")),
-        feeds_per_day=int(s.get("feeds_per_day", "8")),
-        bottle_prep_ml=int(s.get("bottle_prep_ml", "60")),
-        target_concern_ml_per_kg=int(s.get("target_concern_ml_per_kg", "135")),
-        target_low_ml_per_kg=int(s.get("target_low_ml_per_kg", "150")),
-        target_solid_ml_per_kg=int(s.get("target_solid_ml_per_kg", "160")),
-        target_high_ml_per_kg=int(s.get("target_high_ml_per_kg", "180")),
-        birth_date=s.get("birth_date", "2026-04-15"),
-        gestational_age_weeks=int(s.get("gestational_age_weeks", "35")),
-        birth_weight_grams=int(s.get("birth_weight_grams", "2455")),
+        day_start_hour=int(_get(s, "day_start_hour")),
+        day_start_minute=int(_get(s, "day_start_minute")),
+        feeds_per_day=int(_get(s, "feeds_per_day")),
+        bottle_prep_ml=int(_get(s, "bottle_prep_ml")),
+        target_concern_ml_per_kg=int(_get(s, "target_concern_ml_per_kg")),
+        target_low_ml_per_kg=int(_get(s, "target_low_ml_per_kg")),
+        target_solid_ml_per_kg=int(_get(s, "target_solid_ml_per_kg")),
+        target_high_ml_per_kg=int(_get(s, "target_high_ml_per_kg")),
+        birth_date=_get(s, "birth_date"),
+        gestational_age_weeks=int(_get(s, "gestational_age_weeks") or "40"),
+        birth_weight_grams=int(_get(s, "birth_weight_grams") or "3000"),
     )
 
 

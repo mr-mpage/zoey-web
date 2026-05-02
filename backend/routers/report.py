@@ -88,11 +88,13 @@ def _has_intake_data(d: dict) -> bool:
 # ─── Render ───────────────────────────────────────────────────────────────
 
 def _render(days: int, csp_nonce: str) -> str:
+    from datetime import date as _date
+    from ..db import DEFAULTS
     s = repo.get_settings()
-    anchor_h = int(s.get("day_start_hour", "2"))
-    anchor_m = int(s.get("day_start_minute", "30"))
-    birth_iso = s.get("birth_date", "2026-04-15")
-    ga_weeks = int(s.get("gestational_age_weeks", "35"))
+    anchor_h = int(s.get("day_start_hour", DEFAULTS["day_start_hour"]))
+    anchor_m = int(s.get("day_start_minute", DEFAULTS["day_start_minute"]))
+    birth_iso = s.get("birth_date") or _date.today().isoformat()
+    ga_weeks = int(s.get("gestational_age_weeks", DEFAULTS["gestational_age_weeks"]))
     birth_weight = int(s.get("birth_weight_grams", "0"))
 
     # Doctor reports should reflect *completed* feeding days only — including

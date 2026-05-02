@@ -1,5 +1,4 @@
-import { useOverview } from '../api/hooks'
-import { ZOEY_BIRTH_ISO } from '../lib/constants'
+import { useAppSettings, useOverview } from '../api/hooks'
 import { ageInDays, fmtDateLong } from '../lib/format'
 import { buildOverviewNarrative } from '../lib/overviewNarrative'
 import type { OverviewIndicator, OverviewStatus } from '../api/types'
@@ -104,7 +103,8 @@ function IndicatorCard({ ind }: { ind: OverviewIndicator }) {
 
 export function OverviewScreen() {
   const { data, isLoading } = useOverview()
-  const day = ageInDays(ZOEY_BIRTH_ISO)
+  const { data: appSettings } = useAppSettings()
+  const day = appSettings?.birth_date ? ageInDays(appSettings.birth_date) : 0
   const today = new Date().toISOString().slice(0, 10)
 
   if (isLoading || !data) {

@@ -27,15 +27,28 @@ def verify_passcode(passcode: str) -> bool:
         return False
 
 
+_DUMMY_HASH = bcrypt.hashpw(b"placeholder", bcrypt.gensalt(rounds=12))
+
+
 def verify_viewer_passcode(passcode: str) -> Optional[str]:
-    """Returns the matching viewer's label, or None."""
-    for v in repo.list_viewer_passcodes():
+    """Returns the matching viewer's label, or None.
+
+    Walks the full list rather than short-circuiting so the response time
+    doesn't leak how many viewer passcodes are configured. If no rows
+    exist, runs one dummy bcrypt so the no-viewers case takes roughly
+    the same time as the one-viewer case."""
+    matched_label: Optional[str] = None
+    rows = repo.list_viewer_passcodes()
+    if not rows:
+        bcrypt.checkpw(passcode.encode(), _DUMMY_HASH)
+        return None
+    for v in rows:
         try:
-            if bcrypt.checkpw(passcode.encode(), v["passcode_hash"].encode()):
-                return v["label"]
+            if bcrypt.checkpw(passcode.encode(), v["passcode_hash"].encode()) and matched_label is None:
+                matched_label = v["label"]
         except ValueError:
             continue
-    return None
+    return matched_label
 
 
 def issue_token(payload: str = "edit") -> str:
@@ -79,11 +92,22 @@ def token_valid(token: str) -> bool:
     return True
 
 
+_TRUSTED_PROXIES = {p.strip() for p in settings.trusted_proxies.split(",") if p.strip()}
+
+
 def client_ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for")
-    if fwd:
-        return fwd.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+    """Resolve the client IP for rate-limiting.
+
+    Honours X-Forwarded-For only when the immediate peer is in
+    ``trusted_proxies`` (default: loopback). Otherwise an attacker
+    hitting the FastAPI port directly could spoof XFF and bypass the
+    per-IP attempt limiter."""
+    peer = request.client.host if request.client else None
+    if peer and peer in _TRUSTED_PROXIES:
+        fwd = request.headers.get("x-forwarded-for")
+        if fwd:
+            return fwd.split(",")[0].strip()
+    return peer or "unknown"
 
 
 def check_rate_limit(ip: str) -> None:

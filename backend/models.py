@@ -4,10 +4,13 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
+_NOTES_MAX = 2000
+
+
 class FeedIn(BaseModel):
     amount_ml: float = Field(ge=0, le=500)  # 0 allowed for breast comfort attempts
     fed_at: Optional[datetime] = None
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=_NOTES_MAX)
     is_extra: bool = False
     method: str = Field(default="bottle", pattern="^(bottle|breast)$")
     duration_min: Optional[int] = Field(default=None, ge=0, le=240)
@@ -17,7 +20,7 @@ class FeedIn(BaseModel):
 class FeedPatch(BaseModel):
     amount_ml: Optional[float] = Field(default=None, ge=0, le=500)
     fed_at: Optional[datetime] = None
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=_NOTES_MAX)
     is_extra: Optional[bool] = None
     method: Optional[str] = Field(default=None, pattern="^(bottle|breast)$")
     duration_min: Optional[int] = Field(default=None, ge=0, le=240)
@@ -28,7 +31,7 @@ class Feed(BaseModel):
     id: int
     fed_at: datetime
     amount_ml: float
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=_NOTES_MAX)
     is_extra: bool = False
     method: str = "bottle"
     duration_min: Optional[int] = None
@@ -38,26 +41,26 @@ class Feed(BaseModel):
 class PumpIn(BaseModel):
     amount_ml: float = Field(gt=0, le=1000)
     pumped_at: Optional[datetime] = None
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=_NOTES_MAX)
 
 
 class PumpPatch(BaseModel):
     amount_ml: Optional[float] = Field(default=None, gt=0, le=1000)
     pumped_at: Optional[datetime] = None
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=_NOTES_MAX)
 
 
 class Pump(BaseModel):
     id: int
     pumped_at: datetime
     amount_ml: float
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=_NOTES_MAX)
 
 
 class WeightIn(BaseModel):
     weight_grams: int = Field(gt=500, lt=20000)
     ml_per_kg_per_day: int = Field(gt=50, lt=300)
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=_NOTES_MAX)
 
 
 class Weight(BaseModel):
@@ -65,7 +68,7 @@ class Weight(BaseModel):
     recorded_at: datetime
     weight_grams: int
     ml_per_kg_per_day: int
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=_NOTES_MAX)
     is_auto: bool = False
 
 
@@ -102,20 +105,20 @@ class NextFeedHint(BaseModel):
 class DiaperIn(BaseModel):
     kind: str = Field(pattern="^(wet|dirty)$")
     recorded_at: Optional[datetime] = None
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=_NOTES_MAX)
 
 
 class DiaperPatch(BaseModel):
     kind: Optional[str] = Field(default=None, pattern="^(wet|dirty)$")
     recorded_at: Optional[datetime] = None
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=_NOTES_MAX)
 
 
 class Diaper(BaseModel):
     id: int
     recorded_at: datetime
     kind: str
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=_NOTES_MAX)
 
 
 class DiaperSummary(BaseModel):
@@ -149,7 +152,7 @@ class Dashboard(BaseModel):
 
 
 class LoginIn(BaseModel):
-    passcode: str
+    passcode: str = Field(min_length=1, max_length=128)
 
 
 class ViewerPasscodeIn(BaseModel):
@@ -213,7 +216,7 @@ class AppSettings(BaseModel):
     target_low_ml_per_kg: int = Field(ge=50, le=300)
     target_solid_ml_per_kg: int = Field(ge=50, le=400)
     target_high_ml_per_kg: int = Field(ge=50, le=400)
-    birth_date: str  # YYYY-MM-DD
+    birth_date: str = Field(pattern=r"^(\d{4}-\d{2}-\d{2})?$")  # YYYY-MM-DD; empty allowed pre-setup
     gestational_age_weeks: int = Field(ge=22, le=42)
     birth_weight_grams: int = Field(ge=300, le=6000)
 
@@ -243,13 +246,13 @@ class MedDoseIn(BaseModel):
     med_id: Optional[int] = None
     name: Optional[str] = Field(default=None, max_length=80)
     given_at: Optional[datetime] = None
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=_NOTES_MAX)
     feeding_day_override: Optional[str] = Field(default=None, pattern=r"^(\d{4}-\d{2}-\d{2})?$")
 
 
 class MedDosePatch(BaseModel):
     given_at: Optional[datetime] = None
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=_NOTES_MAX)
     feeding_day_override: Optional[str] = Field(default=None, pattern=r"^(\d{4}-\d{2}-\d{2})?$")
 
 
@@ -258,7 +261,7 @@ class MedDose(BaseModel):
     med_id: Optional[int] = None
     name: Optional[str] = None
     given_at: datetime
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=_NOTES_MAX)
     is_extra: bool = False
     feeding_day_override: Optional[str] = None
 
@@ -270,7 +273,7 @@ class MedDoseWithMed(BaseModel):
     med_id: Optional[int] = None
     name: str  # resolved: either med.name or the dose's own name field
     given_at: datetime
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=_NOTES_MAX)
     is_extra: bool = False
     feeding_day_override: Optional[str] = None
 
@@ -303,6 +306,6 @@ class AppSettingsPatch(BaseModel):
     target_low_ml_per_kg: Optional[int] = Field(default=None, ge=50, le=300)
     target_solid_ml_per_kg: Optional[int] = Field(default=None, ge=50, le=400)
     target_high_ml_per_kg: Optional[int] = Field(default=None, ge=50, le=400)
-    birth_date: Optional[str] = None
+    birth_date: Optional[str] = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     gestational_age_weeks: Optional[int] = Field(default=None, ge=22, le=42)
     birth_weight_grams: Optional[int] = Field(default=None, ge=300, le=6000)

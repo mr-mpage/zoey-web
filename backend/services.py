@@ -221,11 +221,12 @@ def _aggregate_status(statuses: list[str]) -> str:
 
 
 def compute_overview() -> Overview:
+    from .db import DEFAULTS
     s = repo.get_settings()
-    band_concern = int(s.get("target_concern_ml_per_kg", "130"))
-    band_low = int(s.get("target_low_ml_per_kg", "150"))
-    band_solid = int(s.get("target_solid_ml_per_kg", "165"))
-    band_high = int(s.get("target_high_ml_per_kg", "180"))
+    band_concern = int(s.get("target_concern_ml_per_kg", DEFAULTS["target_concern_ml_per_kg"]))
+    band_low = int(s.get("target_low_ml_per_kg", DEFAULTS["target_low_ml_per_kg"]))
+    band_solid = int(s.get("target_solid_ml_per_kg", DEFAULTS["target_solid_ml_per_kg"]))
+    band_high = int(s.get("target_high_ml_per_kg", DEFAULTS["target_high_ml_per_kg"]))
 
     inds: list[OverviewIndicator] = []
 
@@ -268,8 +269,9 @@ def compute_overview() -> Overview:
     # expected range (Fenton/AAP/ESPGHAN). Velocity decreases as PMA
     # approaches term; early postnatal days (<14) tolerate lower gains
     # while she's regaining birth weight.
-    birth_date_str = s.get("birth_date", "2026-04-15")
-    ga_weeks = int(s.get("gestational_age_weeks", "35"))
+    from datetime import date as _date
+    birth_date_str = s.get("birth_date") or _date.today().isoformat()
+    ga_weeks = int(s.get("gestational_age_weeks", DEFAULTS["gestational_age_weeks"]))
     pma_weeks, postnatal_days = _pma_and_postnatal_age(birth_date_str, ga_weeks)
     g_min, g_max = _expected_gain_range(pma_weeks, postnatal_days)
 

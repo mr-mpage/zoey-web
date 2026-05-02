@@ -8,16 +8,35 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 
+from .config import settings
 from .db import init_db
 from .owlet import owlet_poll_loop, vitals_compaction_loop
-from .routers import auth, dashboard, diapers, feeds, meds, overview, pumps, push, report, settings, vitals, weight
+from .routers import auth, dashboard, diapers, feeds, meds, overview, pumps, push, report, settings as settings_router, vitals, weight
 from .scheduler import reminder_loop
 
 logging.basicConfig(level=logging.INFO)
 
 
+def _verify_required_secrets() -> None:
+    """Refuse to boot without operator-provided secrets. A blank
+    session_secret means anyone could forge cookies; a blank passcode
+    hash means there's nothing for verify_passcode to compare against
+    and the app would silently accept no logins."""
+    missing: list[str] = []
+    if not settings.session_secret:
+        missing.append("SESSION_SECRET")
+    if not settings.zoey_passcode_hash:
+        missing.append("ZOEY_PASSCODE_HASH")
+    if missing:
+        raise RuntimeError(
+            f"Refusing to start: required env var(s) not set: {', '.join(missing)}. "
+            f"See .env.example for how to generate them."
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    init_db()
     tasks = [
         asyncio.create_task(reminder_loop()),
         asyncio.create_task(owlet_poll_loop()),
@@ -37,9 +56,8 @@ async def lifespan(app: FastAPI):
                 logging.getLogger(__name__).exception("background task failed during shutdown")
 
 
+_verify_required_secrets()
 app = FastAPI(title="Zoey Tracker", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
-
-init_db()
 
 
 # Content Security Policy: same-origin only. Inline styles allowed because
@@ -98,7 +116,7 @@ app.include_router(dashboard.router)
 app.include_router(feeds.router)
 app.include_router(pumps.router)
 app.include_router(weight.router)
-app.include_router(settings.router)
+app.include_router(settings_router.router)
 app.include_router(diapers.router)
 app.include_router(push.router)
 app.include_router(overview.router)

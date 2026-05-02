@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 
 from .. import repo
 from ..auth import require_auth, require_edit
@@ -40,17 +41,18 @@ def unsubscribe(sub_id: int) -> dict:
     return {"ok": True}
 
 
+class _UnsubscribePayload(BaseModel):
+    endpoint: str = Field(min_length=1, max_length=2048)
+
+
 @router.post("/unsubscribe", dependencies=[Depends(require_edit)])
-def unsubscribe_by_endpoint(payload: dict) -> dict:
+def unsubscribe_by_endpoint(payload: _UnsubscribePayload) -> dict:
     """Allow client to unsubscribe by endpoint when it doesn't know the id."""
-    endpoint = payload.get("endpoint")
-    if not endpoint:
-        raise HTTPException(status_code=422, detail="endpoint required")
-    repo.delete_push_subscription_by_endpoint(endpoint)
+    repo.delete_push_subscription_by_endpoint(payload.endpoint)
     return {"ok": True}
 
 
-@router.get("", response_model=List[PushSubscriptionOut])
+@router.get("", response_model=List[PushSubscriptionOut], dependencies=[Depends(require_edit)])
 def list_subs() -> list[PushSubscriptionOut]:
     out: list[PushSubscriptionOut] = []
     for r in repo.list_push_subscriptions():

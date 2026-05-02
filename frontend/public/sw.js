@@ -29,7 +29,11 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const target = (event.notification.data && event.notification.data.url) || '/'
+  // Defense-in-depth: VAPID push payloads are signed by our server, but
+  // confine the click target to a same-origin path anyway. Anything that
+  // isn't a leading-slash path falls back to '/'.
+  const raw = (event.notification.data && event.notification.data.url) || '/'
+  const target = typeof raw === 'string' && raw.startsWith('/') && !raw.startsWith('//') ? raw : '/'
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
       for (const c of list) {
