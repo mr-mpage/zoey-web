@@ -65,10 +65,17 @@ async def probe(region: str, email: str, password: str, samples: int, interval: 
     print("  ✓ authenticated")
 
     try:
-        devices = await api.get_devices()
+        raw = await api.get_devices()
     except Exception as e:  # noqa: BLE001
         print(f"  ✗ get_devices failed: {type(e).__name__}: {e}")
         return False
+
+    # Current pyowletapi returns {"response": [{"device": {...}}, ...]}.
+    # Older versions returned the bare list. Handle both.
+    if isinstance(raw, dict):
+        devices = raw.get("response", [])
+    else:
+        devices = raw or []
 
     if not devices:
         print("  ✗ no devices on this account. Is the sock paired in the Owlet app?")
@@ -77,8 +84,8 @@ async def probe(region: str, email: str, password: str, samples: int, interval: 
     print(f"  found {len(devices)} device(s):")
     socks: list[Sock] = []
     for d in devices:
-        dev = d.get("device", {})
-        print(f"    · {dev.get('product_name', '?')} — DSN {dev.get('dsn', '?')}")
+        dev = d.get("device", {}) if isinstance(d, dict) else {}
+        print(f"    · {dev.get('product_name', '?')} — model {dev.get('model', '?')} — DSN {dev.get('dsn', '?')}")
         socks.append(Sock(api, dev))
 
     for i in range(samples):
