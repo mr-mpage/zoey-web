@@ -40,10 +40,11 @@ your child.
   [`backend/growth.py`](backend/growth.py) and
   [`frontend/src/lib/growth.ts`](frontend/src/lib/growth.ts).
 - **Fenton 2025 percentile chart**: official UCalgary cutoff tables
-  (CC BY-NC-ND), encoded in
+  for **preterm girls** (CC BY-NC-ND), encoded in
   [`frontend/src/lib/fenton.ts`](frontend/src/lib/fenton.ts). The
   50th percentile is computed as the midpoint of the 10th/90th —
-  within ~1% of the published median across 22–42w.
+  within ~1% of the published median across 22–42w. **Boys, term
+  babies, and post-term tracking are not what's plotted here.**
 - **Daily intake bands** (ml/kg/day): defaults align with ESPGHAN
   2022 + the 150–160 ml/kg/day NICU goal cited by Brigham, UC Davis,
   and Johns Hopkins; below 135 is the "below safe stable phase"
@@ -54,20 +55,34 @@ your child.
 - **PMA + postnatal age**: gestational age at birth + days since
   birth. Drives which gain band applies.
 
+**The defaults are tuned for preterm girls.** This was written for
+Zoey, who was born at 35 weeks. The Fenton 2025 reference is the
+**girls'** cutoff table; the g/kg/day expected-gain ladder is from
+**preterm** literature; the intake bands assume a NICU-style
+ml/kg/day target. **None of those defaults will fit a term baby
+boy on demand-feed, or a child on solids, or any number of other
+situations** — the colours and "watch / on track" verdicts will
+read as nonsense.
+
 **Every child is different.** A 28-week extreme preterm, a 35-week
-late preterm with reflux, and a term baby with a feeding-tube wean
-plan all have legitimately different "good" numbers. The bands above
-are population-level reference ranges, not your child's prescription.
-If your team has given you specific targets:
+late preterm with reflux, a term boy on demand feeds, and a child
+with a feeding-tube wean plan all have legitimately different "good"
+numbers. The bands above are population-level reference ranges, not
+your child's prescription. If your team has given you specific
+targets, or your child sits outside the population this was tuned
+for:
 
 - Open **Settings** in the app and update `target_concern` /
   `target_low` / `target_solid` / `target_high` to match your team's
   ml/kg/day numbers, plus `birth_date` / `gestational_age_weeks` /
   `birth_weight_grams`.
-- The PMA-aware weight-gain bands and the Fenton curves are
-  hard-coded — if your team uses different references (Olsen, INTERGROWTH-21st,
-  WHO post-term, …) you'll need to fork and edit `growth.py` /
-  `growth.ts` / `fenton.ts`.
+- The PMA-aware weight-gain bands and the Fenton-girls percentile
+  curves are hard-coded. If your team uses different references
+  (Fenton boys, Olsen, INTERGROWTH-21st, WHO term, …) or your child
+  isn't in the population this app was tuned for, you'll need to
+  fork and edit [`backend/growth.py`](backend/growth.py),
+  [`frontend/src/lib/growth.ts`](frontend/src/lib/growth.ts), and
+  [`frontend/src/lib/fenton.ts`](frontend/src/lib/fenton.ts).
 
 **If a number on this app contradicts what your clinician has told
 you, your clinician is right.**
