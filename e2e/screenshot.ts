@@ -14,8 +14,8 @@ import { chromium, devices } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import path from 'node:path'
 
-const BASE_URL = process.env.SCREENSHOT_URL ?? 'http://127.0.0.1:8081'
-const PASSCODE = process.env.SCREENSHOT_PASSCODE ?? '9999'
+const BASE_URL = process.env.ZOEY_URL ?? process.env.SCREENSHOT_URL ?? 'http://127.0.0.1:8081'
+const PASSCODE = process.env.ZOEY_PASSCODE ?? process.env.SCREENSHOT_PASSCODE ?? '9999'
 const OUT_DIR = path.resolve(process.cwd(), 'e2e/screenshots')
 
 /** Per-shot navigation:

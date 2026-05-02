@@ -139,6 +139,26 @@ the bin and the login flow hangs. Chrome treats `127.0.0.1` as a secure
 context and will work with the default. Production must always leave
 `COOKIE_SECURE=true` (the default).
 
+### Demo data
+
+To explore the app with realistic numbers without logging anything by hand,
+point `e2e/seed-demo.ts` at your running deployment. It logs in via the
+public passcode, fills 21 days of birth context + weights + feeds + pumps +
+diapers tuned to look "thriving", and lands the Today screen mid-day so the
+progress ring is partly full.
+
+```bash
+npm install && npx playwright install chromium      # one-time, for the headless seeder
+
+ZOEY_URL=http://127.0.0.1:8000 \
+ZOEY_PASSCODE=123456 \
+    npx tsx e2e/seed-demo.ts
+```
+
+Add `ZOEY_DB_PATH=path/to/zoey.db` to also seed Owlet-style vitals (the
+Vitals tab pulls from raw rows that have no public API). Run against a
+fresh DB — the script is not idempotent.
+
 ## Production build
 
 ```bash

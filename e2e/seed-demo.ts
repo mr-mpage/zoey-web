@@ -1,16 +1,28 @@
 /**
- * Seed a demo DB with realistic *thriving* data — the README
- * screenshots are read by potential users, not by Zoey's doctor, and
- * we don't want the example numbers to look like a child in trouble.
- * Targets are tuned so all three Overview indicators land in 'good',
- * the trends headline reads 'solidly in target zone', and the Today
- * pace chip shows on-track. Talks to the same backend the screenshot
- * tool uses (./e2e/serve.sh on :8081, passcode 9999).
+ * Seed a deployment with realistic *thriving* preterm-baby data:
+ * 21 days of birth context, weights, feeds, pumps, and diapers tuned
+ * so all three Overview indicators land in 'good', the trends headline
+ * reads 'solidly in target zone', and the Today pace chip shows
+ * on-track.
  *
- *   npx tsx e2e/seed-demo.ts
+ * Two use cases:
  *
- * Not idempotent: re-running stacks duplicate rows. Use a fresh DB
- * (kill + restart serve.sh) for a clean slate.
+ *   1. Fresh-deployment evaluation — fill an empty install so you can
+ *      poke around with realistic numbers:
+ *
+ *        ZOEY_URL=http://127.0.0.1:18087 \
+ *        ZOEY_PASSCODE=123456 \
+ *            npx tsx e2e/seed-demo.ts
+ *
+ *      Add `ZOEY_DB_PATH=<path-to-zoey.db>` if you also want vitals
+ *      seeded (the Vitals tab pulls from raw rows that have no API).
+ *
+ *   2. README screenshots — `./e2e/serve.sh` boots the bundled e2e
+ *      backend on :8081 with passcode 9999, which the script also
+ *      defaults to (legacy `SCREENSHOT_URL`/`SCREENSHOT_PASSCODE` env
+ *      vars are still honoured for the existing pipeline).
+ *
+ * Not idempotent: re-running stacks duplicate rows. Use a fresh DB.
  */
 
 import { execFileSync } from 'node:child_process'
@@ -20,8 +32,8 @@ import { fileURLToPath } from 'node:url'
 
 import { chromium } from '@playwright/test'
 
-const BASE_URL = process.env.SCREENSHOT_URL ?? 'http://127.0.0.1:8081'
-const PASSCODE = process.env.SCREENSHOT_PASSCODE ?? '9999'
+const BASE_URL = process.env.ZOEY_URL ?? process.env.SCREENSHOT_URL ?? 'http://127.0.0.1:8081'
+const PASSCODE = process.env.ZOEY_PASSCODE ?? process.env.SCREENSHOT_PASSCODE ?? '9999'
 const DB_SENTINEL = '/tmp/zoey-e2e-db.path'
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
@@ -202,17 +214,18 @@ async function main() {
 
   /* Vitals — there's no API for inserting raw samples (the Owlet poller
    * writes them in production), so shell out to a Python helper that
-   * does it via direct sqlite3. Skips silently if the serve.sh sentinel
-   * isn't present, since the user might be running against a different
-   * backend setup. */
-  if (existsSync(DB_SENTINEL)) {
-    const dbPath = readFileSync(DB_SENTINEL, 'utf8').trim()
+   * does it via direct sqlite3. Need the DB path: prefer an explicit
+   * ZOEY_DB_PATH override (fresh-deployment use case), fall back to
+   * the e2e harness sentinel, otherwise skip cleanly. */
+  const dbPath = process.env.ZOEY_DB_PATH
+    ?? (existsSync(DB_SENTINEL) ? readFileSync(DB_SENTINEL, 'utf8').trim() : null)
+  if (dbPath) {
     const repoRoot = path.resolve(HERE, '..')
     const py = path.join(repoRoot, '.venv', 'bin', 'python')
     const script = path.join(HERE, 'seed-vitals.py')
     execFileSync(py, [script], { env: { ...process.env, DB_PATH: dbPath }, stdio: 'inherit' })
   } else {
-    console.warn(`vitals seed: skipped (no ${DB_SENTINEL} — start ./e2e/serve.sh first)`)
+    console.warn('vitals seed: skipped (set ZOEY_DB_PATH to seed vitals, or run via ./e2e/serve.sh)')
   }
 
   console.log('demo seed: ok')
