@@ -186,6 +186,19 @@ The E2E harness builds the frontend, symlinks `frontend/dist` to `static/`,
 and starts a real FastAPI process on port 8081 with a tmp DB and a known
 passcode (`9999`). Specs live in `e2e/specs/`.
 
+For ad-hoc debugging there's also a screenshot tool that uses the same
+harness — boot `./e2e/serve.sh` separately, then:
+
+```bash
+npm run screenshot                       # all five tabs
+npm run screenshot -- today overview     # specific tabs
+```
+
+PNGs land in `e2e/screenshots/`. Note: chromium-mobile is not iOS Safari,
+so iOS-specific PWA layout bugs (safe-area handling, position:fixed
+quirks) won't reproduce here — for those, a real device screenshot is
+still the ground truth.
+
 ## Security
 
 See [SECURITY.md](SECURITY.md) for the threat model, data-handling stance,
