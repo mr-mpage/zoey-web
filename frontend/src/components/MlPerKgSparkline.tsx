@@ -1,4 +1,5 @@
 import type { Weight } from '../api/types'
+import { weightForDay } from '../lib/growth'
 
 type DayPoint = { date: Date; mlPerKg: number; total: number; weight_g: number }
 type Bands = { concern: number; low: number; solid: number; high: number }
@@ -201,13 +202,7 @@ export function buildSparklinePoints(
     const total = totalsByDay.get(key)
     if (!total) continue
 
-    // Find weight for this day (same date or most recent earlier)
-    const dayStr = key
-    const sorted = [...weights].sort((a, b) => b.recorded_at.localeCompare(a.recorded_at))
-    const w =
-      sorted.find((x) => x.recorded_at.startsWith(dayStr)) ??
-      sorted.find((x) => x.recorded_at.slice(0, 10) <= dayStr) ??
-      sorted[sorted.length - 1]
+    const w = weightForDay(d, weights)
     if (!w) continue
     const kg = w.weight_grams / 1000
     points.push({ date: d, mlPerKg: total / kg, total, weight_g: w.weight_grams })

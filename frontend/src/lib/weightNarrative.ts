@@ -1,5 +1,6 @@
 import type { Weight } from '../api/types'
 import { approxPercentile } from './fenton'
+import { expectedGainRange, rollingGainRate } from './growth'
 
 export type WeightNarrative = {
   tone: 'celebrate' | 'positive' | 'neutral' | 'concern'
@@ -23,31 +24,6 @@ function pmaAt(birthIso: string, gaWeeks: number, when: Date): number {
 function daysSinceBirth(birthIso: string, when: Date): number {
   const birth = new Date(birthIso + 'T00:00:00').getTime()
   return Math.max(0, Math.floor((when.getTime() - birth) / 86_400_000))
-}
-
-/** Returns the rolling g/kg/day across the last `windowDays` of history. */
-function rollingGain(weights: Weight[], windowDays: number): number | null {
-  const sorted = [...weights].sort((a, b) => a.recorded_at.localeCompare(b.recorded_at))
-  if (sorted.length < 2) return null
-  const latest = sorted[sorted.length - 1]
-  const cutoff = new Date(latest.recorded_at).getTime() - windowDays * 86_400_000
-  const within = sorted.filter((w) => new Date(w.recorded_at).getTime() >= cutoff)
-  const earliest = within.length > 1 ? within[0] : sorted[0]
-  if (earliest.id === latest.id) return null
-  const days = (new Date(latest.recorded_at).getTime() - new Date(earliest.recorded_at).getTime()) / 86_400_000
-  if (days <= 0) return null
-  const gPerDay = (latest.weight_grams - earliest.weight_grams) / days
-  const kg = latest.weight_grams / 1000
-  return gPerDay / kg
-}
-
-function expectedRange(pma: number, postnatalDays: number): [number, number] {
-  if (postnatalDays < 7) return [0, 12]
-  if (postnatalDays < 14) return [8, 16]
-  if (pma < 30) return [17, 23]
-  if (pma < 34) return [15, 20]
-  if (pma < 38) return [12, 17]
-  return [10, 15]
 }
 
 /** Plain-language read of where the weight data sits right now: birth-weight
@@ -92,7 +68,7 @@ export function buildWeightNarrative({
       }
     }
     if (day < 14) {
-      const recent = rollingGain(sorted, 4)
+      const recent = rollingGainRate(sorted, 4)
       const gainingNow = recent !== null && recent > 0
       return {
         tone: gainingNow ? 'positive' : 'neutral',
@@ -115,8 +91,8 @@ export function buildWeightNarrative({
 
   // ─── Past birth weight — describe trajectory + percentile ─────────────
   const pct = approxPercentile(pma, grams)
-  const gain7 = rollingGain(sorted, 7)
-  const [gMin, gMax] = expectedRange(pma, day)
+  const gain7 = rollingGainRate(sorted, 7)
+  const [gMin, gMax] = expectedGainRange(pma, day)
 
   // Find percentile a week ago for trajectory comparison
   const weekAgo = sorted.find((w) => {

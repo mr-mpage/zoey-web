@@ -12,6 +12,12 @@ from .comparisons import (
     index_feeds_by_feeding_day,
     now_local,
 )
+from .growth import (
+    expected_gain_range as _expected_gain_range,
+    pma_and_postnatal_age as _pma_and_postnatal_age,
+    rolling_gain_g_per_kg_per_day,
+    weight_for_day as _weight_for_day,
+)
 from .models import Overview, OverviewIndicator, OverviewSummary
 
 
@@ -58,22 +64,6 @@ def compute_next_feed() -> Optional[dict]:
 
 
 # ----- Overview ----------------------------------------------------------
-
-def _weight_for_day(day_iso: str, weights: list[dict]) -> Optional[dict]:
-    same = next((w for w in weights if w["recorded_at"].startswith(day_iso)), None)
-    if same:
-        return same
-    earlier = sorted(
-        [w for w in weights if w["recorded_at"][:10] < day_iso],
-        key=lambda w: w["recorded_at"],
-        reverse=True,
-    )
-    if earlier:
-        return earlier[0]
-    if weights:
-        return sorted(weights, key=lambda w: w["recorded_at"])[0]
-    return None
-
 
 def _ml_per_kg_last_n_days(n: int) -> tuple[Optional[float], int]:
     """Average ml/kg/day across the last `n` *completed* feeding days. Returns (avg, days_used).
@@ -124,27 +114,11 @@ def _ml_per_kg_last_n_days(n: int) -> tuple[Optional[float], int]:
 
 
 def _rolling_gain_g_per_kg_per_day(window_days: int = 7) -> Optional[float]:
-    # Auto entries are derived from this very rate, so including them folds
-    # the rate back into its own calculation. Manual entries only.
-    weights = sorted(
-        [w for w in repo.list_weights() if not w.get("is_auto")],
-        key=lambda w: w["recorded_at"],
-    )
-    if len(weights) < 2:
-        return None
-    latest = weights[-1]
-    cutoff = datetime.fromisoformat(latest["recorded_at"]) - timedelta(days=window_days)
-    within = [w for w in weights if datetime.fromisoformat(w["recorded_at"]) >= cutoff]
-    earliest = within[0] if len(within) > 1 else weights[0]
-    if earliest["id"] == latest["id"]:
-        return None
-    days = (
-        datetime.fromisoformat(latest["recorded_at"]) - datetime.fromisoformat(earliest["recorded_at"])
-    ).total_seconds() / 86400
-    if days <= 0:
-        return None
-    g_per_day = (latest["weight_grams"] - earliest["weight_grams"]) / days
-    return g_per_day / (latest["weight_grams"] / 1000)
+    """Adapter that fetches manual-only weights and delegates to the
+    shared growth helper. Auto-fill entries are derived from this very
+    rate, so excluding them is mandatory."""
+    manuals = [w for w in repo.list_weights() if not w.get("is_auto")]
+    return rolling_gain_g_per_kg_per_day(manuals, window_days)
 
 
 def _diapers_per_day_last_n(n: int) -> tuple[Optional[float], int]:
@@ -172,42 +146,6 @@ def _diapers_per_day_last_n(n: int) -> tuple[Optional[float], int]:
     if not counts:
         return None, 0
     return sum(counts) / len(counts), len(counts)
-
-
-def _pma_and_postnatal_age(birth_date_iso: str, ga_weeks: int) -> tuple[float, int]:
-    """Returns (postmenstrual age in weeks, postnatal age in days)."""
-    from datetime import date as _date
-    try:
-        birth = _date.fromisoformat(birth_date_iso)
-    except ValueError:
-        return float(ga_weeks), 0
-    today = now_local().date()
-    postnatal_days = max(0, (today - birth).days)
-    pma = ga_weeks + postnatal_days / 7.0
-    return pma, postnatal_days
-
-
-def _expected_gain_range(pma_weeks: float, postnatal_days: int) -> tuple[int, int]:
-    """Returns (min, max) g/kg/day expected, based on Fenton-derived PMA strata
-    and a postnatal-recovery allowance for the first ~2 weeks of life.
-
-    References: Fenton 2013/2025 growth charts, AAP/ESPGHAN 2022. Velocity
-    decreases monotonically as PMA approaches term: ~21 g/kg/day at 22 weeks
-    PMA → ~12 g/kg/day at 36 weeks PMA → ~10 g/kg/day at term-equivalent.
-    """
-    if postnatal_days < 7:
-        # Birth-weight loss / earliest recovery — gain is often near zero or negative
-        return (0, 12)
-    if postnatal_days < 14:
-        # Regaining birth weight — building toward steady gain
-        return (8, 16)
-    if pma_weeks < 30:
-        return (17, 23)
-    if pma_weeks < 34:
-        return (15, 20)
-    if pma_weeks < 38:
-        return (12, 17)
-    return (10, 15)  # term-equivalent and beyond
 
 
 def _aggregate_status(statuses: list[str]) -> str:

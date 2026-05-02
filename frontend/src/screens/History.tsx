@@ -3,6 +3,7 @@ import { useAppSettings, useDiapers, useFeeds, useWeight } from '../api/hooks'
 import { MlPerKgBandLegend, MlPerKgSparkline, buildSparklinePoints } from '../components/MlPerKgSparkline'
 import { feedingDayKeyOfFeed } from '../lib/feedingday'
 import { fmtDate } from '../lib/format'
+import { weightForDay } from '../lib/growth'
 import type { Weight } from '../api/types'
 import { PumpsSection } from './Pumps'
 import { VitalsHistorySection } from './VitalsHistory'
@@ -21,21 +22,6 @@ function feedingDayKey(d: Date, anchorH: number, anchorM: number): Date {
 function ymd(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-}
-
-/** Pick the weight entry that should govern a given feeding day:
- * preference 1) entry recorded on that calendar date,
- * preference 2) the most recent entry recorded earlier,
- * fallback) the earliest available entry. */
-function weightForDay(day: Date, weights: Weight[]): Weight | null {
-  if (weights.length === 0) return null
-  const dayStr = ymd(day)
-  return (
-    weights.find((w) => w.recorded_at.startsWith(dayStr)) ??
-    weights.filter((w) => w.recorded_at.slice(0, 10) < dayStr).sort((a, b) => b.recorded_at.localeCompare(a.recorded_at))[0] ??
-    [...weights].sort((a, b) => a.recorded_at.localeCompare(b.recorded_at))[0] ??
-    null
-  )
 }
 
 type Bands = { concern: number; low: number; solid: number; high: number }

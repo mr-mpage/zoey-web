@@ -78,3 +78,29 @@ export function pmaAndPostnatal(birthDateIso: string, gestationalAgeWeeks: numbe
   const days = Math.max(0, Math.floor((now.getTime() - birth.getTime()) / 86_400_000))
   return { pma: gestationalAgeWeeks + days / 7, postnatalDays: days }
 }
+
+function ymdLocal(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+/** Pick the weight entry that should govern a given calendar day:
+ *  preference 1) entry recorded on that calendar date,
+ *  preference 2) the most recent entry recorded earlier,
+ *  fallback) the earliest available entry.
+ *
+ *  Mirrors backend/growth.py:weight_for_day so the same day's
+ *  ml/kg/day comes out the same on the History page, the doctor PDF,
+ *  and the Overview indicator. */
+export function weightForDay(day: Date, weights: Weight[]): Weight | null {
+  if (weights.length === 0) return null
+  const dayStr = ymdLocal(day)
+  return (
+    weights.find((w) => w.recorded_at.startsWith(dayStr)) ??
+    weights
+      .filter((w) => w.recorded_at.slice(0, 10) < dayStr)
+      .sort((a, b) => b.recorded_at.localeCompare(a.recorded_at))[0] ??
+    [...weights].sort((a, b) => a.recorded_at.localeCompare(b.recorded_at))[0] ??
+    null
+  )
+}

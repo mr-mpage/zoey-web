@@ -25,6 +25,11 @@ from ..comparisons import (
     feeding_day_for_row,
     now_local,
 )
+from ..growth import (
+    daily_gains as _gains,
+    pma_and_postnatal_age,
+    weight_for_day as _weight_for_day,
+)
 from ..owlet import vitals_summary_for_range
 
 
@@ -33,46 +38,11 @@ router = APIRouter(prefix="/api", tags=["report"], dependencies=[Depends(require
 
 # ─── Helpers ──────────────────────────────────────────────────────────────
 
-def _weight_for_day(day_iso: str, weights: list[dict]) -> Optional[dict]:
-    same = [w for w in weights if w["recorded_at"][:10] == day_iso]
-    if same:
-        return sorted(same, key=lambda w: w["recorded_at"], reverse=True)[0]
-    earlier = sorted(
-        [w for w in weights if w["recorded_at"][:10] < day_iso],
-        key=lambda w: w["recorded_at"],
-        reverse=True,
-    )
-    return earlier[0] if earlier else None
-
-
 def _pma_at(birth_iso: str, ga_weeks: int, when: date) -> tuple[float, int]:
-    try:
-        birth = date.fromisoformat(birth_iso)
-    except ValueError:
-        return float(ga_weeks), 0
-    days = max(0, (when - birth).days)
-    return ga_weeks + days / 7.0, days
-
-
-def _gains(weights_chrono: list[dict]) -> dict[int, dict]:
-    out: dict[int, dict] = {}
-    for prev, cur in zip(weights_chrono, weights_chrono[1:]):
-        days = (
-            datetime.fromisoformat(cur["recorded_at"])
-            - datetime.fromisoformat(prev["recorded_at"])
-        ).total_seconds() / 86400
-        if days <= 0:
-            continue
-        g_per_day = (cur["weight_grams"] - prev["weight_grams"]) / days
-        kg = prev["weight_grams"] / 1000
-        g_per_kg_per_day = g_per_day / kg if kg > 0 else 0
-        out[cur["id"]] = {
-            "g_per_day": g_per_day,
-            "g_per_kg_per_day": g_per_kg_per_day,
-            "from_iso": prev["recorded_at"],
-            "days": days,
-        }
-    return out
+    """Per-day PMA wrapper: pma_and_postnatal_age but with an explicit
+    'when' date so the per-row table can show PMA at *that* day, not
+    only as-of today."""
+    return pma_and_postnatal_age(birth_iso, ga_weeks, today=when)
 
 
 def _has_intake_data(d: dict) -> bool:
