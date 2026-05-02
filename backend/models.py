@@ -66,6 +66,7 @@ class Weight(BaseModel):
     weight_grams: int
     ml_per_kg_per_day: int
     notes: Optional[str] = None
+    is_auto: bool = False
 
 
 class WeightStatus(BaseModel):

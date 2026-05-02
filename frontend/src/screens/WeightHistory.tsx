@@ -35,10 +35,15 @@ export function WeightHistorySection() {
   const [adding, setAdding] = useState(false)
 
   const weights = weight?.history ?? []
-  const gains = useMemo(() => gainsBetweenEntries(weights), [weights])
+  // Per-entry gains and the headline 7-day rate are computed from manual
+  // entries only — auto rows are derived from that rate, so including them
+  // would be circular and flatten the displayed gain to itself.
+  const manuals = useMemo(() => weights.filter((w) => !w.is_auto), [weights])
+  const gains = useMemo(() => gainsBetweenEntries(manuals), [manuals])
   const latest = weights[0] ?? null
+  const latestIsAuto = !!latest?.is_auto
 
-  const sevenDayGain = rollingGainRate(weights, 7)
+  const sevenDayGain = rollingGainRate(manuals, 7)
 
   const ctxToday = appSettings
     ? pmaAtDate(new Date().toISOString(), appSettings.birth_date, appSettings.gestational_age_weeks)
@@ -51,14 +56,21 @@ export function WeightHistorySection() {
       <div className="rounded-xl bg-zinc-900/60 p-4 mb-4">
         <div className="flex items-baseline justify-between">
           <div>
-            <div className="text-[11px] uppercase tracking-wider text-zinc-500">Current weight</div>
-            <div className="text-3xl font-light tabular-nums leading-none mt-1">
+            <div className="text-[11px] uppercase tracking-wider text-zinc-500">
+              Current weight
+              {latestIsAuto && (
+                <span className="ml-2 text-amber-300/80 normal-case tracking-normal">· estimated</span>
+              )}
+            </div>
+            <div className={`text-3xl font-light tabular-nums leading-none mt-1 ${latestIsAuto ? 'text-zinc-300' : ''}`}>
               {latest ? latest.weight_grams : '—'}
               <span className="text-base text-zinc-500 font-normal ml-1">g</span>
             </div>
             {latest && (
               <div className="text-[11px] text-zinc-500 mt-1">
-                weighed {fmtDate(latest.recorded_at)}
+                {latestIsAuto
+                  ? `extrapolated · last weighed ${manuals[0] ? fmtDate(manuals[0].recorded_at) : '—'}`
+                  : `weighed ${fmtDate(latest.recorded_at)}`}
               </div>
             )}
           </div>
@@ -146,19 +158,26 @@ export function WeightHistorySection() {
             {weights.map((w) => {
               const gain = gains.find((g) => g.to.id === w.id)
               const ctx = appSettings ? pmaAtDate(w.recorded_at, appSettings.birth_date, appSettings.gestational_age_weeks) : null
+              const isAuto = w.is_auto
+              const tappable = !readOnly && !isAuto
               return (
                 <li
                   key={w.id}
-                  onClick={readOnly ? undefined : () => setEditing(w)}
-                  className={`rounded-lg p-2 -mx-2 ${readOnly ? '' : 'active:bg-zinc-800/60'}`}
+                  onClick={tappable ? () => setEditing(w) : undefined}
+                  className={`rounded-lg p-2 -mx-2 ${tappable ? 'active:bg-zinc-800/60' : ''}`}
                 >
-                  <div className="flex justify-between text-sm">
-                    <span className="text-zinc-400">{fmtDate(w.recorded_at)}</span>
-                    <span className="tabular-nums">
+                  <div className="flex justify-between items-baseline text-sm">
+                    <span className={`flex items-baseline gap-2 ${isAuto ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                      {fmtDate(w.recorded_at)}
+                      {isAuto && (
+                        <span className="text-[9px] uppercase tracking-wider text-amber-300/70 bg-amber-300/10 px-1 py-px rounded">est</span>
+                      )}
+                    </span>
+                    <span className={`tabular-nums ${isAuto ? 'text-zinc-500' : ''}`}>
                       {w.weight_grams} g
                     </span>
                   </div>
-                  {gain && (
+                  {gain && !isAuto && (
                     <div className={`text-[11px] tabular-nums text-right ${gainTone(gain.g_per_kg_per_day, ctx?.pma, ctx?.postnatalDays)}`}>
                       {gain.g_per_day >= 0 ? '+' : ''}{gain.g_per_day.toFixed(0)} g/day · {gain.g_per_kg_per_day >= 0 ? '+' : ''}{gain.g_per_kg_per_day.toFixed(1)} g/kg/day
                     </div>

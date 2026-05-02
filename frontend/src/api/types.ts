@@ -38,6 +38,10 @@ export type Weight = {
   weight_grams: number
   ml_per_kg_per_day: number
   notes: string | null
+  /** True for rows the server filled in by extrapolating from manual
+   *  history. These are not editable; logging a manual weight for that
+   *  day overrides the estimate. */
+  is_auto: boolean
 }
 
 export type WeightStatus = {

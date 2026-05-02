@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS weight_entries (
     recorded_at TEXT NOT NULL,
     weight_grams INTEGER NOT NULL,
     ml_per_kg_per_day INTEGER NOT NULL,
-    notes TEXT
+    notes TEXT,
+    is_auto INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS feeds (
@@ -163,6 +164,9 @@ def init_db() -> None:
             # feed logged at 02:20 (just before a 02:30 anchor) count as
             # feed #1 of the new day without having to fudge the timestamp.
             conn.execute("ALTER TABLE feeds ADD COLUMN feeding_day_override TEXT")
+        cols_w = {r[1] for r in conn.execute("PRAGMA table_info(weight_entries)")}
+        if "is_auto" not in cols_w:
+            conn.execute("ALTER TABLE weight_entries ADD COLUMN is_auto INTEGER NOT NULL DEFAULT 0")
         # Seed default meds on first creation so the checklist isn't empty.
         # INSERT OR IGNORE keyed off name so manually-archived rows stay archived.
         from datetime import datetime, timezone

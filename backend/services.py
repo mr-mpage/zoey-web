@@ -1,10 +1,11 @@
 """Shared computations used by both routers and the background scheduler."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from typing import Optional
 
 from . import repo
 from .comparisons import (
+    TZ,
     feeding_day_bounds,
     feeding_day_for,
     feeding_day_for_row,
@@ -476,3 +477,92 @@ def compute_overview() -> Overview:
         summary_status = "good"
 
     return Overview(indicators=inds, summary=OverviewSummary(status=summary_status, text=summary_text))
+
+
+def _recent_daily_gain_g(manuals_chrono: list[dict]) -> float:
+    """Avg g/day from the manual entries in the trailing 7 days. Mirrors the
+    rollingGainRate window used on the Weight tab so the auto-fill matches
+    the gain rate the user sees in the app."""
+    if len(manuals_chrono) < 2:
+        return 0.0
+    latest = manuals_chrono[-1]
+    cutoff = datetime.fromisoformat(latest["recorded_at"]) - timedelta(days=7)
+    within = [w for w in manuals_chrono if datetime.fromisoformat(w["recorded_at"]) >= cutoff]
+    earliest = within[0] if len(within) > 1 else manuals_chrono[0]
+    if earliest["id"] == latest["id"]:
+        return 0.0
+    span_days = (datetime.fromisoformat(latest["recorded_at"]) - datetime.fromisoformat(earliest["recorded_at"])).total_seconds() / 86400.0
+    if span_days <= 0:
+        return 0.0
+    return (latest["weight_grams"] - earliest["weight_grams"]) / span_days
+
+
+def regenerate_auto_weights() -> None:
+    """Wipe and rebuild all auto weight entries from the manual history.
+
+    Linearly interpolates between adjacent manuals to fill in-range gaps,
+    then extrapolates forward from the latest manual to today's feeding day
+    using the trailing 7-day daily gain. Idempotent — safe to call on every
+    manual write or on a fresh-day read."""
+    s = repo.get_settings()
+    anchor_h = int(s.get("day_start_hour", "2"))
+    anchor_m = int(s.get("day_start_minute", "30"))
+
+    repo.delete_all_auto_weights()
+
+    manuals = sorted(
+        [w for w in repo.list_weights() if not w.get("is_auto")],
+        key=lambda w: w["recorded_at"],
+    )
+    if not manuals:
+        return
+
+    def day_of(row: dict):
+        return feeding_day_for(datetime.fromisoformat(row["recorded_at"]), anchor_h, anchor_m)
+
+    def insert_for(target_day, weight_grams: int, ml_per_kg_per_day: int) -> None:
+        # Anchor auto entries at noon local so a same-day manual added later
+        # at any reasonable hour sorts after the auto and a regenerate replaces
+        # it cleanly.
+        recorded_at = datetime.combine(target_day, time(hour=12), tzinfo=TZ)
+        repo.insert_weight(recorded_at, weight_grams, ml_per_kg_per_day, None, is_auto=True)
+
+    # Fill between adjacent manuals (linear interpolation)
+    for a, b in zip(manuals, manuals[1:]):
+        a_day = day_of(a)
+        b_day = day_of(b)
+        gap_days = (b_day - a_day).days
+        if gap_days <= 1:
+            continue
+        rate = (b["weight_grams"] - a["weight_grams"]) / gap_days
+        for d in range(1, gap_days):
+            insert_for(a_day + timedelta(days=d), round(a["weight_grams"] + d * rate), a["ml_per_kg_per_day"])
+
+    # Extrapolate forward from the latest manual to today
+    today = feeding_day_for(now_local(), anchor_h, anchor_m)
+    latest = manuals[-1]
+    latest_day = day_of(latest)
+    if latest_day >= today:
+        return
+
+    rate = _recent_daily_gain_g(manuals)
+    days_forward = (today - latest_day).days
+    for d in range(1, days_forward + 1):
+        insert_for(latest_day + timedelta(days=d), round(latest["weight_grams"] + d * rate), latest["ml_per_kg_per_day"])
+
+
+def ensure_auto_weights_through_today() -> None:
+    """Lazy hook called on every weight status read. If today's feeding day
+    has no entry yet (manual or auto), regenerate. This is what makes the
+    auto-fill actually advance when the app is opened on a new day."""
+    s = repo.get_settings()
+    anchor_h = int(s.get("day_start_hour", "2"))
+    anchor_m = int(s.get("day_start_minute", "30"))
+    today = feeding_day_for(now_local(), anchor_h, anchor_m)
+    weights = repo.list_weights()
+    has_today = any(
+        feeding_day_for(datetime.fromisoformat(w["recorded_at"]), anchor_h, anchor_m) == today
+        for w in weights
+    )
+    if not has_today:
+        regenerate_auto_weights()

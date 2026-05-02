@@ -126,11 +126,18 @@ def list_pumps_between(start_iso: str, end_iso: str) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-def insert_weight(recorded_at: datetime, weight_grams: int, ml_per_kg_per_day: int, notes: Optional[str]) -> int:
+def insert_weight(
+    recorded_at: datetime,
+    weight_grams: int,
+    ml_per_kg_per_day: int,
+    notes: Optional[str],
+    is_auto: bool = False,
+) -> int:
     with get_conn() as c:
         cur = c.execute(
-            "INSERT INTO weight_entries (recorded_at, weight_grams, ml_per_kg_per_day, notes) VALUES (?, ?, ?, ?)",
-            (recorded_at.isoformat(), weight_grams, ml_per_kg_per_day, notes),
+            "INSERT INTO weight_entries (recorded_at, weight_grams, ml_per_kg_per_day, notes, is_auto) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (recorded_at.isoformat(), weight_grams, ml_per_kg_per_day, notes, 1 if is_auto else 0),
         )
         return cur.lastrowid
 
@@ -138,7 +145,8 @@ def insert_weight(recorded_at: datetime, weight_grams: int, ml_per_kg_per_day: i
 def latest_weight() -> Optional[dict]:
     with get_conn() as c:
         row = c.execute(
-            "SELECT id, recorded_at, weight_grams, ml_per_kg_per_day, notes FROM weight_entries ORDER BY recorded_at DESC, id DESC LIMIT 1"
+            "SELECT id, recorded_at, weight_grams, ml_per_kg_per_day, notes, is_auto FROM weight_entries "
+            "ORDER BY recorded_at DESC, id DESC LIMIT 1"
         ).fetchone()
     return dict(row) if row else None
 
@@ -146,9 +154,26 @@ def latest_weight() -> Optional[dict]:
 def list_weights() -> list[dict]:
     with get_conn() as c:
         rows = c.execute(
-            "SELECT id, recorded_at, weight_grams, ml_per_kg_per_day, notes FROM weight_entries ORDER BY recorded_at DESC, id DESC"
+            "SELECT id, recorded_at, weight_grams, ml_per_kg_per_day, notes, is_auto FROM weight_entries "
+            "ORDER BY recorded_at DESC, id DESC"
         ).fetchall()
     return [dict(r) for r in rows]
+
+
+def get_weight(weight_id: int) -> Optional[dict]:
+    with get_conn() as c:
+        row = c.execute(
+            "SELECT id, recorded_at, weight_grams, ml_per_kg_per_day, notes, is_auto FROM weight_entries "
+            "WHERE id = ?",
+            (weight_id,),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def delete_all_auto_weights() -> int:
+    with get_conn() as c:
+        cur = c.execute("DELETE FROM weight_entries WHERE is_auto = 1")
+        return cur.rowcount
 
 
 def update_weight(weight_id: int, recorded_at: Optional[datetime], weight_grams: Optional[int], ml_per_kg_per_day: Optional[int], notes: Optional[str]) -> bool:
