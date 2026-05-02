@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, PlainTextResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from .config import settings
@@ -111,12 +111,42 @@ async def security_headers(request: Request, call_next):
 def robots() -> str:
     return "User-agent: *\nDisallow: /\n"
 
+
+@app.get("/manifest.webmanifest", include_in_schema=False)
+def manifest() -> JSONResponse:
+    """Render the PWA manifest with the configured baby name so the iOS
+    home-screen entry and the Notifications permission UI both reflect
+    Settings → Baby profile. Served dynamically (not from /static) so
+    renaming doesn't require a redeploy. Note: iOS caches the manifest
+    aggressively per install, so an existing PWA install needs to be
+    re-added to the home screen to pick up a name change."""
+    from . import repo
+    from .db import DEFAULTS
+    name = repo.get_settings().get("baby_name") or DEFAULTS["baby_name"]
+    return JSONResponse(
+        {
+            "name": f"{name} Feed Tracker",
+            "short_name": name,
+            "start_url": "/",
+            "display": "standalone",
+            "background_color": "#0f1115",
+            "theme_color": "#0f1115",
+            "icons": [
+                {"src": "/icon-192.png", "sizes": "192x192", "type": "image/png"},
+                {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png"},
+                {"src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml"},
+            ],
+        },
+        media_type="application/manifest+json",
+    )
+
 app.include_router(auth.router)
 app.include_router(dashboard.router)
 app.include_router(feeds.router)
 app.include_router(pumps.router)
 app.include_router(weight.router)
 app.include_router(settings_router.router)
+app.include_router(settings_router.public_router)
 app.include_router(diapers.router)
 app.include_router(push.router)
 app.include_router(overview.router)

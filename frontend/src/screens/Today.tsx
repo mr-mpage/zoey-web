@@ -287,7 +287,7 @@ export function TodayScreen() {
           <svg width={14} height={14} viewBox="0 0 24 24" fill="rgb(244 175 195)" aria-hidden>
             <path d="M12 21s-7.5-4.6-7.5-10.3a4.2 4.2 0 0 1 7.5-2.6 4.2 4.2 0 0 1 7.5 2.6c0 5.7-7.5 10.3-7.5 10.3z" />
           </svg>
-          Zoey{appSettings?.birth_date ? ` · ${friendlyAge(appSettings.birth_date)}` : ''}
+          {appSettings?.baby_name ?? 'Baby'}{appSettings?.birth_date ? ` · ${friendlyAge(appSettings.birth_date)}` : ''}
         </div>
         {milestone && (
           <div className="mt-1.5">
@@ -345,7 +345,11 @@ export function TodayScreen() {
         <PaceChip pace={data.pace_status} gap={data.gap_ml} hasFeeds={data.feeds_today.length > 0} />
       </div>
 
-      <EncouragementCard enc={readOnly ? buildViewerEncouragement(data) : buildEncouragement(data)} />
+      <EncouragementCard
+        enc={readOnly
+          ? buildViewerEncouragement(data, appSettings?.parent_names ?? '')
+          : buildEncouragement(data)}
+      />
 
       {!readOnly && (
         <div className="mt-4 grid grid-cols-3 gap-2">

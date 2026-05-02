@@ -7,6 +7,16 @@ from ..models import AppSettings, AppSettingsPatch
 
 router = APIRouter(prefix="/api/settings", tags=["settings"], dependencies=[Depends(require_auth)])
 
+# Public sub-router: a tiny no-auth endpoint so the lock screen can show
+# the configured baby name before the user signs in. Names aren't sensitive,
+# and the lock screen renders the value into the public HTML anyway.
+public_router = APIRouter(prefix="/api/public", tags=["settings"])
+
+
+@public_router.get("/baby-name")
+def public_baby_name() -> dict[str, str]:
+    return {"baby_name": repo.get_settings().get("baby_name") or DEFAULTS["baby_name"]}
+
 
 def _get(s: dict[str, str], key: str) -> str:
     """Read a settings key, falling back to the seed dict in db.py rather
@@ -18,6 +28,8 @@ def _get(s: dict[str, str], key: str) -> str:
 def _current() -> AppSettings:
     s = repo.get_settings()
     return AppSettings(
+        baby_name=_get(s, "baby_name") or "Baby",
+        parent_names=_get(s, "parent_names"),
         day_start_hour=int(_get(s, "day_start_hour")),
         day_start_minute=int(_get(s, "day_start_minute")),
         feeds_per_day=int(_get(s, "feeds_per_day")),
@@ -40,6 +52,10 @@ def get_settings() -> AppSettings:
 @router.patch("", dependencies=[Depends(require_edit)])
 def patch_settings(payload: AppSettingsPatch) -> AppSettings:
     updates: dict[str, str] = {}
+    if payload.baby_name is not None:
+        updates["baby_name"] = payload.baby_name.strip()
+    if payload.parent_names is not None:
+        updates["parent_names"] = payload.parent_names.strip()
     if payload.day_start_hour is not None:
         updates["day_start_hour"] = str(payload.day_start_hour)
     if payload.day_start_minute is not None:

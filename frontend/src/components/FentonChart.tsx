@@ -5,6 +5,7 @@ type Props = {
   weights: Weight[]
   birthDateIso: string
   gestationalAgeWeeks: number
+  babyName: string
   width?: number
   height?: number
 }
@@ -12,17 +13,18 @@ type Props = {
 const COLOR_P50 = 'rgb(212 212 216)'
 const COLOR_P10_P90 = 'rgb(161 161 170)'
 const COLOR_P3 = 'rgb(120 113 108)'
-const COLOR_ZOEY = 'rgb(244 175 195)'
+const COLOR_BABY = 'rgb(244 175 195)'
 
 const DASH_P10_P90 = '3 2'
 const DASH_P3 = '1.5 2.5'
 
-/** Plots Zoey's weight overlaid on the Fenton 2025 girls reference percentile
- *  bands (3rd, 10th, 50th, 90th). PMA on x-axis, weight (g) on y-axis. */
+/** Plots the baby's weight overlaid on the Fenton 2025 girls reference
+ *  percentile bands (3rd, 10th, 50th, 90th). PMA on x-axis, weight (g) on y-axis. */
 export function FentonChart({
   weights,
   birthDateIso,
   gestationalAgeWeeks,
+  babyName,
   width = 320,
   height = 200,
 }: Props) {
@@ -114,15 +116,15 @@ export function FentonChart({
         <path d={buildPath('p90')} fill="none" stroke={COLOR_P10_P90} strokeWidth={0.9} strokeDasharray={DASH_P10_P90} />
 
         {observedPath && (
-          <path d={observedPath} fill="none" stroke={COLOR_ZOEY} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+          <path d={observedPath} fill="none" stroke={COLOR_BABY} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
         )}
         {points.map((p, i) => (
-          <circle key={i} cx={x(p.pma)} cy={y(p.grams)} r={2.2} fill={COLOR_ZOEY} />
+          <circle key={i} cx={x(p.pma)} cy={y(p.grams)} r={2.2} fill={COLOR_BABY} />
         ))}
       </svg>
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-zinc-400 mt-1 px-1">
-        <span><LegendSwatch color={COLOR_ZOEY} />Zoey</span>
+        <span><LegendSwatch color={COLOR_BABY} />{babyName}</span>
         <span><LegendSwatch color={COLOR_P50} />50th (median)</span>
         <span><LegendSwatch color={COLOR_P10_P90} dash={DASH_P10_P90} />10th &amp; 90th</span>
         <span><LegendSwatch color={COLOR_P3} dash={DASH_P3} />3rd</span>

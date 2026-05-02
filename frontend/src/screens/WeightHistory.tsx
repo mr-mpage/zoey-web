@@ -150,6 +150,7 @@ export function WeightHistorySection() {
             weights={weights}
             birthDateIso={appSettings.birth_date}
             gestationalAgeWeeks={appSettings.gestational_age_weeks}
+            babyName={appSettings.baby_name}
           />
         </div>
       )}

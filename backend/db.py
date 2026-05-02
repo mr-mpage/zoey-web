@@ -125,6 +125,15 @@ CREATE INDEX IF NOT EXISTS idx_med_doses_given_at ON med_doses(given_at);
 """
 
 DEFAULTS = {
+    # Baby's name surfaces in screen headers, narratives, and the doctor
+    # report title. Editable in the Settings UI on first run; ships as a
+    # neutral placeholder so a fresh install doesn't carry our daughter's
+    # name on someone else's screen.
+    "baby_name": "Baby",
+    # Parent names — surface in a couple of viewer-mode encouragement
+    # strings ("Max and Sabrina are watching..."). Empty disables those
+    # variants gracefully; default is intentionally generic.
+    "parent_names": "",
     "day_start_hour": "2",
     "day_start_minute": "30",
     "feeds_per_day": "8",

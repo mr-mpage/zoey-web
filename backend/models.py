@@ -208,6 +208,8 @@ class Overview(BaseModel):
 
 
 class AppSettings(BaseModel):
+    baby_name: str = Field(min_length=1, max_length=40)
+    parent_names: str = Field(default="", max_length=80)
     day_start_hour: int = Field(ge=0, le=23)
     day_start_minute: int = Field(ge=0, le=59)
     feeds_per_day: int = Field(ge=4, le=12)
@@ -298,6 +300,8 @@ class MedsToday(BaseModel):
 
 
 class AppSettingsPatch(BaseModel):
+    baby_name: Optional[str] = Field(default=None, min_length=1, max_length=40)
+    parent_names: Optional[str] = Field(default=None, max_length=80)
     day_start_hour: Optional[int] = Field(default=None, ge=0, le=23)
     day_start_minute: Optional[int] = Field(default=None, ge=0, le=59)
     feeds_per_day: Optional[int] = Field(default=None, ge=4, le=12)

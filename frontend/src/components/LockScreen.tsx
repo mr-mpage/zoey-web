@@ -1,7 +1,7 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLogin } from '../api/hooks'
-import { ApiError } from '../api/client'
-import { BABY_NAME, COPYRIGHT_HOLDER } from '../lib/branding'
+import { ApiError, api } from '../api/client'
+import { COPYRIGHT_HOLDER } from '../lib/branding'
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'ok', '0', 'del'] as const
 
@@ -13,8 +13,21 @@ export function LockScreen() {
   const [pin, setPin] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [shake, setShake] = useState(false)
+  const [babyName, setBabyName] = useState('Baby')
   const submittingRef = useRef(false)
   const login = useLogin()
+
+  // Read the configured name from a public endpoint so the lock screen
+  // matches what's set in Settings without needing a build-time constant.
+  // Falls back to the placeholder if the fetch fails (offline / first boot).
+  useEffect(() => {
+    let cancelled = false
+    api
+      .get<{ baby_name: string }>('/api/public/baby-name')
+      .then((r) => { if (!cancelled && r.baby_name) setBabyName(r.baby_name) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
 
   const submit = (code: string) => {
     if (submittingRef.current) return
@@ -75,9 +88,9 @@ export function LockScreen() {
           className="mx-auto mb-1.5 rounded-2xl shadow-lg"
         />
         <div className="text-zinc-400 text-[12px] italic">
-          Following {BABY_NAME}'s first months, one feed at a time.
+          Following {babyName}'s first months, one feed at a time.
         </div>
-        <div className="text-pink-200/90 text-3xl font-light tracking-wide mt-9">{BABY_NAME}</div>
+        <div className="text-pink-200/90 text-3xl font-light tracking-wide mt-9">{babyName}</div>
         <div className="text-zinc-500 text-sm mt-1">{busy ? 'Checking…' : 'Enter passcode'}</div>
       </div>
       <div className={`flex gap-3 mb-12 ${shake ? 'animate-shake' : ''}`}>

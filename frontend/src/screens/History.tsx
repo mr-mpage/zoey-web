@@ -184,6 +184,7 @@ export function HistoryScreen() {
           sparkPoints={sparkPoints}
           diapersByDay={diapersByDay}
           breastByDay={breastByDay}
+          babyName={appSettings?.baby_name ?? 'Baby'}
         />
       )}
     </div>
@@ -206,6 +207,7 @@ type FeedsHistoryProps = {
   sparkPoints: ReturnType<typeof buildSparklinePoints>
   diapersByDay: Map<string, { wet: number; dirty: number }>
   breastByDay: Map<string, { count: number; ml: number; min: number }>
+  babyName: string
 }
 
 function FeedsHistorySection({
@@ -218,6 +220,7 @@ function FeedsHistorySection({
   sparkPoints,
   diapersByDay,
   breastByDay,
+  babyName,
 }: FeedsHistoryProps) {
   return (
     <>
@@ -298,13 +301,13 @@ function FeedsHistorySection({
               return (
                 <div className="mt-3 pt-3 border-t border-zinc-800/60 text-[12px] text-zinc-400 leading-relaxed">
                   <p>
-                    Zoey averaged <span className="tabular-nums text-zinc-200">{recentAvg.toFixed(0)} ml/kg/day</span>{' '}
+                    {babyName} averaged <span className="tabular-nums text-zinc-200">{recentAvg.toFixed(0)} ml/kg/day</span>{' '}
                     over the last {recent.length} day{recent.length === 1 ? '' : 's'}, {where}.
                     {trendNote && <> {trendNote}</>}
                   </p>
                   <p className="text-[11px] text-zinc-500 mt-1.5">
                     "ml/kg/day" is daily intake divided by body weight in kg. Doctors use it because nutritional
-                    needs scale with size, so the same number stays comparable as Zoey grows.
+                    needs scale with size, so the same number stays comparable as {babyName} grows.
                   </p>
                 </div>
               )

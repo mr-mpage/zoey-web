@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useLogout } from '../api/hooks'
+import { useAppSettings, useLogout } from '../api/hooks'
 import { useIsReadOnly } from '../lib/authMode'
 
 type Props = { open: boolean; onClose: () => void }
@@ -63,7 +63,7 @@ const Icons = {
   ),
 }
 
-const EDIT_SECTIONS: Section[] = [
+const buildEditSections = (name: string, _parents: string): Section[] => [
   {
     id: 'today',
     title: 'The Today screen',
@@ -237,7 +237,7 @@ const EDIT_SECTIONS: Section[] = [
         <p className="mb-2">
           Top of the Trends → Pumps tab shows three numbers: today's balance, the 4-day fridge cycle, and the
           rolling 7-day balance. Each is <b>pumped minus bottle-fed</b>: a positive balance (emerald)
-          means more was pumped than Zoey drank from a bottle, so the fridge or freezer is building.
+          means more was pumped than {name} drank from a bottle, so the fridge or freezer is building.
           A negative balance (amber) means stored milk is being drawn down.
         </p>
         <p className="mb-2">
@@ -349,7 +349,7 @@ const EDIT_SECTIONS: Section[] = [
       <>
         <H>What the tab shows</H>
         <p>
-          Per-day summaries of Zoey's heart rate and oxygen saturation while the Owlet sock is on.
+          Per-day summaries of {name}'s heart rate and oxygen saturation while the Owlet sock is on.
           The top card is today, the week chart shows seven days at a glance, the per-day list is the
           detail. Owlet handles real-time alerting on its own; this view is for trends and patterns.
         </p>
@@ -465,7 +465,7 @@ const EDIT_SECTIONS: Section[] = [
   },
 ]
 
-const VIEW_SECTIONS: Section[] = [
+const buildViewSections = (name: string, parents: string): Section[] => [
   {
     id: 'today',
     title: 'The Today screen',
@@ -476,7 +476,7 @@ const VIEW_SECTIONS: Section[] = [
       <>
         <H>The progress ring</H>
         <p className="mb-2">
-          The big circle in the middle shows how much milk Zoey has had today out of her daily target.
+          The big circle in the middle shows how much milk {name} has had today out of her daily target.
           The pink fill grows with each feed. A small light tick on the circle marks where she should be
           right now if she's keeping pace with the day, so you can see ahead/behind at a glance: pink fill
           past the tick = ahead, fill stops short of the tick = behind.
@@ -496,7 +496,7 @@ const VIEW_SECTIONS: Section[] = [
 
         <H>Today's feeds list</H>
         <p>
-          The feeds Zoey has had today, with time, amount, and a small comparison badge that compares each
+          The feeds {name} has had today, with time, amount, and a small comparison badge that compares each
           feed to the same slot from the past week:{' '}
           <span className="text-amber-300">↓ below</span>,{' '}
           <span className="text-emerald-300">≈ normal</span>,{' '}
@@ -624,7 +624,7 @@ const VIEW_SECTIONS: Section[] = [
       <>
         <H>The Fenton 2025 chart</H>
         <p className="mb-2">
-          On the Trends tab → Weight, Zoey's weight history is plotted against the Fenton 2025 girls
+          On the Trends tab → Weight, {name}'s weight history is plotted against the Fenton 2025 girls
           reference percentiles (3rd, 10th, 50th, 90th). The x-axis is{' '}
           <b>postmenstrual age (PMA)</b> — gestational age at birth plus how old she is — which is the
           standard way preterm babies are tracked.
@@ -671,7 +671,7 @@ const VIEW_SECTIONS: Section[] = [
       <>
         <H>What you're seeing</H>
         <p className="mb-2">
-          The Vitals sub-tab shows daily summaries of Zoey's heart rate and oxygen levels from her
+          The Vitals sub-tab shows daily summaries of {name}'s heart rate and oxygen levels from her
           Owlet Dream Sock. Each day shows the heart-rate range (with the average dot), the lowest
           sustained oxygen reading, and how many monitoring sessions there were.
         </p>
@@ -740,15 +740,15 @@ const VIEW_SECTIONS: Section[] = [
       <>
         <H>Read-only by design</H>
         <p>
-          Your passcode opens a viewer session: you can see everything Max and Sabrina see, but you can't
-          add, edit, or delete entries. That's intentional. The app's underlying log is their record, and
+          Your passcode opens a viewer session: you can see everything {parents || 'the parents'} see, but you
+          can't add, edit, or delete entries. That's intentional. The app's underlying log is their record, and
           view sessions can't accidentally change it.
         </p>
 
         <H>How long the session lasts</H>
         <p>
           Viewer sessions last 7 days before they expire. After that you'll be asked for the passcode
-          again. (Max and Sabrina stay logged in for 90 days.)
+          again. ({parents || 'The parents'} stay logged in for 90 days.)
         </p>
 
         <H>Signing out</H>
@@ -769,7 +769,12 @@ const VIEW_SECTIONS: Section[] = [
 export function HelpModal({ open, onClose }: Props) {
   const readOnly = useIsReadOnly()
   const logout = useLogout()
-  const sections = readOnly ? VIEW_SECTIONS : EDIT_SECTIONS
+  const { data: appSettings } = useAppSettings()
+  const babyName = appSettings?.baby_name ?? 'Baby'
+  const parentNames = appSettings?.parent_names ?? ''
+  const sections = readOnly
+    ? buildViewSections(babyName, parentNames)
+    : buildEditSections(babyName, parentNames)
   const [openId, setOpenId] = useState<string | null>(null)
 
   if (!open) return null
@@ -794,8 +799,9 @@ export function HelpModal({ open, onClose }: Props) {
             {readOnly ? (
               <ul className="space-y-1.5 list-disc pl-5 text-zinc-200">
                 <li>
-                  This is a live view of how Zoey is doing. The data updates as soon as Max or Sabrina log
-                  feeds, weights, and diapers.
+                  This is a live view of how {babyName} is doing. The data updates as soon as
+                  {parentNames ? ` ${parentNames.replace(' and ', ' or ')} log` : ' the parents log'}
+                  {' '}feeds, weights, and diapers.
                 </li>
                 <li>
                   Use the tabs at the bottom: <b>Today</b> for the live picture, <b>Overview</b> for a

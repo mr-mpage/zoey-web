@@ -5,9 +5,9 @@ import logging
 from datetime import timedelta
 
 from . import repo
-from .branding import BABY_NAME
 from .comparisons import now_local
 from .config import settings
+from .db import DEFAULTS
 from .push import PushSendResult, send_push
 from .services import compute_next_feed
 
@@ -28,13 +28,16 @@ async def _tick() -> None:
     if not subs:
         return
 
+    baby_name = repo.get_settings().get("baby_name") or DEFAULTS["baby_name"]
     payload = {
-        "title": f"{BABY_NAME} · next feed soon",
+        "title": f"{baby_name} · next feed soon",
         "body": (
             f"Feed #{nf['feed_index']} at "
             f"{expected_at.astimezone().strftime('%H:%M')} · suggest {nf['target_ml']:.0f} ml"
         ),
-        "tag": f"{BABY_NAME.lower()}-feed-reminder",
+        # Static tag (not derived from baby_name) so renaming the baby
+        # mid-day doesn't fragment the notification stack on the device.
+        "tag": "feed-reminder",
         "url": "/",
     }
 

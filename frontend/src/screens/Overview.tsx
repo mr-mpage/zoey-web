@@ -119,7 +119,7 @@ export function OverviewScreen() {
       <div className="text-center text-zinc-500 text-sm mb-1">
         Day {day} · {fmtDateLong(today)}
       </div>
-      <div className="text-center text-zinc-300 text-xl font-light mt-1">How is Zoey doing?</div>
+      <div className="text-center text-zinc-300 text-xl font-light mt-1">How is {appSettings?.baby_name ?? 'baby'} doing?</div>
 
       <div className={`mt-6 rounded-2xl border ${summaryTone.border} ${summaryTone.bg} p-5`}>
         <div className="flex items-center gap-2 mb-3">

@@ -53,11 +53,11 @@ export function PumpsSection() {
           </div>
           <PumpDailyChart pumps={pumps} feeds={feeds ?? []} bottlePrepMl={bottlePrepMl} days={CHART_DAYS} />
           <div className="text-[10px] text-zinc-500 mt-2 leading-relaxed">
-            Each bottle counts at the prep volume ({bottlePrepMl} ml) regardless of how much Zoey
-            actually drank — the leftover is discarded once thawed. Positive balance means Sabrina is
-            pumping faster than the bottles are drawing down storage. The 4-day tile matches how long
-            fresh milk keeps in the fridge. Breastfeeds don't show on either side. Update the prep
-            volume in Settings when bottle size changes.
+            Each bottle counts at the prep volume ({bottlePrepMl} ml) regardless of how much
+            {' '}{appSettings?.baby_name ?? 'baby'} actually drank — the leftover is discarded once
+            thawed. Positive balance means more is being pumped than the bottles are drawing down
+            storage. The 4-day tile matches how long fresh milk keeps in the fridge. Breastfeeds
+            don't show on either side. Update the prep volume in Settings when bottle size changes.
           </div>
         </div>
       )}

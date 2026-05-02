@@ -9,8 +9,12 @@ gaining at the right rate?*
 
 This is a personal app published openly as a working example. It's named for,
 and originally built for, our daughter Zoey (born 35w preterm). To use it for
-your own child, fork it, set the birth context in **Settings**, and update the
-strings that reference "Zoey" if you want them gone.
+your own child, **deploy and open Settings → Baby profile** — name, parent
+names, birth date, GA, and birth weight all live there and flow through the
+app at runtime, including the lock screen and the iOS home-screen install.
+The hand-written one-liners in the Today encouragement card still embed the
+name inline (one-voice writing — see [`encouragement.ts`](frontend/src/lib/encouragement.ts));
+sed those when you fork if the demo strings don't suit you.
 
 <p align="center">
   <img src="docs/screenshots/today.png" alt="Today screen — progress ring, pace chip, next-feed card" width="32%" />

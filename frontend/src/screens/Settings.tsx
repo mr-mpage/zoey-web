@@ -15,7 +15,7 @@ import {
 import { api, ApiError } from '../api/client'
 import { disablePush, enablePush, getState as getPushState, isStandalone } from '../lib/push'
 import { fmtDate, fmtTime } from '../lib/format'
-import type { Med } from '../api/types'
+import type { AppSettings, Med } from '../api/types'
 
 function ViewerPasscodesSection() {
   const { data: viewers } = useViewerPasscodes()
@@ -103,6 +103,7 @@ function PushSection() {
   const [state, setState] = useState<'unsupported' | 'denied' | 'available' | 'enabled' | 'loading'>('loading')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
+  const { data: appSettings } = useAppSettings()
 
   const refresh = async () => {
     setState(await getPushState())
@@ -186,7 +187,7 @@ function PushSection() {
       )}
       {state === 'denied' && (
         <div className="text-zinc-500 text-sm">
-          Permission denied. Enable in iOS Settings → Notifications → Zoey.
+          Permission denied. Enable in iOS Settings → Notifications → {appSettings?.baby_name ?? 'this app'}.
         </div>
       )}
       {state === 'available' && (
@@ -418,6 +419,7 @@ export function SettingsScreen() {
   const [bandLow, setBandLow] = useState<string>('150')
   const [bandSolid, setBandSolid] = useState<string>('165')
   const [bandHigh, setBandHigh] = useState<string>('180')
+  const [babyName, setBabyName] = useState<string>('')
   const [birthDate, setBirthDate] = useState<string>('')
   const [gaWeeks, setGaWeeks] = useState<string>('')
   const [birthWeight, setBirthWeight] = useState<string>('')
@@ -433,6 +435,7 @@ export function SettingsScreen() {
       setBandLow(String(appSettings.target_low_ml_per_kg))
       setBandSolid(String(appSettings.target_solid_ml_per_kg))
       setBandHigh(String(appSettings.target_high_ml_per_kg))
+      setBabyName(appSettings.baby_name)
       setBirthDate(appSettings.birth_date)
       setGaWeeks(String(appSettings.gestational_age_weeks))
       setBirthWeight(String(appSettings.birth_weight_grams))
@@ -453,17 +456,20 @@ export function SettingsScreen() {
     })
   }
 
-  const saveBirth = () => {
-    const ga = parseInt(gaWeeks, 10)
-    const bw = parseInt(birthWeight, 10)
-    if (!birthDate || isNaN(ga) || isNaN(bw)) return
-    if (ga < 22 || ga > 42) return
-    if (bw < 300 || bw > 6000) return
-    updateSettings.mutate({
-      birth_date: birthDate,
-      gestational_age_weeks: ga,
-      birth_weight_grams: bw,
-    })
+  const saveProfile = () => {
+    const updates: Partial<AppSettings> = {}
+    const trimmedName = babyName.trim()
+    if (trimmedName) updates.baby_name = trimmedName
+    if (birthDate) {
+      const ga = parseInt(gaWeeks, 10)
+      const bw = parseInt(birthWeight, 10)
+      if (isNaN(ga) || ga < 22 || ga > 42) return
+      if (isNaN(bw) || bw < 300 || bw > 6000) return
+      updates.birth_date = birthDate
+      updates.gestational_age_weeks = ga
+      updates.birth_weight_grams = bw
+    }
+    if (Object.keys(updates).length) updateSettings.mutate(updates)
   }
 
   const saveBands = () => {
@@ -486,12 +492,26 @@ export function SettingsScreen() {
       <div className="text-center text-zinc-500 text-sm mb-4">Settings</div>
 
       <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">
-        <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Birth profile</div>
+        <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Baby profile</div>
         <p className="text-xs text-zinc-500 mb-3">
-          Used by the PMA-aware growth bands, the Fenton chart, the friendly age in the header, and
-          the milestone chip (e.g. "Back to birth weight").
+          Name appears in screen headers, narratives, push reminders, and the doctor report. Birth
+          fields drive the PMA-aware growth bands, the Fenton chart, the friendly age in the header,
+          and the milestone chip (e.g. "Back to birth weight").
         </p>
         <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <div className="text-sm">Name</div>
+            </div>
+            <input
+              type="text"
+              value={babyName}
+              maxLength={40}
+              onChange={(e) => setBabyName(e.target.value)}
+              className="bg-zinc-800 rounded-lg px-3 py-2 text-center"
+              placeholder="Baby"
+            />
+          </div>
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <div className="text-sm">Birth date</div>
@@ -531,11 +551,11 @@ export function SettingsScreen() {
           </div>
         </div>
         <button
-          onClick={saveBirth}
+          onClick={saveProfile}
           disabled={updateSettings.isPending}
           className="mt-3 w-full py-2.5 rounded-lg bg-pink-300 text-zinc-900 text-sm font-medium disabled:opacity-40"
         >
-          {updateSettings.isPending ? 'Saving…' : 'Save birth profile'}
+          {updateSettings.isPending ? 'Saving…' : 'Save baby profile'}
         </button>
       </div>
 

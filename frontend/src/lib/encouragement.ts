@@ -1,5 +1,4 @@
 import type { Dashboard } from '../api/types'
-import { PARENT_NAMES } from './branding'
 
 export type EncouragementTone = 'celebrate' | 'positive' | 'neutral' | 'concern'
 
@@ -258,7 +257,7 @@ export function buildEncouragement(d: Dashboard): Encouragement {
  *  Same branching as buildEncouragement but no clinical pace numbers, no
  *  next-feed targets, no "aim for" coaching. Honest about lighter-eating
  *  days without being alarming. */
-export function buildViewerEncouragement(d: Dashboard): Encouragement {
+export function buildViewerEncouragement(d: Dashboard, parentNames: string = ''): Encouragement {
   const feedsDone = d.feeds_today.filter((f) => !f.is_extra).length
   const remaining = d.feeds_remaining
   const target = d.daily_target_ml
@@ -329,7 +328,11 @@ export function buildViewerEncouragement(d: Dashboard): Encouragement {
       return {
         tone: 'concern',
         text: pickStable(seedFor('last-behind'), [
-          `Zoey's last feed of the day coming up. A quieter eating day than usual, ${PARENT_NAMES} are watching how she takes it.`,
+          // Parent-name variants are dropped when parent_names is unset
+          // (default for forks); the remaining options stand on their own.
+          ...(parentNames
+            ? [`Zoey's last feed of the day coming up. A quieter eating day than usual, ${parentNames} are watching how she takes it.`]
+            : []),
           "One feed left for Zoey today. She's been a bit lighter than her usual.",
           "Last feed coming up. Today has been a slower one for her appetite.",
         ]),
@@ -367,7 +370,9 @@ export function buildViewerEncouragement(d: Dashboard): Encouragement {
     return {
       tone: 'concern',
       text: pickStable(seedFor('mid-well-behind'), [
-        `A quieter eating day for Zoey so far. ${PARENT_NAMES} are keeping a close eye on it.`,
+        ...(parentNames
+          ? [`A quieter eating day for Zoey so far. ${parentNames} are keeping a close eye on it.`]
+          : []),
         "Zoey has been lighter than usual at the bottle today. Plenty of time still to come.",
         "Today is a slower one for Zoey's appetite. The day isn't over yet.",
       ]),

@@ -122,6 +122,8 @@ export type Overview = {
 }
 
 export type AppSettings = {
+  baby_name: string
+  parent_names: string
   day_start_hour: number
   day_start_minute: number
   feeds_per_day: number
