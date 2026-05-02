@@ -16,7 +16,7 @@ function App() {
   const [helpOpen, setHelpOpen] = useState(false)
 
   if (auth.isLoading) {
-    return <div className="min-h-dvh flex items-center justify-center text-zinc-600">…</div>
+    return <div className="h-full flex items-center justify-center text-zinc-600">…</div>
   }
 
   if (!auth.data?.authenticated) {
@@ -33,13 +33,12 @@ function App() {
 
   return (
     <AuthModeContext.Provider value={{ mode, label }}>
-      {/* Inner-scrolling layout pinned to the viewport with fixed/inset-0
-          rather than h-dvh: in iOS PWA standalone mode the dynamic-viewport
-          height occasionally reports stale values mid-transition, leaving
-          a gap between the bottom of the flex column and the screen edge.
-          fixed/inset-0 sidesteps that — the container is anchored to the
-          visual viewport directly. */}
-      <div className="fixed inset-0 flex flex-col pt-[env(safe-area-inset-top)] overflow-hidden">
+      {/* Inner-scrolling layout: html/body/#root are pinned to the visual
+          viewport in globals.css (`height: 100%; overflow: hidden`), so
+          this `h-full` reliably matches the screen — no `dvh` involved.
+          <main> scrolls; the tab bar is the static last child of the flex
+          column, naturally at the screen bottom. */}
+      <div className="h-full flex flex-col pt-[env(safe-area-inset-top)]">
         <main className="flex-1 overflow-y-auto overscroll-contain">
           {activeTab === 'today' && <TodayScreen />}
           {activeTab === 'overview' && <OverviewScreen />}

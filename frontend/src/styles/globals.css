@@ -6,15 +6,21 @@
   --accent-strong: #e88aa1;
 }
 
+/* Pin html/body/#root to exactly the visual viewport. iOS PWA standalone
+ * mode reports `100dvh` inconsistently around transitions, leaving a gap
+ * between a `fixed inset-0` container and the screen bottom — and `100%`
+ * with `overflow: hidden` on the document chain anchors more reliably
+ * than the dynamic viewport unit. */
 html, body, #root {
   margin: 0;
-  min-height: 100dvh;
+  height: 100%;
+  overflow: hidden;
 }
 
 body {
   @apply bg-[#0f1115] text-zinc-100 font-sans antialiased;
   -webkit-tap-highlight-color: transparent;
-  overscroll-behavior-y: none;
+  overscroll-behavior: none;
 }
 
 button {
