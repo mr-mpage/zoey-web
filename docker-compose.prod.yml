@@ -1,9 +1,12 @@
-# Server-side overlay: server-specific bind mount + tighter resource caps if desired.
-# Used on plexvps as: cp docker-compose.yml + docker-compose.prod.yml to /srv/zoey-tracker/, then
+# Server-side overlay: customise the DB bind-mount and host port to wherever
+# the deployment lives, then layer this over the base file:
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 services:
   zoey-tracker:
     volumes:
+      # Persistent SQLite location on the host. Adjust to wherever your
+      # backup tooling sweeps from.
       - /srv/zoey-tracker/data:/data
     ports:
+      # Bind to localhost only and front the container with a TLS proxy.
       - "127.0.0.1:8087:8000"

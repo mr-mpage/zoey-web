@@ -324,8 +324,6 @@ def vitals_summary_for_range(days: int) -> list[dict]:
     record. Shared by the API router and the doctor PDF report so both
     surfaces report the same numbers.
     """
-    from datetime import date as _date
-
     s = repo.get_settings()
     anchor_h = int(s.get("day_start_hour", "2"))
     anchor_m = int(s.get("day_start_minute", "30"))
@@ -368,7 +366,6 @@ def vitals_summary_for_range(days: int) -> list[dict]:
                 "monitoring_minutes": 0, "session_count": 0,
                 "low_spo2_alert_count": 0, "sample_count": 0,
             })
-    _ = _date  # keep flake happy if someone removes the import later
     return out
 
 

@@ -1,25 +1,17 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from .. import repo
 from ..auth import require_auth, require_edit
-from ..comparisons import TZ, now_local
+from ..comparisons import TZ, normalize_event_time, now_local
 from ..models import Pump, PumpIn, PumpPatch
 
 router = APIRouter(prefix="/api/pumps", tags=["pumps"], dependencies=[Depends(require_auth)])
 
-FUTURE_TOLERANCE = timedelta(minutes=10)
-
 
 def _normalize_time(dt: datetime | None) -> datetime | None:
-    if dt is None:
-        return None
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=TZ)
-    if dt > now_local() + FUTURE_TOLERANCE:
-        raise HTTPException(status_code=422, detail="pumped_at cannot be in the future")
-    return dt
+    return normalize_event_time(dt, field_name="pumped_at")
 
 
 def _row_to_pump(row: dict) -> Pump:

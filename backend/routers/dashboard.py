@@ -92,7 +92,6 @@ def get_dashboard() -> Dashboard:
             )
 
     scheduled = [f for f in feeds_with_cmp if not f.is_extra]
-    extras = [f for f in feeds_with_cmp if f.is_extra]
 
     feeds_total = sum(f.amount_ml for f in feeds_with_cmp)  # includes extras
     feeds_avg = (sum(f.amount_ml for f in scheduled) / len(scheduled)) if scheduled else None
@@ -169,8 +168,6 @@ def get_dashboard() -> Dashboard:
             day_fit = "overflow"
     elif feeds_remaining == 0 and scheduled:
         day_fit = "fits"  # all done, no question of fit
-
-    _ = extras
 
     breast_today = [f for f in feeds_with_cmp if f.method == "breast"]
     return Dashboard(

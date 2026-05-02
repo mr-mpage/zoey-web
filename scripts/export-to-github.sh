@@ -1,11 +1,20 @@
 #!/bin/bash
-# Daily export of Zoey tracker data → CSV/JSON files committed to GitHub.
-# Lives at /srv/zoey-tracker/scripts/export-to-github.sh on the server.
+# Daily export of tracker data → CSV/JSON files committed to a separate
+# git repo. Drop this in cron and point the env vars at your data-backup
+# repo + DB path:
+#
+#   ZOEY_DATA_REPO=/srv/zoey-tracker/data-backup \
+#   ZOEY_DB_PATH=/srv/zoey-tracker/data/zoey.db \
+#   ZOEY_BOT_EMAIL=tracker-bot@example.com \
+#   ZOEY_BOT_NAME="Tracker bot" \
+#       /srv/zoey-tracker/scripts/export-to-github.sh
 
 set -euo pipefail
 
-REPO_DIR=/srv/zoey-tracker/data-backup
-DB_PATH=/srv/zoey-tracker/data/zoey.db
+REPO_DIR="${ZOEY_DATA_REPO:?set ZOEY_DATA_REPO to the data-backup repo path}"
+DB_PATH="${ZOEY_DB_PATH:?set ZOEY_DB_PATH to the live SQLite file}"
+BOT_EMAIL="${ZOEY_BOT_EMAIL:-tracker-bot@example.invalid}"
+BOT_NAME="${ZOEY_BOT_NAME:-Tracker bot}"
 
 cd "$REPO_DIR"
 git pull --rebase --autostash 2>/dev/null || true
@@ -33,7 +42,7 @@ feeds = list(db.execute(
     "FROM feeds ORDER BY fed_at"
 ))
 pumps = list(db.execute("SELECT id, pumped_at, amount_ml, notes FROM pumps ORDER BY pumped_at"))
-weights = list(db.execute("SELECT id, recorded_at, weight_grams, ml_per_kg_per_day, notes FROM weight_entries ORDER BY recorded_at"))
+weights = list(db.execute("SELECT id, recorded_at, weight_grams, ml_per_kg_per_day, notes, is_auto FROM weight_entries ORDER BY recorded_at"))
 diapers = list(db.execute("SELECT id, recorded_at, kind, notes FROM diapers ORDER BY recorded_at"))
 settings = {r["key"]: r["value"] for r in db.execute("SELECT key, value FROM app_settings")}
 # Daily vitals aggregates: tiny and worth backing up. Raw vitals are
@@ -49,7 +58,7 @@ except sqlite3.OperationalError:
 
 write_csv("feeds", feeds, ["id", "fed_at", "amount_ml", "notes", "is_extra", "method", "duration_min", "feeding_day_override"])
 write_csv("pumps", pumps, ["id", "pumped_at", "amount_ml", "notes"])
-write_csv("weights", weights, ["id", "recorded_at", "weight_grams", "ml_per_kg_per_day", "notes"])
+write_csv("weights", weights, ["id", "recorded_at", "weight_grams", "ml_per_kg_per_day", "notes", "is_auto"])
 write_csv("diapers", diapers, ["id", "recorded_at", "kind", "notes"])
 if vitals_daily:
     write_csv("vitals_daily", vitals_daily, [
@@ -117,8 +126,8 @@ if git diff --quiet && git diff --staged --quiet; then
 fi
 
 git add -A
-git -c user.email="zoey-data-bot@example.com" \
-    -c user.name="Zoey data bot" \
+git -c user.email="$BOT_EMAIL" \
+    -c user.name="$BOT_NAME" \
     commit -m "data: $(date +'%Y-%m-%d %H:%M %Z')"
 git push 2>&1 | tail -3
 echo "pushed"

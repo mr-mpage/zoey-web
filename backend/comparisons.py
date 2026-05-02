@@ -37,10 +37,32 @@ def feeding_day_for(dt: datetime, anchor_h: int, anchor_m: int) -> date:
     A feed at 02:30 or later belongs to today's feeding day.
     """
     local = to_local(dt)
-    anchor = time(hour=anchor_h, minute=anchor_m)
-    if local.timetz().replace(tzinfo=None) >= anchor:
+    if local.time() >= time(hour=anchor_h, minute=anchor_m):
         return local.date()
     return local.date() - timedelta(days=1)
+
+
+# Tolerance for "future" timestamps: clients may post slightly ahead of the
+# server clock, so allow a small skew before rejecting fed_at/pumped_at/etc.
+FUTURE_TOLERANCE = timedelta(minutes=10)
+
+
+def normalize_event_time(dt: datetime | None, *, field_name: str) -> datetime | None:
+    """Anchor a naive datetime to local TZ and reject far-future values.
+
+    Shared by feeds/pumps/diapers/meds routers — the rule is the same:
+    accept up to 10 min ahead of now (clock skew), reject anything beyond.
+    Raises HTTPException(422) on rejection. Returns None passthrough when
+    given None so optional fields stay optional."""
+    from fastapi import HTTPException
+
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=TZ)
+    if dt > now_local() + FUTURE_TOLERANCE:
+        raise HTTPException(status_code=422, detail=f"{field_name} cannot be in the future")
+    return dt
 
 
 def feeding_day_bounds(day: date, anchor_h: int, anchor_m: int) -> tuple[datetime, datetime]:
