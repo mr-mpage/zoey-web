@@ -6,16 +6,23 @@
   --accent-strong: #e88aa1;
 }
 
-/* Pin html/body/#root to exactly the visual viewport. iOS PWA standalone
- * mode reports `100dvh` inconsistently around transitions, leaving a gap
- * between a `fixed inset-0` container and the screen bottom — and `100%`
- * with `overflow: hidden` on the document chain anchors more reliably
- * than the dynamic viewport unit. */
+/* iOS PWA standalone reports its viewport height inconsistently via
+ * CSS units (100dvh, 100%, position:fixed boundaries) around launch
+ * and transitions, leaving a gap below bottom-anchored UI. The
+ * VisualViewport API in main.tsx writes the live height into
+ * `--app-height` instead. Fall back to `100dvh` for browsers without
+ * the API. */
+:root { --app-height: 100dvh; }
+
 html, body, #root {
   margin: 0;
-  height: 100%;
+  height: var(--app-height);
   overflow: hidden;
 }
+
+/* Make #root the positioning context for absolutely-pinned overlays
+ * (toast host, help modal) that live alongside the App tree. */
+#root { position: relative; }
 
 body {
   @apply bg-[#0f1115] text-zinc-100 font-sans antialiased;

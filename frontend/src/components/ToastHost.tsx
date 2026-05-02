@@ -50,8 +50,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={api}>
       {children}
       <div
-        className="fixed left-0 right-0 z-50 px-4 max-w-xl mx-auto flex flex-col items-center gap-2 pointer-events-none"
-        // Above the tab bar (~56-60px) plus a margin
+        className="absolute left-0 right-0 z-50 px-4 max-w-xl mx-auto flex flex-col items-center gap-2 pointer-events-none"
+        // Above the tab bar (~56-60px) plus a margin. Absolute against
+        // #root, which is sized to the live VisualViewport — fixed
+        // positioning would inherit iOS's stale viewport report.
         style={{ bottom: 'calc(env(safe-area-inset-bottom) + 76px)' }}
       >
         {toasts.map((t) => {

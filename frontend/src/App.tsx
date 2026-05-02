@@ -33,13 +33,13 @@ function App() {
 
   return (
     <AuthModeContext.Provider value={{ mode, label }}>
-      {/* html/body/#root are locked to height:100% + overflow:hidden in
-          globals.css, so the document never scrolls. <main> is the only
-          scroller; the TabBar is fixed to the visual viewport bottom
-          (cleanest pinning on iOS PWA) and its safe-area padding extends
-          the bar through the home-indicator zone. */}
-      <div className="h-full pt-[env(safe-area-inset-top)]">
-        <main className="h-full overflow-y-auto overscroll-contain pb-[calc(theme(spacing.20)+env(safe-area-inset-bottom))]">
+      {/* The outer is sized to var(--app-height), which is the live
+          VisualViewport height tracked from main.tsx. Children that
+          should pin to the screen edges use position:absolute against
+          this container — not position:fixed, which iOS bounds to its
+          own (inconsistent) visual-viewport report. */}
+      <div className="relative h-full">
+        <main className="absolute inset-0 overflow-y-auto overscroll-contain pt-[env(safe-area-inset-top)] pb-[calc(theme(spacing.20)+env(safe-area-inset-bottom))]">
           {activeTab === 'today' && <TodayScreen />}
           {activeTab === 'overview' && <OverviewScreen />}
           {activeTab === 'history' && <HistoryScreen />}
@@ -50,7 +50,7 @@ function App() {
         <button
           onClick={() => setHelpOpen(true)}
           aria-label="Help"
-          className="fixed right-3 w-9 h-9 rounded-full bg-zinc-900/80 backdrop-blur border border-zinc-800 text-zinc-400 text-base flex items-center justify-center active:scale-95 z-40"
+          className="absolute right-3 w-9 h-9 rounded-full bg-zinc-900/80 backdrop-blur border border-zinc-800 text-zinc-400 text-base flex items-center justify-center active:scale-95 z-40"
           style={{ top: 'calc(env(safe-area-inset-top) + 0.75rem)' }}
         >
           ?

@@ -74,7 +74,7 @@ export function TabBar({
 }) {
   const visible = hideSettings ? TABS.filter((t) => t.id !== 'settings') : TABS
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-30 bg-zinc-950/95 backdrop-blur border-t border-zinc-900 pb-[env(safe-area-inset-bottom)]">
+    <nav className="absolute bottom-0 inset-x-0 z-30 bg-zinc-950/95 backdrop-blur border-t border-zinc-900 pb-[env(safe-area-inset-bottom)]">
       <div
         className="max-w-xl mx-auto grid"
         style={{ gridTemplateColumns: `repeat(${visible.length}, minmax(0, 1fr))` }}
