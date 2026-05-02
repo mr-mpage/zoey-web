@@ -22,37 +22,64 @@ strings that reference "Zoey" if you want them gone.
 
 ## Features
 
-- **Today** — progress ring vs daily target, 7-tier pace chip, next-feed
-  adaptive schedule with catch-up math, per-feed comparison badges (↓ ≈ ↑)
-  against the same feed-of-day from the last 7 days, encouragement card.
-- **Feeds** — bottle and breast (estimated, doesn't pollute bottle averages),
-  scheduled and extras, day-anchor with override picker for boundary feeds,
-  free-text notes for ad-hoc context (fortifier, spit-up, etc.).
-- **Pumps** — 30-day supply chart with rolling 7-day average, day-grouped
-  detail of the last 7 days, edit/delete with undo.
-- **Weight** — append-only manual history plus auto-fill on days without a
-  weigh-in (linear interpolation between manuals, trailing 7-day extrapolation
-  forward), Fenton 2025 girls percentile chart with PMA on the x-axis,
-  per-row gain coloured against PMA-aware bands (Fenton + AAP/ESPGHAN 2022).
-- **Vitals** — per-day HR/SpO2 summaries from Owlet Dream Sock (optional).
-- **Meds** — daily checklist with configurable medications and dose counts.
-- **Diapers** — wet/dirty counters with single-tap log, hydration verdict on
-  the Overview tab.
-- **Overview** — at-a-glance status across Intake, Growth, Today's pace,
-  Hydration.
-- **Reminders** — Web Push 15 min before each scheduled feed, adaptive to her
-  actual rhythm. iOS requires the PWA installed to Home Screen.
-- **Doctor report** — `/api/report?days=14` renders a printable HTML summary
-  (intake table, weight history with gains, all feed notes); manual weights
-  only, so estimates don't bleed into the clinical view. iOS Safari "Save to
-  Files → PDF" handles export.
-- **Read-only sharing** — issue separate viewer PINs so grandparents, family,
-  and the partner-on-night-shift can see live status without being able to
-  log, edit, delete, or reach Settings. The UI hides destructive affordances
-  in viewer mode; the API enforces it independently.
-- **Symmetrical toasts** — every save flashes a confirmation; every delete
-  shows a 5-second undo toast that re-creates the snapshot via the existing
-  POST.
+### 🍼 Daily flow
+
+The screens you tap every three hours.
+
+- **Today** — progress ring vs the daily target, 7-tier pace chip, an
+  adaptive next-feed card with catch-up math, and per-feed comparison badges
+  (↓ ≈ ↑) against the same feed-of-day from the last 7 days.
+- **Feeds** — bottle and breast (estimated, doesn't pollute bottle
+  averages), scheduled + extras, free-text notes for ad-hoc context
+  (fortifier, spit-up, refusal). A day-anchor override picker handles feeds
+  that straddle the 02:30 day boundary cleanly.
+- **Pumps** — 30-day supply chart with rolling 7-day average and a
+  day-grouped detail view; edit + undo on every action.
+- **Diapers** — single-tap wet / dirty counters, with a hydration verdict
+  surfaced on Overview.
+
+### 📈 Growth & clinical
+
+- **Weight** — manual weigh-ins plus auto-fill on days you don't weigh
+  (linear interpolation between manuals, trailing 7-day extrapolation
+  forward), so the daily ml target keeps tracking her actual growth.
+  Real measurements are visually distinct from estimates.
+- **Fenton 2025 percentile chart** — weight history plotted against the
+  girls' reference percentiles on a PMA x-axis. Per-row gain coloured
+  against PMA-aware bands (Fenton + AAP/ESPGHAN 2022).
+- **Vitals** — per-day HR / SpO2 summaries from an Owlet Dream Sock
+  (optional; off if you don't configure credentials).
+- **Meds** — daily checklist with configurable medications and per-med
+  dose counts; one-off "extra" doses without polluting the schedule.
+
+### 🧭 Insight & sharing
+
+- **Overview** — at-a-glance status across Intake, Growth, Today's pace
+  and Hydration. Each indicator carries a short narrative explaining
+  *why* it's coloured the way it is.
+- **Reminders** — Web Push 15 min before each scheduled feed, adaptive to
+  her actual rhythm rather than a rigid grid. iOS requires the PWA
+  installed to the Home Screen.
+- **Doctor report** — `/api/report?days=14` renders a printable HTML
+  summary (intake table, weight history with gains, all feed notes).
+  Manual weights only, so estimates don't bleed into the clinical view.
+  iOS Safari "Save to Files → PDF" handles export.
+- **Read-only sharing** — issue separate viewer PINs so grandparents,
+  family, and the partner-on-night-shift can see live status without
+  being able to log, edit, delete, or reach Settings. The UI hides
+  destructive affordances in viewer mode; the API enforces it
+  independently.
+
+### ✨ Small things
+
+- **Symmetrical toasts** — every save flashes a confirmation; every
+  delete shows a 5-second undo toast that re-creates the snapshot via
+  the existing POST.
+- **Encouragement card on Today** — a friendly one-liner that reads the
+  state of the day and adapts to it (good rhythm vs. low day, last feed
+  coming up, etc.).
+- **Built-in Help modal** — every screen has context-aware notes one tap
+  away, including the clinical references behind the bands and bands.
 
 ## Stack
 
