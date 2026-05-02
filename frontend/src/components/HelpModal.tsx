@@ -6,7 +6,7 @@ type Props = { open: boolean; onClose: () => void }
 
 type Tone = 'emerald' | 'pink' | 'amber' | 'sky' | 'lime' | 'violet' | 'rose'
 
-type Section = {
+export type Section = {
   id: string
   title: string
   blurb: string
@@ -63,7 +63,7 @@ const Icons = {
   ),
 }
 
-const buildEditSections = (name: string, _parents: string): Section[] => [
+export const buildEditSections = (name: string, _parents: string): Section[] => [
   {
     id: 'today',
     title: 'The Today screen',
@@ -465,7 +465,7 @@ const buildEditSections = (name: string, _parents: string): Section[] => [
   },
 ]
 
-const buildViewSections = (name: string, parents: string): Section[] => [
+export const buildViewSections = (name: string, parents: string): Section[] => [
   {
     id: 'today',
     title: 'The Today screen',
