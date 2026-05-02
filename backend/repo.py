@@ -664,3 +664,14 @@ def has_owlet_password() -> bool:
     stored?' without decrypting it."""
     s = get_settings()
     return bool((s.get("owlet_password_encrypted") or "").strip())
+
+
+def get_vitals_enabled() -> bool:
+    """Master toggle for the Vitals UI. Default true so households that
+    use the sock don't have to flip a switch first."""
+    s = get_settings()
+    return (s.get("vitals_enabled") or "true").lower() == "true"
+
+
+def set_vitals_enabled(enabled: bool) -> None:
+    set_settings({"vitals_enabled": "true" if enabled else "false"})

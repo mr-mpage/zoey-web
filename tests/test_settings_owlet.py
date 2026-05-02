@@ -11,7 +11,13 @@ def test_get_returns_unconfigured_state(edit_client):
     r = edit_client.get("/api/settings/owlet")
     assert r.status_code == 200
     body = r.json()
-    assert body == {"email": "", "region": "europe", "has_password": False, "configured": False}
+    assert body == {
+        "enabled": True,
+        "email": "",
+        "region": "europe",
+        "has_password": False,
+        "configured": False,
+    }
 
 
 @patch("backend.routers.settings.start_owlet_poller")
@@ -106,6 +112,35 @@ def test_invalid_region_rejected(edit_client):
         json={"email": "p@example.com", "password": "x", "region": "asia"},
     )
     assert r.status_code == 422
+
+
+@patch("backend.routers.settings.start_owlet_poller")
+def test_toggle_off_hides_without_clearing_credentials(_mock_start, edit_client):
+    """Turning off the Vitals integration toggle must keep the saved
+    email + password — the operator can flip it back on without re-typing."""
+    edit_client.patch(
+        "/api/settings/owlet",
+        json={"email": "p@example.com", "password": "kept", "region": "europe"},
+    )
+    r = edit_client.patch("/api/settings/owlet", json={"enabled": False})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["enabled"] is False
+    assert body["has_password"] is True  # creds preserved
+    assert body["email"] == "p@example.com"
+
+    from backend import repo
+    creds = repo.get_owlet_credentials()
+    assert creds is not None
+    assert creds["password"] == "kept"
+
+
+@patch("backend.routers.settings.start_owlet_poller")
+def test_toggle_default_is_on_for_fresh_install(_mock_start, edit_client):
+    """Default-on is the contract: a household that does use the sock
+    shouldn't need to flip a switch before configuring credentials."""
+    r = edit_client.get("/api/settings/owlet")
+    assert r.json()["enabled"] is True
 
 
 @pytest.mark.asyncio

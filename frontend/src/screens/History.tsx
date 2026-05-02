@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { useAppSettings, useDiapers, useFeeds, useWeight } from '../api/hooks'
+import { useEffect, useMemo, useState } from 'react'
+import { useAppSettings, useDiapers, useFeeds, useOwletSettings, useWeight } from '../api/hooks'
 import { MlPerKgBandLegend, MlPerKgSparkline, buildSparklinePoints } from '../components/MlPerKgSparkline'
 import { feedingDayKeyOfFeed } from '../lib/feedingday'
 import { fmtDate } from '../lib/format'
@@ -37,6 +37,16 @@ function bandTone(mlPerKg: number, b: Bands): string {
 
 export function HistoryScreen() {
   const [tab, setTab] = useState<SubTab>('feeds')
+  const { data: owlet } = useOwletSettings()
+  /* Master toggle controls the Vitals sub-tab. Default true (the
+   * useOwletSettings query is undefined briefly on first paint, in which
+   * case we keep the tab visible to avoid flicker). */
+  const vitalsEnabled = owlet?.enabled ?? true
+  /* If the operator turns off Vitals while sitting on it, snap back to
+   * the default tab so we're not rendering an empty pane. */
+  useEffect(() => {
+    if (!vitalsEnabled && tab === 'vitals') setTab('feeds')
+  }, [vitalsEnabled, tab])
   const { data: feeds } = useFeeds(90)
   const { data: diapers } = useDiapers(90)
   const { data: weight } = useWeight()
@@ -131,7 +141,7 @@ export function HistoryScreen() {
     <div className="px-4 pt-6 pb-28 max-w-xl mx-auto">
       <div className="text-center text-zinc-500 text-sm mb-3">Trends</div>
 
-      <div className="grid grid-cols-4 gap-1 bg-zinc-800/40 rounded-lg p-1 mb-4">
+      <div className={`grid ${vitalsEnabled ? 'grid-cols-4' : 'grid-cols-3'} gap-1 bg-zinc-800/40 rounded-lg p-1 mb-4`}>
         <button
           type="button"
           onClick={() => setTab('feeds')}
@@ -159,20 +169,22 @@ export function HistoryScreen() {
         >
           Weight
         </button>
-        <button
-          type="button"
-          onClick={() => setTab('vitals')}
-          className={`py-2 rounded-md text-sm font-medium transition ${
-            tab === 'vitals' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400'
-          }`}
-        >
-          Vitals
-        </button>
+        {vitalsEnabled && (
+          <button
+            type="button"
+            onClick={() => setTab('vitals')}
+            className={`py-2 rounded-md text-sm font-medium transition ${
+              tab === 'vitals' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-400'
+            }`}
+          >
+            Vitals
+          </button>
+        )}
       </div>
 
       {tab === 'weight' && <WeightHistorySection />}
       {tab === 'pumps' && <PumpsSection />}
-      {tab === 'vitals' && <VitalsHistorySection />}
+      {tab === 'vitals' && vitalsEnabled && <VitalsHistorySection />}
       {tab === 'feeds' && (
         <FeedsHistorySection
           grid={visibleGrid}

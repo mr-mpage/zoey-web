@@ -338,11 +338,14 @@ def _hydration_indicator() -> OverviewIndicator:
 def _vitals_indicator() -> Optional[OverviewIndicator]:
     """Owlet sock aggregates over the last week of completed days.
 
-    Returns None when the integration isn't configured — avoids a permanent
-    'Not configured' card for users who don't have the sock."""
-    from .config import settings as _settings
-    if not _settings.zoey_owlet_email:
+    Returns None when vitals are toggled off in Settings — avoids a permanent
+    'Not configured' card for households that don't use the sock. Stays
+    visible when toggle is on but credentials are missing, so the operator
+    sees the prompt to either configure or disable."""
+    from . import repo
+    if not repo.get_vitals_enabled():
         return None
+    creds_present = repo.get_owlet_credentials() is not None
 
     # Pull 8 to drop today (incomplete) and keep the last 7 completed days.
     from .owlet import vitals_summary_for_range
@@ -353,6 +356,12 @@ def _vitals_indicator() -> Optional[OverviewIndicator]:
         if v["feeding_day"] != today_iso and v["monitoring_minutes"] >= 30
     ]
     if not v_completed:
+        if not creds_present:
+            return OverviewIndicator(
+                key="vitals", title="Vitals", status="unknown",
+                headline="Set Owlet credentials in Settings",
+                detail="Or turn off Vitals in Settings → Owlet vitals to hide this card.",
+            )
         return OverviewIndicator(
             key="vitals", title="Vitals", status="unknown",
             headline="No monitoring yet this week",

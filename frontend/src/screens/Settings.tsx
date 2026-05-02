@@ -22,6 +22,7 @@ import type { AppSettings, Med } from '../api/types'
 function OwletIntegrationSection() {
   const { data: owlet } = useOwletSettings()
   const update = useUpdateOwletSettings()
+  const [enabled, setEnabled] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [passwordTouched, setPasswordTouched] = useState(false)
@@ -34,11 +35,24 @@ function OwletIntegrationSection() {
    * operator actually types something — see the patch payload below. */
   useEffect(() => {
     if (!owlet) return
+    setEnabled(owlet.enabled)
     setEmail(owlet.email)
     setRegion(owlet.region)
     setPassword(owlet.has_password ? '••••••' : '')
     setPasswordTouched(false)
   }, [owlet])
+
+  /* Toggling the master switch saves immediately — feels right for an
+   * on/off control, and the rest of the UI updates the moment the
+   * mutation resolves so the operator sees the Vitals tab appear/
+   * disappear right after they tap. */
+  const toggleEnabled = (next: boolean) => {
+    setEnabled(next)
+    setMsg(null)
+    update.mutate({ enabled: next }, {
+      onSuccess: (s) => setMsg(s.enabled ? 'Vitals enabled' : 'Vitals hidden'),
+    })
+  }
 
   const save = () => {
     setMsg(null)
@@ -52,7 +66,7 @@ function OwletIntegrationSection() {
     if (passwordTouched) patch.password = password
     update.mutate(patch, {
       onSuccess: (s) => {
-        setMsg(s.configured ? 'Saved · poller restarted' : 'Saved · integration disabled')
+        setMsg(s.configured ? 'Saved · poller restarted' : 'Saved · credentials cleared')
         setPasswordTouched(false)
         if (s.has_password) setPassword('••••••')
       },
@@ -76,8 +90,16 @@ function OwletIntegrationSection() {
     )
   }
 
-  const dotClass = owlet?.configured ? 'bg-emerald-300' : 'bg-zinc-600'
-  const statusText = owlet?.configured ? 'Configured · polling active' : 'Not configured'
+  const dotClass = !enabled
+    ? 'bg-zinc-600'
+    : owlet?.configured
+      ? 'bg-emerald-300'
+      : 'bg-amber-300'
+  const statusText = !enabled
+    ? 'Vitals hidden'
+    : owlet?.configured
+      ? 'Configured · polling active'
+      : 'Not configured · set credentials below or turn off above to hide'
 
   return (
     <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">
@@ -86,6 +108,33 @@ function OwletIntegrationSection() {
         Optional. Polls heart rate and SpO₂ from your Owlet Dream Sock account so the Vitals tab
         has data. The password is encrypted at rest in the database.
       </p>
+
+      {/* Master toggle — turn the whole Vitals surface on/off without
+          having to clear credentials. */}
+      <div className="flex items-center justify-between mb-3 rounded-lg bg-zinc-900/40 px-3 py-2.5">
+        <div>
+          <div className="text-sm">Vitals integration</div>
+          <div className="text-[11px] text-zinc-500">
+            {enabled ? 'On — Vitals tab and overview card visible' : 'Off — Vitals UI hidden everywhere'}
+          </div>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={enabled}
+          onClick={() => toggleEnabled(!enabled)}
+          disabled={update.isPending}
+          className={`relative inline-flex w-11 h-6 rounded-full transition-colors ${
+            enabled ? 'bg-pink-300' : 'bg-zinc-700'
+          } disabled:opacity-40`}
+        >
+          <span
+            className={`inline-block w-5 h-5 rounded-full bg-zinc-900 transform transition-transform mt-0.5 ${
+              enabled ? 'translate-x-5' : 'translate-x-0.5'
+            }`}
+          />
+        </button>
+      </div>
 
       <div className="flex items-center gap-2 mb-3 text-[11px]">
         <span className={`w-2 h-2 rounded-full ${dotClass}`} />

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useAppSettings, useLogout } from '../api/hooks'
+import { useAppSettings, useLogout, useOwletSettings } from '../api/hooks'
 import { useIsReadOnly } from '../lib/authMode'
 
 type Props = { open: boolean; onClose: () => void }
@@ -770,11 +770,17 @@ export function HelpModal({ open, onClose }: Props) {
   const readOnly = useIsReadOnly()
   const logout = useLogout()
   const { data: appSettings } = useAppSettings()
+  const { data: owlet } = useOwletSettings()
   const babyName = appSettings?.baby_name ?? 'Baby'
   const parentNames = appSettings?.parent_names ?? ''
-  const sections = readOnly
+  const vitalsEnabled = owlet?.enabled ?? true
+  const allSections = readOnly
     ? buildViewSections(babyName, parentNames)
     : buildEditSections(babyName, parentNames)
+  /* When the master Vitals toggle is off, the Vitals tab + Overview card
+   * disappear from the UI; the Help section about them goes too so the
+   * documentation matches what the operator can actually see. */
+  const sections = vitalsEnabled ? allSections : allSections.filter((s) => s.id !== 'vitals')
   const [openId, setOpenId] = useState<string | null>(null)
 
   if (!open) return null

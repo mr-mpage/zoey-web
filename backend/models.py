@@ -318,6 +318,7 @@ class AppSettingsPatch(BaseModel):
 class OwletSettings(BaseModel):
     """Owlet integration state for the Settings UI. Never returns the
     password — only whether one is stored."""
+    enabled: bool
     email: str
     region: str
     has_password: bool
@@ -325,6 +326,7 @@ class OwletSettings(BaseModel):
 
 
 class OwletSettingsPatch(BaseModel):
+    enabled: Optional[bool] = None
     email: Optional[str] = Field(default=None, max_length=200)
     # password=None means "leave the existing password alone" (so the UI
     # can save email-only edits without forcing the user to re-type the

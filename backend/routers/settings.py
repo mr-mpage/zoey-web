@@ -89,7 +89,9 @@ def _owlet_view() -> OwletSettings:
     email = (s.get("owlet_email") or "").strip()
     region = s.get("owlet_region") or "europe"
     has_password = bool((s.get("owlet_password_encrypted") or "").strip())
+    enabled = (s.get("vitals_enabled") or "true").lower() == "true"
     return OwletSettings(
+        enabled=enabled,
         email=email,
         region=region,
         has_password=has_password,
@@ -115,7 +117,10 @@ async def patch_owlet_settings(payload: OwletSettingsPatch) -> OwletSettings:
     email = payload.email if payload.email is not None else (current.get("owlet_email") or "")
     region = payload.region if payload.region is not None else (current.get("owlet_region") or "europe")
     repo.set_owlet_credentials(email=email, password=payload.password, region=region)
+    if payload.enabled is not None:
+        repo.set_vitals_enabled(payload.enabled)
     # Restart so a freshly-saved password authenticates against Owlet
-    # within seconds, and so a freshly-cleared password stops the loop.
+    # within seconds, and so a freshly-cleared password (or a disabled
+    # toggle) stops the loop.
     await start_owlet_poller()
     return _owlet_view()

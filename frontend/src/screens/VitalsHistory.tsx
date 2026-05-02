@@ -63,8 +63,9 @@ function NotConfiguredCard() {
     <div className="rounded-xl bg-zinc-900/40 p-6 text-center">
       <div className="text-zinc-300 mb-1">Vitals integration not configured</div>
       <p className="text-[12px] text-zinc-500 leading-relaxed">
-        Add Owlet credentials to <code className="text-zinc-400">.env</code> and restart the
-        container. The poller will pick up readings automatically.
+        Open <span className="text-zinc-400">Settings → Owlet vitals</span> to enter your Owlet
+        email and password. The poller picks up readings within seconds. To hide this tab and
+        the Overview card entirely, turn off the Vitals integration switch in the same place.
       </p>
     </div>
   )

@@ -143,6 +143,9 @@ async def owlet_poll_loop() -> None:
     """Outer loop. Authenticates once, then polls every configured interval.
     Re-auths if the API rejects the cached session. Exponential backoff on
     repeated failure, capped at 10 minutes between retries."""
+    if not repo.get_vitals_enabled():
+        log.info("owlet poller: vitals disabled in settings, skipping")
+        return
     creds = repo.get_owlet_credentials()
     if creds is None:
         log.info("owlet poller: no credentials configured, skipping")

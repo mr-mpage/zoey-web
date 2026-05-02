@@ -138,6 +138,11 @@ export type AppSettings = {
 }
 
 export type OwletSettings = {
+  /** Master toggle for the Vitals UI. Default true. When false, the
+   *  Vitals tab, Overview indicator, and HelpModal section are hidden;
+   *  the poller is also stopped. Independent of credentials so the
+   *  operator can keep them stored while temporarily hiding the UI. */
+  enabled: boolean
   email: string
   region: 'europe' | 'world'
   /** Whether a password is currently stored. The plaintext is never
@@ -148,6 +153,7 @@ export type OwletSettings = {
 }
 
 export type OwletSettingsPatch = {
+  enabled?: boolean
   email?: string
   /** undefined → leave the saved password alone. ""  → clear it
    *  (disables the integration). Anything else → new password. */

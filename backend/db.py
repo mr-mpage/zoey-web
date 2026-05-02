@@ -162,6 +162,11 @@ DEFAULTS = {
     "owlet_email": "",
     "owlet_password_encrypted": "",
     "owlet_region": "europe",
+    # Master toggle for the Vitals tab/card/help. Defaults on so families
+    # who do use the sock see it without flipping a setting; turning it
+    # off hides every Vitals reference in the UI for households that
+    # don't use a Dream Sock.
+    "vitals_enabled": "true",
 }
 
 
