@@ -281,8 +281,8 @@ const EDIT_SECTIONS: Section[] = [
 
         <H>Days you don't weigh: auto-fill</H>
         <p className="mb-2">
-          Now that she's home and not weighed every day, days without a manual entry are filled in
-          automatically so the daily ml target keeps tracking her growth. Auto rows are tagged{' '}
+          To keep the daily ml target tracking her growth on days she isn't weighed, the app adds the
+          average daily gain to the last known weight. Auto rows are tagged{' '}
           <span className="text-[9px] uppercase tracking-wider text-amber-300/80 bg-amber-300/10 px-1 py-px rounded">est</span>
           {' '}in the history list and can't be tapped to edit.
         </p>
@@ -638,9 +638,9 @@ const VIEW_SECTIONS: Section[] = [
 
         <H>Auto-fill on days without a weigh-in</H>
         <p>
-          Now that she's home she's not weighed daily, so days without a manual entry are filled in
-          automatically — interpolated between weigh-ins, or extrapolated forward from the latest one
-          using the trailing 7-day gain. Auto rows are tagged{' '}
+          To keep the daily ml target tracking her growth on days she isn't weighed, the app adds the
+          average daily gain to the last known weight — interpolated between weigh-ins, or extrapolated
+          forward from the latest one using the trailing 7-day gain. Auto rows are tagged{' '}
           <span className="text-[9px] uppercase tracking-wider text-amber-300/80 bg-amber-300/10 px-1 py-px rounded">est</span>
           {' '}so you can tell estimated days from real measurements at a glance.
         </p>
