@@ -2,7 +2,11 @@
 FROM node:20-alpine AS frontend-build
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+# `npm install` rather than `npm ci` so the build picks up the
+# linux/x64 variants of optional native deps that aren't recorded in
+# a macOS-generated lockfile. Slightly slower than ci, fine for a
+# small image build.
+RUN npm install --no-audit --no-fund
 COPY frontend/ ./
 RUN npm run build
 

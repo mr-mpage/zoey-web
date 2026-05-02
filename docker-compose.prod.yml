@@ -1,12 +1,14 @@
-# Server-side overlay: customise the DB bind-mount and host port to wherever
-# the deployment lives, then layer this over the base file:
+# Server-side overlay: layer this over the base file at deploy time.
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# The host path and host port are env-driven so the operator can point them
+# at wherever they keep app data without forking this file. Set ZOEY_DATA_DIR
+# (and optionally ZOEY_HOST_PORT) in the .env file alongside the compose
+# file; defaults below are sensible if you don't.
 services:
   zoey-tracker:
     volumes:
-      # Persistent SQLite location on the host. Adjust to wherever your
-      # backup tooling sweeps from.
-      - /srv/zoey-tracker/data:/data
+      - ${ZOEY_DATA_DIR:-/srv/zoey-tracker/data}:/data
     ports:
       # Bind to localhost only and front the container with a TLS proxy.
-      - "127.0.0.1:8087:8000"
+      - "127.0.0.1:${ZOEY_HOST_PORT:-8087}:8000"
