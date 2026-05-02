@@ -131,6 +131,14 @@ When pasting a bcrypt hash into `.env` for `docker-compose`'s `env_file:`,
 escape every `$` as `$$` — Compose interprets a single `$` as a variable
 reference.
 
+If you're running uvicorn directly on plain `http://127.0.0.1` (no TLS proxy
+in front) and the lock screen sticks on "checking…" after you submit the
+passcode, set `COOKIE_SECURE=false` in `.env`. Safari and older Firefox
+silently drop `Secure` cookies on http, which lands the session cookie in
+the bin and the login flow hangs. Chrome treats `127.0.0.1` as a secure
+context and will work with the default. Production must always leave
+`COOKIE_SECURE=true` (the default).
+
 ## Production build
 
 ```bash

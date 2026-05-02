@@ -2,6 +2,7 @@ import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
 from .. import repo
+from ..config import settings
 from ..auth import (
     COOKIE_MAX_AGE_EDIT,
     COOKIE_MAX_AGE_VIEW,
@@ -37,7 +38,7 @@ def login(payload: LoginIn, request: Request, response: Response) -> dict:
             value=token,
             max_age=COOKIE_MAX_AGE_EDIT,
             httponly=True,
-            secure=True,
+            secure=settings.cookie_secure,
             samesite="lax",
             path="/",
         )
@@ -53,7 +54,7 @@ def login(payload: LoginIn, request: Request, response: Response) -> dict:
             value=token,
             max_age=COOKIE_MAX_AGE_VIEW,
             httponly=True,
-            secure=True,
+            secure=settings.cookie_secure,
             samesite="lax",
             path="/",
         )

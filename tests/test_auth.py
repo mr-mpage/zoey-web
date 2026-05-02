@@ -84,3 +84,28 @@ def test_passcode_input_is_length_capped(client):
     + general DoS via large bodies."""
     r = client.post("/api/auth/login", json={"passcode": "x" * 200})
     assert r.status_code == 422
+
+
+def test_session_cookie_is_secure_by_default(client):
+    """Production safety: the session cookie must carry the Secure flag
+    unless an operator explicitly opts out via COOKIE_SECURE=false for
+    plain-http local dev."""
+    from backend import auth
+    auth._attempts.clear()
+    r = client.post("/api/auth/login", json={"passcode": TEST_PASSCODE})
+    assert r.status_code == 200
+    set_cookie = r.headers["set-cookie"]
+    assert "Secure" in set_cookie
+
+
+def test_session_cookie_drops_secure_when_disabled(client, monkeypatch):
+    """COOKIE_SECURE=false escape hatch for local dev over plain http
+    (Safari and older Firefox silently drop Secure cookies on http)."""
+    from backend import auth
+    from backend.config import settings
+    auth._attempts.clear()
+    monkeypatch.setattr(settings, "cookie_secure", False)
+    r = client.post("/api/auth/login", json={"passcode": TEST_PASSCODE})
+    assert r.status_code == 200
+    set_cookie = r.headers["set-cookie"]
+    assert "Secure" not in set_cookie

@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     comparison_threshold_pct: float = 15.0
     session_max_age_days: int = 90
     viewer_session_max_age_days: int = 7
+    # Set to False ONLY for local dev over plain http (e.g. running uvicorn
+    # on http://127.0.0.1 without a TLS proxy). Safari and older Firefox
+    # silently drop Secure cookies on http, which makes login appear to
+    # hang on "checking…". Production must always run behind TLS with this
+    # left at True.
+    cookie_secure: bool = True
     rate_limit_window_min: int = 15
     rate_limit_max_attempts: int = 5
     # Comma-separated CIDRs / IPs that may set X-Forwarded-For. The
