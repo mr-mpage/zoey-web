@@ -20,7 +20,9 @@ from fastapi.responses import HTMLResponse
 
 from .. import repo
 from ..auth import require_auth
+from ..branding import BABY_NAME
 from ..comparisons import (
+    anchor_from_settings,
     feeding_day_bounds,
     feeding_day_for_row,
     now_local,
@@ -61,8 +63,7 @@ def _render(days: int, csp_nonce: str) -> str:
     from datetime import date as _date
     from ..db import DEFAULTS
     s = repo.get_settings()
-    anchor_h = int(s.get("day_start_hour", DEFAULTS["day_start_hour"]))
-    anchor_m = int(s.get("day_start_minute", DEFAULTS["day_start_minute"]))
+    anchor_h, anchor_m = anchor_from_settings(s)
     birth_iso = s.get("birth_date") or _date.today().isoformat()
     ga_weeks = int(s.get("gestational_age_weeks", DEFAULTS["gestational_age_weeks"]))
     birth_weight = int(s.get("birth_weight_grams", "0"))
@@ -355,7 +356,7 @@ def _render(days: int, csp_nonce: str) -> str:
         if snap_lines else ""
     )
 
-    title = f"Zoey · Feeding & growth report · last {days} days"
+    title = f"{BABY_NAME} · Feeding & growth report · last {days} days"
 
     html = f"""<!doctype html>
 <html lang=en>
@@ -417,7 +418,7 @@ def _render(days: int, csp_nonce: str) -> str:
     <button class=primary id=btn-print>Print / Save PDF</button>
     <button id=btn-close>Close</button>
   </div>
-  <h1>Zoey — feeding &amp; growth report</h1>
+  <h1>{escape(BABY_NAME)} — feeding &amp; growth report</h1>
   <div class=meta>
     Born <strong>{escape(birth_iso)}</strong> at <strong>{ga_weeks}w</strong> GA ·
     Today <strong>day {postnatal_days}</strong> postnatal · PMA <strong>{pma_now:.1f}w</strong>
@@ -465,7 +466,7 @@ def _render(days: int, csp_nonce: str) -> str:
   </table>
 
   <div class=footer>
-    Generated {now_local().strftime('%Y-%m-%d %H:%M %Z')} from Zoey Tracker.
+    Generated {now_local().strftime('%Y-%m-%d %H:%M %Z')} from {escape(BABY_NAME)} Tracker.
     Bottle ml/kg/day uses the weight on (or most recently before) each day.
     Days with no intake data are omitted from the daily table.
   </div>

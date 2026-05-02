@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useLogin } from '../api/hooks'
 import { ApiError } from '../api/client'
+import { BABY_NAME, COPYRIGHT_HOLDER } from '../lib/branding'
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'ok', '0', 'del'] as const
 
@@ -74,9 +75,9 @@ export function LockScreen() {
           className="mx-auto mb-1.5 rounded-2xl shadow-lg"
         />
         <div className="text-zinc-400 text-[12px] italic">
-          Following Zoey's first months, one feed at a time.
+          Following {BABY_NAME}'s first months, one feed at a time.
         </div>
-        <div className="text-pink-200/90 text-3xl font-light tracking-wide mt-9">Zoey</div>
+        <div className="text-pink-200/90 text-3xl font-light tracking-wide mt-9">{BABY_NAME}</div>
         <div className="text-zinc-500 text-sm mt-1">{busy ? 'Checking…' : 'Enter passcode'}</div>
       </div>
       <div className={`flex gap-3 mb-12 ${shake ? 'animate-shake' : ''}`}>
@@ -116,7 +117,7 @@ export function LockScreen() {
           )
         })}
       </div>
-      <div className="mt-10 text-[10px] text-zinc-600">© {new Date().getFullYear()} The Page Family</div>
+      <div className="mt-10 text-[10px] text-zinc-600">© {new Date().getFullYear()} {COPYRIGHT_HOLDER}</div>
     </div>
   )
 }

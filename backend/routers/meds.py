@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from .. import repo
 from ..auth import require_auth, require_edit
-from ..comparisons import feeding_day_bounds, feeding_day_for, now_local
+from ..comparisons import feeding_day_bounds, feeding_day_for, now_local, read_anchor
 from ..models import (
     Med,
     MedDose,
@@ -20,11 +20,6 @@ from ..models import (
 )
 
 router = APIRouter(prefix="/api", tags=["meds"], dependencies=[Depends(require_auth)])
-
-
-def _read_anchor() -> tuple[int, int]:
-    s = repo.get_settings()
-    return int(s.get("day_start_hour", "2")), int(s.get("day_start_minute", "30"))
 
 
 def _row_to_med(row: dict) -> Med:
@@ -107,33 +102,22 @@ def archive_med(med_id: int) -> None:
 def _feeding_day_for_dose(given_at: datetime, override: Optional[str]) -> str:
     if override:
         return override
-    anchor_h, anchor_m = _read_anchor()
+    anchor_h, anchor_m = read_anchor()
     return feeding_day_for(given_at, anchor_h, anchor_m).isoformat()
 
 
 @router.get("/meds/today")
 def get_meds_today() -> MedsToday:
     """Today's checklist + extras + one-offs for the current feeding day."""
-    anchor_h, anchor_m = _read_anchor()
+    anchor_h, anchor_m = read_anchor()
     today = feeding_day_for(now_local(), anchor_h, anchor_m)
     start, end = feeding_day_bounds(today, anchor_h, anchor_m)
 
     meds = repo.list_meds(include_archived=False)
     med_lookup = {m["id"]: m for m in meds}
 
-    # Pull doses for the day. Honour feeding_day_override for boundary fixes.
     today_iso = today.isoformat()
-    doses_window = repo.list_med_doses_between(start, end)
-    overrides = [
-        d for d in repo.list_med_doses_recent(limit=400)
-        if d["feeding_day_override"] == today_iso and d not in doses_window
-    ]
-    excluded_overrides = [
-        d for d in doses_window
-        if d["feeding_day_override"] and d["feeding_day_override"] != today_iso
-    ]
-    doses = [d for d in doses_window if d not in excluded_overrides] + overrides
-    doses.sort(key=lambda d: d["given_at"])
+    doses = repo.list_med_doses_for_feeding_day(today_iso, start, end)
 
     rows: list[MedTodayRow] = []
     for med in meds:
@@ -167,7 +151,7 @@ def get_meds_today() -> MedsToday:
 @router.get("/meds/doses")
 def list_doses(days: int = 14) -> list[MedDoseWithMed]:
     """Recent doses grouped client-side. Caller picks the window in days."""
-    anchor_h, anchor_m = _read_anchor()
+    anchor_h, anchor_m = read_anchor()
     today = feeding_day_for(now_local(), anchor_h, anchor_m)
     end = feeding_day_bounds(today, anchor_h, anchor_m)[1]
     start = feeding_day_bounds(today, anchor_h, anchor_m)[0]
@@ -193,25 +177,18 @@ def create_dose(payload: MedDoseIn) -> MedDose:
     if payload.med_id is not None:
         med = repo.get_med(payload.med_id)
         assert med is not None
-        anchor_h, anchor_m = _read_anchor()
+        anchor_h, anchor_m = read_anchor()
         fd = (
             payload.feeding_day_override
             or feeding_day_for(given_at, anchor_h, anchor_m).isoformat()
         )
-        # Count existing doses of this med in that feeding day.
         from datetime import date as _date
         d = _date.fromisoformat(fd)
         start, end = feeding_day_bounds(d, anchor_h, anchor_m)
         existing = [
-            x for x in repo.list_med_doses_between(start, end)
+            x for x in repo.list_med_doses_for_feeding_day(fd, start, end)
             if x["med_id"] == payload.med_id
         ]
-        if (payload.feeding_day_override or "") and not existing:
-            # If the override targets a day, query that day.
-            existing = [
-                x for x in repo.list_med_doses_recent(limit=400)
-                if x["med_id"] == payload.med_id and x["feeding_day_override"] == fd
-            ]
         is_extra = len(existing) >= med["doses_per_day"]
 
     new_id = repo.insert_med_dose(

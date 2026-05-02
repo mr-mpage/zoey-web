@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     zoey_owlet_password: str = ""
     zoey_owlet_region: str = "europe"  # "world" or "europe"
     owlet_poll_interval_s: int = 120
+    # Two consecutive monitoring samples are considered "the same session"
+    # when their gap is below this threshold; a longer gap starts a new
+    # session in the daily aggregate. Tuned so brief sock-off/charge breaks
+    # don't fragment what's really one night of sleep.
+    vitals_session_gap_minutes: int = 15
     # Tiered retention for raw vitals: keep N days raw (so we can recompute
     # aggregates if the formula changes); roll older days into vitals_daily
     # and delete the raw rows.

@@ -4,6 +4,8 @@ regenerator. Drift here would scramble four user-facing surfaces."""
 
 from datetime import date
 
+import pytest
+
 from backend.growth import (
     daily_gains,
     expected_gain_range,
@@ -102,9 +104,8 @@ def test_rolling_gain_basic_slope():
         _w(2, "2026-04-28T09:00:00+02:00", 2370),  # +90g over 3 days = 30g/day
     ]
     rate = rolling_gain_g_per_kg_per_day(weights, window_days=7)
-    # 30 g/day on a 2.37 kg latest = ~12.66 g/kg/day
-    assert rate is not None
-    assert 12.5 < rate < 12.8
+    # 30 g/day on a 2.37 kg latest = 30 / 2.37 = 12.6582… g/kg/day
+    assert rate == pytest.approx(12.658, abs=1e-3)
 
 
 def test_rolling_gain_window_uses_only_within_range():
@@ -116,9 +117,8 @@ def test_rolling_gain_window_uses_only_within_range():
     ]
     rate = rolling_gain_g_per_kg_per_day(weights, window_days=7)
     # Should anchor on entry 2 (within 7 days of latest), not entry 1.
-    # (2370 - 2280) / 3 days / 2.37 kg ≈ 12.66
-    assert rate is not None
-    assert 12.5 < rate < 12.8
+    # (2370 - 2280) / 3 days / 2.37 kg = 12.6582…
+    assert rate == pytest.approx(12.658, abs=1e-3)
 
 
 # ─── daily_gains ─────────────────────────────────────────────────────────

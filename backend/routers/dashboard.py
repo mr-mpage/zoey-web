@@ -10,6 +10,8 @@ from ..comparisons import (
     historical_comparison,
     index_feeds_by_feeding_day,
     now_local,
+    pace_tier,
+    read_anchor,
 )
 from ..config import settings as cfg
 from ..models import (
@@ -24,9 +26,6 @@ from . import weight as weight_router
 router = APIRouter(prefix="/api", tags=["dashboard"], dependencies=[Depends(require_auth)])
 
 
-def _read_anchor() -> tuple[int, int]:
-    s = repo.get_settings()
-    return int(s.get("day_start_hour", "2")), int(s.get("day_start_minute", "30"))
 
 
 def _read_feeds_per_day() -> int:
@@ -36,7 +35,7 @@ def _read_feeds_per_day() -> int:
 
 @router.get("/dashboard")
 def get_dashboard() -> Dashboard:
-    anchor_h, anchor_m = _read_anchor()
+    anchor_h, anchor_m = read_anchor()
     feeds_per_day = _read_feeds_per_day()
     today = feeding_day_for(now_local(), anchor_h, anchor_m)
     today_start, today_end = feeding_day_bounds(today, anchor_h, anchor_m)
@@ -100,21 +99,11 @@ def get_dashboard() -> Dashboard:
     expected_so_far = per_feed_target * len(scheduled)
     gap_ml = feeds_total - expected_so_far  # extras count as "ahead" since total > expected
 
-    # Pace classification — 7 tiers with mirrored boundaries.
-    #   |gap| / expected_so_far:
-    #     ≤ 5%   on_track
-    #     5–10%  slightly_behind / slightly_ahead
-    #     10–20% behind / ahead
-    #     > 20%  well_behind / well_ahead
-    pace_status = "on_track"
-    if daily_target > 0 and scheduled and expected_so_far > 0:
-        pct = abs(gap_ml) / expected_so_far
-        if pct <= 0.05:
-            pace_status = "on_track"
-        elif gap_ml < 0:
-            pace_status = "well_behind" if pct >= 0.20 else ("behind" if pct >= 0.10 else "slightly_behind")
-        else:
-            pace_status = "well_ahead" if pct >= 0.20 else ("ahead" if pct >= 0.10 else "slightly_ahead")
+    pace_status = (
+        pace_tier(gap_ml, expected_so_far)
+        if daily_target > 0 and scheduled
+        else "on_track"
+    )
 
     interval = timedelta(hours=24 / feeds_per_day)
 

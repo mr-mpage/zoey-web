@@ -5,6 +5,7 @@ import logging
 from datetime import timedelta
 
 from . import repo
+from .branding import BABY_NAME
 from .comparisons import now_local
 from .config import settings
 from .push import PushSendResult, send_push
@@ -28,12 +29,12 @@ async def _tick() -> None:
         return
 
     payload = {
-        "title": "Zoey · next feed soon",
+        "title": f"{BABY_NAME} · next feed soon",
         "body": (
             f"Feed #{nf['feed_index']} at "
             f"{expected_at.astimezone().strftime('%H:%M')} · suggest {nf['target_ml']:.0f} ml"
         ),
-        "tag": "zoey-feed-reminder",
+        "tag": f"{BABY_NAME.lower()}-feed-reminder",
         "url": "/",
     }
 

@@ -64,7 +64,8 @@ def test_viewer_session_cannot_list_push_subscriptions(viewer_client):
 
 def test_rate_limit_kicks_in_after_max_attempts(client, monkeypatch):
     """Five wrong passcode attempts in the window → 429 on the sixth.
-    Test client peer is 'testclient' which is in the trusted-proxy set."""
+    Test client's peer ('testclient') is non-IP and therefore untrusted, so
+    XFF is ignored and the bucket key is the peer string itself."""
     from backend import auth
     # Reset the in-memory bucket so we don't pick up state from earlier tests.
     auth._attempts.clear()

@@ -1,3 +1,4 @@
+import ipaddress
 import time
 from collections import defaultdict, deque
 from typing import Deque, Optional
@@ -55,13 +56,21 @@ def issue_token(payload: str = "edit") -> str:
     return _signer.sign(payload.encode()).decode()
 
 
+def _is_view_payload(payload: str) -> bool:
+    return payload.startswith("view:")
+
+
+def _is_valid_payload(payload: str) -> bool:
+    return payload == "edit" or _is_view_payload(payload)
+
+
 def auth_mode(request: Request) -> Optional[str]:
     """Returns the auth payload from the cookie, or None.
 
     Payload is either ``'edit'`` (full-access session) or ``'view:<label>'``
     (read-only session for the named viewer). View sessions use a shorter
-    max age, so we re-validate against that window when the payload starts
-    with ``view``.
+    max age, so we re-validate against that window when the payload is a
+    view session.
     """
     token = request.cookies.get(COOKIE_NAME)
     if not token:
@@ -70,7 +79,9 @@ def auth_mode(request: Request) -> Optional[str]:
         payload = _signer.unsign(token.encode(), max_age=COOKIE_MAX_AGE_EDIT).decode()
     except BadSignature:
         return None
-    if payload.startswith("view"):
+    if not _is_valid_payload(payload):
+        return None
+    if _is_view_payload(payload):
         try:
             _signer.unsign(token.encode(), max_age=COOKIE_MAX_AGE_VIEW)
         except BadSignature:
@@ -84,7 +95,9 @@ def token_valid(token: str) -> bool:
         payload = _signer.unsign(token.encode(), max_age=COOKIE_MAX_AGE_EDIT).decode()
     except BadSignature:
         return False
-    if payload.startswith("view"):
+    if not _is_valid_payload(payload):
+        return False
+    if _is_view_payload(payload):
         try:
             _signer.unsign(token.encode(), max_age=COOKIE_MAX_AGE_VIEW)
         except BadSignature:
@@ -92,18 +105,44 @@ def token_valid(token: str) -> bool:
     return True
 
 
-_TRUSTED_PROXIES = {p.strip() for p in settings.trusted_proxies.split(",") if p.strip()}
+def _parse_trusted_networks(raw: str) -> list[ipaddress._BaseNetwork]:
+    """Parse comma-separated IPs and CIDRs into ip_network objects.
+
+    A bare IP is treated as a /32 (or /128 for IPv6). Unparseable entries
+    are skipped silently — bad config shouldn't take the app down, and
+    refusing all XFF is the safe default."""
+    nets: list[ipaddress._BaseNetwork] = []
+    for entry in raw.split(","):
+        entry = entry.strip()
+        if not entry:
+            continue
+        try:
+            nets.append(ipaddress.ip_network(entry, strict=False))
+        except ValueError:
+            continue
+    return nets
+
+
+_TRUSTED_NETWORKS = _parse_trusted_networks(settings.trusted_proxies)
+
+
+def _peer_is_trusted(peer: str) -> bool:
+    try:
+        addr = ipaddress.ip_address(peer)
+    except ValueError:
+        return False
+    return any(addr in net for net in _TRUSTED_NETWORKS)
 
 
 def client_ip(request: Request) -> str:
     """Resolve the client IP for rate-limiting.
 
-    Honours X-Forwarded-For only when the immediate peer is in
-    ``trusted_proxies`` (default: loopback). Otherwise an attacker
-    hitting the FastAPI port directly could spoof XFF and bypass the
-    per-IP attempt limiter."""
+    Honours X-Forwarded-For only when the immediate peer falls in a
+    network listed in ``trusted_proxies`` (default: loopback). Otherwise
+    an attacker hitting the FastAPI port directly could spoof XFF and
+    bypass the per-IP attempt limiter."""
     peer = request.client.host if request.client else None
-    if peer and peer in _TRUSTED_PROXIES:
+    if peer and _peer_is_trusted(peer):
         fwd = request.headers.get("x-forwarded-for")
         if fwd:
             return fwd.split(",")[0].strip()

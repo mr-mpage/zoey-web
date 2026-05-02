@@ -61,10 +61,8 @@ describe('rollingGainRate', () => {
       w(2, '2026-04-28T09:00:00+02:00', 2370), // +90g over 3 days
     ]
     const rate = rollingGainRate(weights, 7)
-    // 30 g/day on 2.37 kg latest ≈ 12.66 g/kg/day
-    expect(rate).not.toBeNull()
-    expect(rate!).toBeGreaterThan(12.5)
-    expect(rate!).toBeLessThan(12.8)
+    // 30 g/day on 2.37 kg latest = 30 / 2.37 = 12.6582… g/kg/day
+    expect(rate).toBeCloseTo(12.658, 2)
   })
 
   it('ignores entries outside the rolling window', () => {
@@ -74,8 +72,7 @@ describe('rollingGainRate', () => {
       w(3, '2026-04-28T09:00:00+02:00', 2370),
     ]
     const rate = rollingGainRate(weights, 7)
-    expect(rate!).toBeGreaterThan(12.5)
-    expect(rate!).toBeLessThan(12.8)
+    expect(rate).toBeCloseTo(12.658, 2)
   })
 })
 
@@ -137,11 +134,16 @@ describe('gainsBetweenEntries', () => {
 })
 
 describe('pmaAndPostnatal', () => {
-  it('returns ga + days/7 from the birth date to today', () => {
-    /* This depends on Date.now() so we just sanity-check the shape rather
-     * than freeze a specific value. */
-    const r = pmaAndPostnatal('2026-04-15', 35)
-    expect(r.postnatalDays).toBeGreaterThanOrEqual(0)
-    expect(r.pma).toBeGreaterThanOrEqual(35)
+  it('returns ga + days/7 from the birth date to the supplied "today"', () => {
+    /* 21 days from birth → +3 weeks of PMA on top of 35w GA. */
+    const r = pmaAndPostnatal('2026-04-15', 35, new Date('2026-05-06T12:00:00+02:00'))
+    expect(r.postnatalDays).toBe(21)
+    expect(r.pma).toBeCloseTo(38, 5)
+  })
+
+  it('clamps negative ages (today before birth) to 0 days / GA', () => {
+    const r = pmaAndPostnatal('2026-04-15', 35, new Date('2026-04-10T12:00:00+02:00'))
+    expect(r.postnatalDays).toBe(0)
+    expect(r.pma).toBe(35)
   })
 })

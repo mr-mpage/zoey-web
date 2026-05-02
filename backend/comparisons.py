@@ -11,9 +11,29 @@ from typing import Iterable
 from zoneinfo import ZoneInfo
 
 from .config import settings
+from .db import DEFAULTS
 from .models import FeedComparison
 
 TZ = ZoneInfo(settings.tz)
+
+
+def anchor_from_settings(s: dict[str, str]) -> tuple[int, int]:
+    """Read the (hour, minute) feeding-day anchor from a settings dict.
+
+    Single source of truth for the fallback values, which previously sat
+    as bare string literals at every call site."""
+    return (
+        int(s.get("day_start_hour", DEFAULTS["day_start_hour"])),
+        int(s.get("day_start_minute", DEFAULTS["day_start_minute"])),
+    )
+
+
+def read_anchor() -> tuple[int, int]:
+    """Convenience wrapper that pulls settings from the repo and parses
+    the anchor in one call. Use when you don't already have a settings
+    dict in hand."""
+    from . import repo  # local import to avoid a cycle at module load
+    return anchor_from_settings(repo.get_settings())
 
 
 def to_local(dt_str: str | datetime) -> datetime:
@@ -139,6 +159,42 @@ def historical_comparison(
         max_ml=max(samples),
         sample_days=len(samples),
     )
+
+
+PACE_TIERS = (
+    "well_behind",
+    "behind",
+    "slightly_behind",
+    "on_track",
+    "slightly_ahead",
+    "ahead",
+    "well_ahead",
+)
+
+
+def pace_tier(gap_ml: float, expected_so_far: float) -> str:
+    """Classify today's running gap-vs-expected into a 7-tier pace label.
+
+    Boundaries (mirrored above/below):
+        |gap| / expected ≤ 5%     → on_track
+        5–10%                     → slightly_{behind,ahead}
+        10–20%                    → {behind,ahead}
+        > 20%                     → well_{behind,ahead}
+
+    `expected_so_far` ≤ 0 (no scheduled feeds yet today) is treated as on_track.
+    """
+    if expected_so_far <= 0:
+        return "on_track"
+    pct = abs(gap_ml) / expected_so_far
+    if pct <= 0.05:
+        return "on_track"
+    if gap_ml < 0:
+        if pct >= 0.20:
+            return "well_behind"
+        return "behind" if pct >= 0.10 else "slightly_behind"
+    if pct >= 0.20:
+        return "well_ahead"
+    return "ahead" if pct >= 0.10 else "slightly_ahead"
 
 
 def status_for(amount_ml: float, comparison: FeedComparison, threshold_pct: float) -> str:

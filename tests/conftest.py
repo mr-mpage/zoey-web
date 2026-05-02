@@ -26,9 +26,10 @@ _BCRYPT_HASH = bcrypt.hashpw(TEST_PASSCODE.encode(), bcrypt.gensalt(rounds=4)).d
 os.environ["SESSION_SECRET"] = "test-session-secret-do-not-use-in-prod"
 os.environ["ZOEY_PASSCODE_HASH"] = _BCRYPT_HASH
 os.environ.setdefault("DB_PATH", str(Path(tempfile.mkdtemp()) / "bootstrap.db"))
-# Loopback so the trusted-proxy check accepts the test client's XFF header
-# when we want to spoof an IP per test (rate-limit test).
-os.environ.setdefault("TRUSTED_PROXIES", "127.0.0.1,testclient")
+# Loopback only — the test client's peer is the non-IP literal "testclient",
+# which is never trusted, so XFF spoofing in tests would be ignored. Tests
+# that need a stable bucket key just rely on the peer.
+os.environ.setdefault("TRUSTED_PROXIES", "127.0.0.1")
 
 import pytest
 from fastapi.testclient import TestClient

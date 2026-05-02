@@ -71,11 +71,15 @@ export function gainTone(gpkpd: number, pmaWeeks?: number, postnatalDays?: numbe
   return 'text-rose-400'
 }
 
-/** Helper to compute PMA + postnatal days from birth date and GA at birth. */
-export function pmaAndPostnatal(birthDateIso: string, gestationalAgeWeeks: number): { pma: number; postnatalDays: number } {
+/** Helper to compute PMA + postnatal days from birth date and GA at birth.
+ *  `today` is injectable for tests; defaults to the current wall clock. */
+export function pmaAndPostnatal(
+  birthDateIso: string,
+  gestationalAgeWeeks: number,
+  today: Date = new Date(),
+): { pma: number; postnatalDays: number } {
   const birth = new Date(birthDateIso + 'T00:00:00')
-  const now = new Date()
-  const days = Math.max(0, Math.floor((now.getTime() - birth.getTime()) / 86_400_000))
+  const days = Math.max(0, Math.floor((today.getTime() - birth.getTime()) / 86_400_000))
   return { pma: gestationalAgeWeeks + days / 7, postnatalDays: days }
 }
 

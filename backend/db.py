@@ -151,6 +151,10 @@ def init_db() -> None:
     path = db_file()
     path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(path) as conn:
+        # WAL is a per-database persistent setting; one set on init carries
+        # forward. Keeps readers from being blocked by the background tasks
+        # (push scheduler, owlet poller, vitals compaction).
+        conn.execute("PRAGMA journal_mode=WAL")
         conn.executescript(SCHEMA)
         # Seed today's date as birth_date so a fresh install doesn't
         # ship someone else's child's birthday in the DB. Operator should

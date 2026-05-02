@@ -576,6 +576,27 @@ def list_med_doses_recent(limit: int = 200) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def list_med_doses_for_feeding_day(day_iso: str, start: datetime, end: datetime) -> list[dict]:
+    """Doses belonging to a feeding day, honouring overrides correctly.
+
+    A dose belongs to feeding day D if either:
+      - its feeding_day_override == D, or
+      - it has no override AND its given_at falls in D's wall-clock window.
+
+    A dose with override pointing *away* from D is excluded even if its
+    given_at sits in D's window."""
+    with get_conn() as c:
+        rows = c.execute(
+            "SELECT id, med_id, name, given_at, notes, is_extra, feeding_day_override "
+            "FROM med_doses "
+            "WHERE feeding_day_override = ? "
+            "   OR (feeding_day_override IS NULL AND given_at >= ? AND given_at < ?) "
+            "ORDER BY given_at ASC",
+            (day_iso, start.isoformat(), end.isoformat()),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def get_med_dose(dose_id: int) -> Optional[dict]:
     with get_conn() as c:
         row = c.execute(

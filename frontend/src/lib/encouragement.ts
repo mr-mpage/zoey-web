@@ -1,4 +1,5 @@
 import type { Dashboard } from '../api/types'
+import { PARENT_NAMES } from './branding'
 
 export type EncouragementTone = 'celebrate' | 'positive' | 'neutral' | 'concern'
 
@@ -328,7 +329,7 @@ export function buildViewerEncouragement(d: Dashboard): Encouragement {
       return {
         tone: 'concern',
         text: pickStable(seedFor('last-behind'), [
-          "Zoey's last feed of the day coming up. A quieter eating day than usual, Max and Sabrina are watching how she takes it.",
+          `Zoey's last feed of the day coming up. A quieter eating day than usual, ${PARENT_NAMES} are watching how she takes it.`,
           "One feed left for Zoey today. She's been a bit lighter than her usual.",
           "Last feed coming up. Today has been a slower one for her appetite.",
         ]),
@@ -366,7 +367,7 @@ export function buildViewerEncouragement(d: Dashboard): Encouragement {
     return {
       tone: 'concern',
       text: pickStable(seedFor('mid-well-behind'), [
-        "A quieter eating day for Zoey so far. Max and Sabrina are keeping a close eye on it.",
+        `A quieter eating day for Zoey so far. ${PARENT_NAMES} are keeping a close eye on it.`,
         "Zoey has been lighter than usual at the bottle today. Plenty of time still to come.",
         "Today is a slower one for Zoey's appetite. The day isn't over yet.",
       ]),

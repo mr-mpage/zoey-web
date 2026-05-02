@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, Query
 
 from .. import repo
 from ..auth import require_auth
-from ..comparisons import feeding_day_for, now_local
+from ..comparisons import anchor_from_settings, feeding_day_for, now_local
 from ..config import settings
 from ..owlet import aggregate_for_feeding_day
 
@@ -23,8 +23,7 @@ router = APIRouter(prefix="/api/vitals", tags=["vitals"], dependencies=[Depends(
 def summary(days: int = Query(default=7, ge=1, le=90)) -> dict:
     """Per-day aggregates for the last `days` feeding days."""
     s = repo.get_settings()
-    anchor_h = int(s.get("day_start_hour", "2"))
-    anchor_m = int(s.get("day_start_minute", "30"))
+    anchor_h, anchor_m = anchor_from_settings(s)
     today = feeding_day_for(now_local(), anchor_h, anchor_m)
     earliest = today - timedelta(days=days - 1)
 

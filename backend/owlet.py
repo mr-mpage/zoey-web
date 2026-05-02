@@ -21,7 +21,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from . import repo
-from .comparisons import TZ, feeding_day_for, now_local
+from .comparisons import TZ, anchor_from_settings, feeding_day_for, now_local
 from .config import settings
 
 log = logging.getLogger(__name__)
@@ -236,12 +236,11 @@ def _compute_daily_aggregate(rows: list[dict]) -> dict:
     """Aggregate a list of raw vitals rows for a single feeding day.
 
     Filters out non-monitoring rows (sock off, charging, no heart rate).
-    Sessions are contiguous monitoring stretches separated by ≥ 15 minutes
-    of gap or non-monitoring rows.
+    Sessions are contiguous monitoring stretches separated by more than
+    ``vitals_session_gap_minutes`` of gap or non-monitoring rows.
     """
     from datetime import datetime
 
-    SESSION_GAP_MINUTES = 15
     monitoring = [
         r for r in rows
         if not r["sock_off"]
@@ -262,14 +261,20 @@ def _compute_daily_aggregate(rows: list[dict]) -> dict:
     spo2_avg10s = [r["spo2_avg10"] for r in monitoring if r["spo2_avg10"] is not None]
     alerts = sum(1 for r in monitoring if r["low_spo2_alert"])
 
-    # Sessions: walk timestamps, split when gap ≥ threshold.
+    # Sessions: walk timestamps, split when the gap between consecutive
+    # samples exceeds the session-gap threshold. Within a session, treat
+    # each gap as monitored time, but cap a single gap at 2× the poll
+    # interval so a brief stall (one missed reading) still counts while
+    # an unattended sock that drifted a few minutes doesn't inflate the
+    # total.
     times = [datetime.fromisoformat(r["recorded_at"]) for r in monitoring]
     sessions = 1
     monitoring_seconds = 0
     poll_interval = settings.owlet_poll_interval_s
+    session_gap_seconds = settings.vitals_session_gap_minutes * 60
     for prev, cur in zip(times, times[1:]):
         gap = (cur - prev).total_seconds()
-        if gap > SESSION_GAP_MINUTES * 60:
+        if gap > session_gap_seconds:
             sessions += 1
         else:
             monitoring_seconds += min(gap, poll_interval * 2)
@@ -295,8 +300,7 @@ def aggregate_for_feeding_day(day_iso: str) -> dict:
     from datetime import date
 
     s = repo.get_settings()
-    anchor_h = int(s.get("day_start_hour", "2"))
-    anchor_m = int(s.get("day_start_minute", "30"))
+    anchor_h, anchor_m = anchor_from_settings(s)
     d = date.fromisoformat(day_iso)
     start, end = feeding_day_bounds(d, anchor_h, anchor_m)
     rows = repo.list_vitals_between(start.isoformat(), end.isoformat())
@@ -325,8 +329,7 @@ def vitals_summary_for_range(days: int) -> list[dict]:
     surfaces report the same numbers.
     """
     s = repo.get_settings()
-    anchor_h = int(s.get("day_start_hour", "2"))
-    anchor_m = int(s.get("day_start_minute", "30"))
+    anchor_h, anchor_m = anchor_from_settings(s)
     today = feeding_day_for(now_local(), anchor_h, anchor_m)
     earliest = today - timedelta(days=days - 1)
     retain_days = settings.vitals_raw_retain_days
@@ -388,8 +391,7 @@ def _compaction_tick() -> None:
     from .comparisons import feeding_day_for, feeding_day_bounds
 
     s = repo.get_settings()
-    anchor_h = int(s.get("day_start_hour", "2"))
-    anchor_m = int(s.get("day_start_minute", "30"))
+    anchor_h, anchor_m = anchor_from_settings(s)
     today = feeding_day_for(now_local(), anchor_h, anchor_m)
     retain_days = settings.vitals_raw_retain_days
     cutoff_day = today - timedelta(days=retain_days)
