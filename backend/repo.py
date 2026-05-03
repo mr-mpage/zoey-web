@@ -176,6 +176,23 @@ def delete_all_auto_weights() -> int:
         return cur.rowcount
 
 
+def replace_all_auto_weights(rows: list[tuple[datetime, int, int]]) -> None:
+    """Atomically wipe all auto weight rows and insert the supplied set in
+    a single transaction. SQLite's write lock then serialises concurrent
+    regenerators so two callers can't both delete-empty + insert-N and
+    leave behind duplicates."""
+    payload = [(recorded_at.isoformat(), w, mlkg, None, 1) for (recorded_at, w, mlkg) in rows]
+    with get_conn() as c:
+        c.execute("BEGIN IMMEDIATE")
+        c.execute("DELETE FROM weight_entries WHERE is_auto = 1")
+        if payload:
+            c.executemany(
+                "INSERT INTO weight_entries (recorded_at, weight_grams, ml_per_kg_per_day, notes, is_auto) "
+                "VALUES (?, ?, ?, ?, ?)",
+                payload,
+            )
+
+
 def update_weight(weight_id: int, recorded_at: Optional[datetime], weight_grams: Optional[int], ml_per_kg_per_day: Optional[int], notes: Optional[str]) -> bool:
     sets, args = [], []
     if recorded_at is not None:

@@ -262,6 +262,10 @@ def get_conn() -> Iterator[sqlite3.Connection]:
     conn = sqlite3.connect(db_file())
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    # Concurrent writers (e.g. parallel /api/weight + /api/dashboard requests
+    # both triggering the auto-weight regenerator) need to queue on SQLite's
+    # write lock instead of erroring out with 'database is locked'.
+    conn.execute("PRAGMA busy_timeout = 5000")
     try:
         yield conn
         conn.commit()

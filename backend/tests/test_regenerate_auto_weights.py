@@ -6,6 +6,7 @@ to the manual set fully rebuilds the auto fill.
 Uses a real SQLite via the db_path fixture rather than mocking the repo —
 the repo layer is small and the integration is what matters."""
 
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 
 from backend import repo
@@ -116,6 +117,24 @@ def test_deleting_a_middle_manual_reinterpolates_outer_segment(db_path):
     day7 = [r for r in _all(db_path) if r["recorded_at"][:10] == (_today_local() - timedelta(days=7)).isoformat()]
     assert len(day7) == 1
     assert day7[0]["is_auto"] == 1
+
+
+def test_concurrent_regenerates_do_not_duplicate(db_path):
+    """Two parallel callers (e.g. /api/weight + /api/dashboard on a fresh-day
+    page load) used to both delete-empty + insert-N and leave duplicates.
+    The replace-in-one-transaction path serialises them via SQLite's write
+    lock, so the end state is a single auto row per feeding day regardless
+    of how many regenerators race."""
+    repo.insert_weight(_at_day(8), 2200, 160, "earlier")
+    repo.insert_weight(_at_day(2), 2380, 160, "recent")
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        list(pool.map(lambda _: regenerate_auto_weights(), range(8)))
+
+    rows = _all(db_path)
+    autos = [r for r in rows if r["is_auto"]]
+    days = [r["recorded_at"][:10] for r in autos]
+    assert len(days) == len(set(days)), f"duplicate auto days produced: {days}"
 
 
 def test_regenerate_uses_only_manual_entries_for_rate(db_path):

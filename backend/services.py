@@ -482,31 +482,32 @@ def regenerate_auto_weights() -> None:
 
     Linearly interpolates between adjacent manuals to fill in-range gaps,
     then extrapolates forward from the latest manual to today's feeding day
-    using the trailing 7-day daily gain. Idempotent — safe to call on every
-    manual write or on a fresh-day read."""
+    using the trailing 7-day daily gain. The whole rebuild lands in one
+    transaction so concurrent callers (e.g. /api/weight + /api/dashboard
+    arriving together on a fresh-day load) can't both empty + repopulate
+    and leave duplicates behind."""
     s = repo.get_settings()
     anchor_h, anchor_m = anchor_from_settings(s)
-
-    repo.delete_all_auto_weights()
 
     manuals = sorted(
         [w for w in repo.list_weights() if not w.get("is_auto")],
         key=lambda w: w["recorded_at"],
     )
     if not manuals:
+        repo.replace_all_auto_weights([])
         return
 
     def day_of(row: dict):
         return feeding_day_for(datetime.fromisoformat(row["recorded_at"]), anchor_h, anchor_m)
 
-    def insert_for(target_day, weight_grams: int, ml_per_kg_per_day: int) -> None:
-        # Anchor auto entries at noon local so a same-day manual added later
-        # at any reasonable hour sorts after the auto and a regenerate replaces
-        # it cleanly.
-        recorded_at = datetime.combine(target_day, time(hour=12), tzinfo=TZ)
-        repo.insert_weight(recorded_at, weight_grams, ml_per_kg_per_day, None, is_auto=True)
+    # Anchor auto entries at noon local so a same-day manual added later
+    # at any reasonable hour sorts after the auto and a regenerate replaces
+    # it cleanly.
+    rows: list[tuple[datetime, int, int]] = []
 
-    # Fill between adjacent manuals (linear interpolation)
+    def add(target_day, weight_grams: int, ml_per_kg_per_day: int) -> None:
+        rows.append((datetime.combine(target_day, time(hour=12), tzinfo=TZ), weight_grams, ml_per_kg_per_day))
+
     for a, b in zip(manuals, manuals[1:]):
         a_day = day_of(a)
         b_day = day_of(b)
@@ -515,19 +516,18 @@ def regenerate_auto_weights() -> None:
             continue
         rate = (b["weight_grams"] - a["weight_grams"]) / gap_days
         for d in range(1, gap_days):
-            insert_for(a_day + timedelta(days=d), round(a["weight_grams"] + d * rate), a["ml_per_kg_per_day"])
+            add(a_day + timedelta(days=d), round(a["weight_grams"] + d * rate), a["ml_per_kg_per_day"])
 
-    # Extrapolate forward from the latest manual to today
     today = feeding_day_for(now_local(), anchor_h, anchor_m)
     latest = manuals[-1]
     latest_day = day_of(latest)
-    if latest_day >= today:
-        return
+    if latest_day < today:
+        rate = _recent_daily_gain_g(manuals)
+        days_forward = (today - latest_day).days
+        for d in range(1, days_forward + 1):
+            add(latest_day + timedelta(days=d), round(latest["weight_grams"] + d * rate), latest["ml_per_kg_per_day"])
 
-    rate = _recent_daily_gain_g(manuals)
-    days_forward = (today - latest_day).days
-    for d in range(1, days_forward + 1):
-        insert_for(latest_day + timedelta(days=d), round(latest["weight_grams"] + d * rate), latest["ml_per_kg_per_day"])
+    repo.replace_all_auto_weights(rows)
 
 
 def ensure_auto_weights_through_today() -> None:
