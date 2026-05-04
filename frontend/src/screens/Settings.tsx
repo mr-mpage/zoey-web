@@ -744,8 +744,8 @@ export function SettingsScreen() {
         <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Baby profile</div>
         <p className="text-xs text-zinc-500 mb-3">
           Name appears in screen headers, narratives, push reminders, and the doctor report. Birth
-          fields drive the PMA-aware growth bands, the Fenton chart, the friendly age in the header,
-          and the milestone chip (e.g. "Back to birth weight").
+          fields drive the PMA-aware growth bands, the percentile chart, the friendly age in the
+          header, and the milestone chip (e.g. "Back to birth weight").
         </p>
         <div className="space-y-2">
           <div className="flex items-center gap-3">

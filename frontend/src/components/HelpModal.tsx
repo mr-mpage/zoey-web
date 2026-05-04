@@ -267,7 +267,7 @@ export const buildEditSections = (name: string, _parents: string): Section[] => 
   {
     id: 'weight',
     title: 'Weight & growth',
-    blurb: 'Fenton 2025 chart, PMA-aware bands, trend colours.',
+    blurb: 'Preterm percentile chart, PMA-aware bands, trend colours.',
     tone: 'lime',
     icon: Icons.growth,
     body: (
@@ -297,11 +297,12 @@ export const buildEditSections = (name: string, _parents: string): Section[] => 
           actually applied to that row.
         </p>
 
-        <H>Fenton 2025 percentile chart</H>
+        <H>Preterm percentile chart</H>
         <p className="mb-2">
-          On the Weight tab, the chart plots her weight history against the Fenton 2025 girls reference
-          percentiles (3rd, 10th, 50th, 90th). The x-axis is <b>postmenstrual age (PMA)</b> — gestational
-          age + how old she is — the standard way preterm growth is tracked.
+          On the Weight tab, the chart plots her weight history against a preterm girls reference
+          (Niklasson 2008) at the 3rd, 10th, 50th, and 90th percentiles. The x-axis is{' '}
+          <b>postmenstrual age (PMA)</b> — gestational age + how old she is — the standard way preterm
+          growth is tracked.
         </p>
         <p>
           <b>Trajectory matters more than the absolute percentile.</b> The goal is for her line to stay
@@ -320,8 +321,8 @@ export const buildEditSections = (name: string, _parents: string): Section[] => 
           <li>Term-equivalent (≥ 38 w): <b>10–15 g/kg/day</b></li>
         </ul>
         <p className="mt-2 text-zinc-400 text-[11px]">
-          Reference: AAP/ESPGHAN 2022 + Fenton 2025. The Today gain chip and the Overview growth indicator
-          both judge her against her current age bucket.
+          Velocity bands reflect typical preterm growth. The Today gain chip and the Overview growth
+          indicator both judge her against her current age bucket.
         </p>
 
         <H>Trend colours (ml/kg/day)</H>
@@ -617,15 +618,15 @@ export const buildViewSections = (name: string, parents: string): Section[] => [
   {
     id: 'weight',
     title: 'Weight & growth',
-    blurb: 'Fenton percentile chart and what to read into it.',
+    blurb: 'Preterm percentile chart and what to read into it.',
     tone: 'lime',
     icon: Icons.growth,
     body: (
       <>
-        <H>The Fenton 2025 chart</H>
+        <H>The preterm percentile chart</H>
         <p className="mb-2">
-          On the Trends tab → Weight, {name}'s weight history is plotted against the Fenton 2025 girls
-          reference percentiles (3rd, 10th, 50th, 90th). The x-axis is{' '}
+          On the Trends tab → Weight, {name}'s weight history is plotted against a preterm girls
+          reference (Niklasson 2008) at the 3rd, 10th, 50th, and 90th percentiles. The x-axis is{' '}
           <b>postmenstrual age (PMA)</b> — gestational age at birth plus how old she is — which is the
           standard way preterm babies are tracked.
         </p>
@@ -648,8 +649,8 @@ export const buildViewSections = (name: string, parents: string): Section[] => [
         <H>The narrative card</H>
         <p>
           Below the chart, a short paragraph in plain English summarises what the chart shows: birth-weight
-          recovery progress, current Fenton percentile, week-over-week percentile shifts, and the recent
-          gain rate vs the expected band. Tone (emerald/amber/sky) tracks the data.
+          recovery progress, current percentile, week-over-week percentile shifts, and the recent gain rate
+          vs the expected band. Tone (emerald/amber/sky) tracks the data.
         </p>
 
         <H>Per-row gain colours</H>
@@ -717,8 +718,8 @@ export const buildViewSections = (name: string, parents: string): Section[] => [
         <H>Why the gain bands change</H>
         <p>
           Expected weight gain in g/kg/day decreases as PMA approaches term: faster at younger PMA, slower
-          near term. The app uses these bands (from Fenton 2025 + AAP/ESPGHAN 2022) to colour the daily
-          gain so a number like +12 g/kg/day reads as "lovely" at 36w PMA and "watch" at 40w+.
+          near term. The app uses these preterm velocity bands to colour the daily gain so a number like
+          +12 g/kg/day reads as "lovely" at 36w PMA and "watch" at 40w+.
         </p>
 
         <H>Why the first two weeks are different</H>

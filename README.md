@@ -3,9 +3,9 @@
 Mobile-first webapp for tracking feeds, pumps, diapers, weight, vitals, and
 medications for a preterm baby. Surfaces same-feed-of-day historical
 comparisons, weight-based daily intake targets, PMA-aware growth bands, and
-Fenton 2025 percentile tracking — built around the actual decision-day
-questions: *is this low feed normal?*, *are we on track today?*, *is she
-gaining at the right rate?*
+preterm percentile tracking — built around the actual decision-day questions:
+*is this low feed normal?*, *are we on track today?*, *is she gaining at the
+right rate?*
 
 This is a personal app published openly as a working example. It's named for,
 and originally built for, our daughter Zoey (born 35w preterm). To use it for
@@ -23,7 +23,7 @@ sed those when you fork if the demo strings don't suit you.
 </p>
 <p align="center">
   <img src="docs/screenshots/pumps.png" alt="Trends → Pumps — supply-vs-intake stacked chart and per-day list" width="32%" />
-  <img src="docs/screenshots/weight.png" alt="Trends → Weight — current weight, trend sparkline, Fenton 2025 percentile chart" width="32%" />
+  <img src="docs/screenshots/weight.png" alt="Trends → Weight — current weight, trend sparkline, preterm percentile chart" width="32%" />
   <img src="docs/screenshots/vitals.png" alt="Trends → Vitals — HR / SpO₂ summary, 7-day chart, lowest sustained SpO₂ per day" width="32%" />
 </p>
 
@@ -58,9 +58,9 @@ The screens you tap every three hours.
   (linear interpolation between manuals, trailing 7-day extrapolation
   forward), so the daily ml target keeps tracking her actual growth.
   Real measurements are visually distinct from estimates.
-- **Fenton 2025 percentile chart** — weight history plotted against the
-  girls' reference percentiles on a PMA x-axis. Per-row gain coloured
-  against PMA-aware bands (Fenton + AAP/ESPGHAN 2022).
+- **Preterm percentile chart** — weight history plotted against a girls'
+  reference (Niklasson 2008, BMC Pediatrics 8:8, CC-BY 2.0) on a PMA x-axis.
+  Per-row gain coloured against PMA-aware velocity bands.
 - **Vitals** — per-day HR / SpO2 summaries from an Owlet Dream Sock
   (optional; off if you don't configure credentials).
 - **Meds** — daily checklist with configurable medications and per-med
@@ -176,7 +176,7 @@ X-Frame-Options, CSP, and Permissions-Policy headers itself.
 The seeded `app_settings` are intentionally generic (today's date as
 `birth_date`, 40w GA, 3000 g birth weight). Open **Settings** and replace
 those with the actual values before relying on the PMA-aware bands and the
-Fenton percentile chart.
+percentile chart.
 
 Owlet vitals integration is configured from **Settings → Owlet vitals** —
 email, password, and region are stored in the DB (the password is encrypted
@@ -224,10 +224,10 @@ backend/
                        push, overview, dashboard, report, vitals, auth
 frontend/
   src/api/           client + typed hooks
-  src/components/    ToastHost, FentonChart, charts, modals, sparklines
+  src/components/    ToastHost, GrowthChart, charts, modals, sparklines
   src/screens/       Today, Overview, History (Feeds + Weight + Pumps +
                        Vitals sub-tabs), Meds, Settings
-  src/lib/           growth bands, fenton 2025 reference, push helpers,
+  src/lib/           growth bands, niklasson 2008 reference, push helpers,
                        formatting, encouragement, narratives
 scripts/
   hash_passcode.py        one-shot bcrypt helper
@@ -294,8 +294,8 @@ those, a real device screenshot is still the ground truth.
 ## Disclaimer — please read before using this for a real child
 
 This app shows clinical-looking guidance: ml/kg/day intake bands,
-PMA-aware weight-gain expectations, Fenton 2025 percentile curves,
-"on track" / "watch" / "concern" colour coding. **None of that is
+PMA-aware weight-gain expectations, preterm percentile curves, "on
+track" / "watch" / "concern" colour coding. **None of that is
 medical advice.** It's a self-built tracker that surfaces
 already-published references next to your own logged numbers, to help
 two sleep-deprived parents notice things sooner and keep a tidier
@@ -305,30 +305,29 @@ your child.
 
 **Where the numbers come from:**
 
-- **Weight gain bands** (g/kg/day, age-stratified): AAP / ESPGHAN
-  2022 nutrition guidelines for preterm infants and the Fenton 2013
-  / 2025 growth-velocity tables. Implemented in
-  [`backend/growth.py`](backend/growth.py) and
+- **Weight gain bands** (g/kg/day, age-stratified): preterm growth
+  velocity expectations that decrease as PMA approaches term. Encoded
+  in [`backend/growth.py`](backend/growth.py) and
   [`frontend/src/lib/growth.ts`](frontend/src/lib/growth.ts).
-- **Fenton 2025 percentile chart**: official UCalgary cutoff tables
-  for **preterm girls** (CC BY-NC-ND), encoded in
-  [`frontend/src/lib/fenton.ts`](frontend/src/lib/fenton.ts). The
-  50th percentile is computed as the midpoint of the 10th/90th —
-  within ~1% of the published median across 22–42w. **Boys, term
-  babies, and post-term tracking are not what's plotted here.**
-- **Daily intake bands** (ml/kg/day): defaults align with ESPGHAN
-  2022 + the 150–160 ml/kg/day NICU goal cited by Brigham, UC Davis,
-  and Johns Hopkins; below 135 is the "below safe stable phase"
-  threshold ESPGHAN flags. **These four edges are configurable in
-  Settings** — your team may give you different numbers.
+- **Preterm percentile chart**: Niklasson & Albertsson-Wikland,
+  *BMC Pediatrics* 2008;8:8 (CC-BY 2.0) — girls weight-for-PMA
+  percentiles for gestational weeks 24–40. Encoded in
+  [`frontend/src/lib/niklasson.ts`](frontend/src/lib/niklasson.ts).
+  **Boys, term babies, and post-term tracking are not what's plotted
+  here.**
+- **Daily intake bands** (ml/kg/day): defaults align with the
+  150–160 ml/kg/day preterm NICU goal cited widely in the literature;
+  below 135 is the "below safe stable phase" threshold. **These four
+  edges are configurable in Settings** — your team may give you
+  different numbers.
 - **Hydration floor**: 6 wet diapers / 24h, the commonly-cited
   general indicator (not a hard cutoff for preterm infants).
 - **PMA + postnatal age**: gestational age at birth + days since
   birth. Drives which gain band applies.
 
 **The defaults are tuned for preterm girls.** This was written for
-Zoey, who was born at 35 weeks. The Fenton 2025 reference is the
-**girls'** cutoff table; the g/kg/day expected-gain ladder is from
+Zoey, who was born at 35 weeks. The bundled percentile reference is
+the **girls'** cutoff table; the g/kg/day expected-gain ladder is from
 **preterm** literature; the intake bands assume a NICU-style
 ml/kg/day target. **None of those defaults will fit a term baby
 boy on demand-feed, or a child on solids, or any number of other
@@ -347,13 +346,12 @@ for:
   `target_low` / `target_solid` / `target_high` to match your team's
   ml/kg/day numbers, plus `birth_date` / `gestational_age_weeks` /
   `birth_weight_grams`.
-- The PMA-aware weight-gain bands and the Fenton-girls percentile
-  curves are hard-coded. If your team uses different references
-  (Fenton boys, Olsen, INTERGROWTH-21st, WHO term, …) or your child
-  isn't in the population this app was tuned for, you'll need to
-  fork and edit [`backend/growth.py`](backend/growth.py),
+- The PMA-aware weight-gain bands and the girls' percentile curves
+  are hard-coded. If your team uses a different reference, or your
+  child isn't in the population this app was tuned for, you'll need
+  to fork and edit [`backend/growth.py`](backend/growth.py),
   [`frontend/src/lib/growth.ts`](frontend/src/lib/growth.ts), and
-  [`frontend/src/lib/fenton.ts`](frontend/src/lib/fenton.ts).
+  [`frontend/src/lib/niklasson.ts`](frontend/src/lib/niklasson.ts).
 
 **If a number on this app contradicts what your clinician has told
 you, your clinician is right.**

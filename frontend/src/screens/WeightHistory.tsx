@@ -6,7 +6,7 @@ import {
   useSetWeight,
   useWeight,
 } from '../api/hooks'
-import { FentonChart } from '../components/FentonChart'
+import { GrowthChart } from '../components/GrowthChart'
 import { WeightModal } from '../components/WeightModal'
 import { WeightNarrativeCard } from '../components/WeightNarrativeCard'
 import { WeightSparkline } from '../components/WeightSparkline'
@@ -140,13 +140,13 @@ export function WeightHistorySection() {
         </div>
       )}
 
-      {/* Fenton percentile chart */}
+      {/* Preterm percentile chart */}
       {weights.length >= 1 && appSettings && (
         <div className="rounded-xl bg-zinc-900/60 p-3 mb-4">
           <div className="text-[11px] uppercase tracking-wider text-zinc-500 mb-2">
-            Fenton 2025 girls · weight by PMA
+            Weight by PMA · preterm girls reference
           </div>
-          <FentonChart
+          <GrowthChart
             weights={weights}
             birthDateIso={appSettings.birth_date}
             gestationalAgeWeeks={appSettings.gestational_age_weeks}

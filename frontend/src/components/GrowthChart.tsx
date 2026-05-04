@@ -1,5 +1,5 @@
 import type { Weight } from '../api/types'
-import { approxPercentile, fentonGirls, fentonPmaRange } from '../lib/fenton'
+import { approxPercentile, niklassonGirls, niklassonPmaRange } from '../lib/niklasson'
 
 type Props = {
   weights: Weight[]
@@ -18,9 +18,9 @@ const COLOR_BABY = 'rgb(244 175 195)'
 const DASH_P10_P90 = '3 2'
 const DASH_P3 = '1.5 2.5'
 
-/** Plots the baby's weight overlaid on the Fenton 2025 girls reference
+/** Plots the baby's weight overlaid on the Niklasson 2008 girls reference
  *  percentile bands (3rd, 10th, 50th, 90th). PMA on x-axis, weight (g) on y-axis. */
-export function FentonChart({
+export function GrowthChart({
   weights,
   birthDateIso,
   gestationalAgeWeeks,
@@ -42,13 +42,13 @@ export function FentonChart({
       const days = (new Date(w.recorded_at).getTime() - birth) / 86_400_000
       return { pma: gestationalAgeWeeks + days / 7, grams: w.weight_grams, recorded_at: w.recorded_at }
     })
-    .filter((p) => p.pma >= fentonPmaRange[0] && p.pma <= fentonPmaRange[1])
+    .filter((p) => p.pma >= niklassonPmaRange[0] && p.pma <= niklassonPmaRange[1])
 
-  const visiblePmaMin = points.length ? Math.max(fentonPmaRange[0], Math.floor(Math.min(...points.map((p) => p.pma)) - 1)) : fentonPmaRange[0]
-  const visiblePmaMax = points.length ? Math.min(fentonPmaRange[1], Math.ceil(Math.max(...points.map((p) => p.pma)) + 2)) : fentonPmaRange[1]
-  const fenSlice = fentonGirls.filter((r) => r.pma >= visiblePmaMin && r.pma <= visiblePmaMax)
-  const refMin = Math.min(...fenSlice.map((r) => r.p3))
-  const refMax = Math.max(...fenSlice.map((r) => r.p90))
+  const visiblePmaMin = points.length ? Math.max(niklassonPmaRange[0], Math.floor(Math.min(...points.map((p) => p.pma)) - 1)) : niklassonPmaRange[0]
+  const visiblePmaMax = points.length ? Math.min(niklassonPmaRange[1], Math.ceil(Math.max(...points.map((p) => p.pma)) + 2)) : niklassonPmaRange[1]
+  const refSlice = niklassonGirls.filter((r) => r.pma >= visiblePmaMin && r.pma <= visiblePmaMax)
+  const refMin = Math.min(...refSlice.map((r) => r.p3))
+  const refMax = Math.max(...refSlice.map((r) => r.p90))
   const obsMin = points.length ? Math.min(...points.map((p) => p.grams)) : refMin
   const obsMax = points.length ? Math.max(...points.map((p) => p.grams)) : refMax
   const yMin = Math.floor(Math.min(refMin, obsMin) / 100) * 100 - 50
@@ -58,7 +58,7 @@ export function FentonChart({
   const y = (g: number) => padT + innerH - ((g - yMin) / (yMax - yMin)) * innerH
 
   const buildPath = (key: 'p3' | 'p10' | 'p50' | 'p90') =>
-    fenSlice
+    refSlice
       .map((r, i) => `${i === 0 ? 'M' : 'L'} ${x(r.pma).toFixed(1)} ${y(r[key]).toFixed(1)}`)
       .join(' ')
 
@@ -143,16 +143,16 @@ export function FentonChart({
         <summary className="cursor-pointer text-zinc-400">What this chart means</summary>
         <div className="mt-2 space-y-2">
           <p>
-            This is the <span className="text-zinc-300">Fenton 2025</span> growth reference, built specifically
-            for babies born preterm. The x-axis is{' '}
+            This is a <span className="text-zinc-300">preterm growth reference</span> for girls, covering the
+            window from gestational week 24 up to term (40 weeks). The x-axis is{' '}
             <span className="text-zinc-300">postmenstrual age (PMA)</span> — gestational age plus how old she
             is — which is how preterm growth is tracked, since chronological age from birth doesn't line up
             with babies born at term.
           </p>
           <p>
-            The grey lines show where preterm babies of the same PMA typically fall: most are between the 10th
-            and 90th, half are above the 50th. A baby on the 25th percentile is smaller than 75% of preterm
-            babies her age — which is normal and expected for many preemies, especially smaller ones at birth.
+            The grey lines show where preterm girls of the same PMA typically fall: most are between the 10th
+            and 90th, half are above the 50th. A baby on the 25th percentile is smaller than 75% of girls her
+            age — which is normal and expected for many preemies, especially smaller ones at birth.
           </p>
           <p>
             <span className="text-zinc-300">Trajectory matters more than the absolute percentile.</span>{' '}
@@ -162,8 +162,9 @@ export function FentonChart({
             for several weigh-ins is a flag worth raising at her next visit.
           </p>
           <p className="text-zinc-600">
-            Reference: Fenton TR et al., <em>Paediatr Perinat Epidemiol</em> 2025; girls weight-for-PMA cutoffs.
-            Used here only for visual context — clinical assessment is the doctor's call.
+            Reference: Niklasson &amp; Albertsson-Wikland, <em>BMC Pediatrics</em> 2008;8:8 (CC-BY 2.0); girls
+            weight-for-PMA percentiles. Used here only for visual context — clinical assessment is the
+            doctor's call.
           </p>
         </div>
       </details>

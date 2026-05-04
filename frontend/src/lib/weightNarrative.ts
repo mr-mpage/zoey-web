@@ -1,5 +1,5 @@
 import type { Weight } from '../api/types'
-import { approxPercentile } from './fenton'
+import { approxPercentile } from './niklasson'
 import { expectedGainRange, rollingGainRate } from './growth'
 
 export type WeightNarrative = {
@@ -27,7 +27,7 @@ function daysSinceBirth(birthIso: string, when: Date): number {
 }
 
 /** Plain-language read of where the weight data sits right now: birth-weight
- *  recovery phase, current percentile vs Fenton, recent gain rate vs expected. */
+ *  recovery phase, current percentile vs reference, recent gain rate vs expected. */
 export function buildWeightNarrative({
   weights,
   birthDateIso,

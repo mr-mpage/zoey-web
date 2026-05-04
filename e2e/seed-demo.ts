@@ -80,11 +80,10 @@ async function main() {
   })
 
   /* Weight trajectory aimed so the trailing 7-day gain rate lands at
-   * ~12 g/kg/day — solidly inside the 10–15 band the Fenton/AAP
-   * tables expect at PMA 38w, so the Overview growth indicator reads
-   * 'On track' rather than 'watch'. The auto-fill regenerator
-   * interpolates the days between for the headline 'estimated'
-   * display. */
+   * ~12 g/kg/day — solidly inside the 10–15 band the app expects at
+   * PMA 38w, so the Overview growth indicator reads 'On track' rather
+   * than 'watch'. The auto-fill regenerator interpolates the days
+   * between for the headline 'estimated' display. */
   type W = { grams: number; daysAgo: number; notes: string }
   const weights: W[] = [
     { grams: 2680, daysAgo: 14, notes: 'discharge weigh-in' },

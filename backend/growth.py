@@ -47,7 +47,7 @@ def pma_and_postnatal_age(birth_date_iso: str, ga_weeks: int, today: Optional[da
 
 
 def expected_gain_range(pma_weeks: float, postnatal_days: int) -> tuple[int, int]:
-    """(min, max) g/kg/day expected, derived from Fenton + AAP/ESPGHAN 2022.
+    """(min, max) g/kg/day expected for preterm girls.
 
     Velocity decreases as PMA approaches term: ~21 g/kg/day at 22 weeks
     PMA → ~12 g/kg/day at 36 weeks PMA → ~10 g/kg/day at term-equivalent.

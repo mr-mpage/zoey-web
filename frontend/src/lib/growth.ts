@@ -40,8 +40,7 @@ export function rollingGainRate(weights: Weight[], windowDays = 7): number | nul
   return g_per_day / (latest.weight_grams / 1000)
 }
 
-/** PMA-aware expected gain range (g/kg/day), mirrors the backend in services.py.
- * References: Fenton 2013/2025, AAP/ESPGHAN 2022. */
+/** PMA-aware expected gain range (g/kg/day), mirrors the backend in services.py. */
 export function expectedGainRange(pmaWeeks: number, postnatalDays: number): [number, number] {
   if (postnatalDays < 7) return [0, 12]
   if (postnatalDays < 14) return [8, 16]

@@ -146,8 +146,8 @@ they stay in sync with the real UI.
 
 ## Reference
 
-- **[Glossary](Glossary)** — clinical and project-specific terms (PMA, Fenton, ml/kg/day,
-  pace tier, etc.).
+- **[Glossary](Glossary)** — clinical and project-specific terms (PMA, percentile chart,
+  ml/kg/day, pace tier, etc.).
 `
 }
 
@@ -183,16 +183,16 @@ growth metric is reported against PMA rather than calendar age.
 PMA 40 weeks — the moment a full-term baby would have been born. Growth velocity
 expectations slow toward the term curve from here.
 
-### Fenton 2025
+### Preterm percentile chart
 
-The Fenton preterm growth chart, 2025 revision (girls / boys references). The
-app plots weight history against the girls' percentile curves (3rd, 10th, 50th,
-90th) on a PMA x-axis.
+A growth-reference chart for preterm girls. The app uses Niklasson 2008
+(BMC Pediatrics 8:8, CC-BY 2.0) and plots weight history against the
+3rd, 10th, 50th, and 90th percentile curves on a PMA x-axis.
 
 ### ml/kg/day
 
 Daily milk intake normalised to body weight. The standard preterm intake
-target is 150–160 ml/kg/day (ESPGHAN 2022). The app's coloured trend bands:
+target is 150–160 ml/kg/day. The app's coloured trend bands:
 
 - **rose** — under 135 · genuinely low
 - **amber** — 135–150 · under target
@@ -203,8 +203,8 @@ target is 150–160 ml/kg/day (ESPGHAN 2022). The app's coloured trend bands:
 ### g/kg/day
 
 Daily weight gain normalised to body weight. Expected band depends on PMA:
-faster at younger PMA, slower near term. The app uses Fenton 2025 +
-AAP/ESPGHAN 2022 bands to colour the daily gain.
+faster at younger PMA, slower near term. The app uses preterm velocity
+bands to colour the daily gain.
 
 ### Pace tier
 
