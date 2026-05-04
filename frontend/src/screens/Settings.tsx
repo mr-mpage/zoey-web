@@ -17,6 +17,7 @@ import {
 import { api, ApiError } from '../api/client'
 import { disablePush, enablePush, getState as getPushState, isStandalone } from '../lib/push'
 import { fmtDate, fmtTime } from '../lib/format'
+import { useIsReadOnly } from '../lib/authMode'
 import type { AppSettings, Med } from '../api/types'
 
 function OwletIntegrationSection() {
@@ -257,6 +258,140 @@ function OwletIntegrationSection() {
       </div>
 
       {msg && <div className="mt-2 text-[11px] text-zinc-400 text-center">{msg}</div>}
+    </div>
+  )
+}
+
+
+function DataExportSection() {
+  return (
+    <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">
+      <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Export data</div>
+      <p className="text-xs text-zinc-500 mb-3">
+        Downloads a ZIP of CSVs (feeds, pumps, weights, diapers, meds, doses,
+        plus a manifest) covering all data so far. Useful as a backup or to
+        move data between devices.
+      </p>
+      <a
+        href="/api/export/all.zip"
+        className="block w-full text-center py-3 rounded-xl bg-pink-300 text-zinc-900 font-medium"
+      >
+        Download CSV bundle
+      </a>
+    </div>
+  )
+}
+
+
+type ImportFileResult = {
+  filename: string
+  kind: string | null
+  imported: number
+  errors: number
+  ignored: boolean
+}
+
+type ImportResult = {
+  files: ImportFileResult[]
+  total_imported: number
+  total_errors: number
+}
+
+function DataImportSection() {
+  const [files, setFiles] = useState<File[]>([])
+  const [busy, setBusy] = useState(false)
+  const [result, setResult] = useState<ImportResult | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+
+  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const list = e.target.files
+    setFiles(list ? Array.from(list) : [])
+    setResult(null)
+    setErr(null)
+  }
+
+  const submit = async () => {
+    if (files.length === 0) return
+    setBusy(true)
+    setErr(null)
+    setResult(null)
+    try {
+      const fd = new FormData()
+      for (const f of files) fd.append('files', f)
+      const res = await fetch('/api/import', {
+        method: 'POST',
+        credentials: 'include',
+        body: fd,
+      })
+      if (!res.ok) {
+        let detail = res.statusText
+        try {
+          const body = await res.json()
+          if (body?.detail) detail = body.detail
+        } catch { /* ignore */ }
+        throw new Error(detail)
+      }
+      setResult(await res.json())
+      setFiles([])
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Import failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="rounded-2xl bg-zinc-900/60 p-4 mb-5">
+      <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Import data</div>
+      <p className="text-xs text-zinc-500 mb-3">
+        Append rows from CSV files exported elsewhere. Pick one or more files
+        (feeds, pumps, weights, diapers, meds, doses). Imports are additive —
+        this won't deduplicate against existing rows.
+      </p>
+      <label className="block w-full mb-2">
+        <input
+          type="file"
+          accept=".csv,text/csv"
+          multiple
+          onChange={onPick}
+          className="block w-full text-xs text-zinc-300 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-zinc-800 file:text-zinc-200 file:text-xs"
+        />
+      </label>
+      {files.length > 0 && (
+        <div className="text-[11px] text-zinc-500 mb-2">
+          {files.length} file{files.length === 1 ? '' : 's'} selected
+        </div>
+      )}
+      <button
+        onClick={submit}
+        disabled={busy || files.length === 0}
+        className="block w-full text-center py-3 rounded-xl bg-pink-300 text-zinc-900 font-medium disabled:opacity-40"
+      >
+        {busy ? 'Importing…' : 'Import CSVs'}
+      </button>
+      {err && (
+        <div className="mt-3 text-xs text-rose-300">{err}</div>
+      )}
+      {result && (
+        <div className="mt-3 text-xs text-zinc-300">
+          <div className="mb-1">
+            Imported {result.total_imported} row{result.total_imported === 1 ? '' : 's'}
+            {result.total_errors > 0 && `, ${result.total_errors} skipped`}
+          </div>
+          <ul className="space-y-1">
+            {result.files.map((f, i) => (
+              <li key={i} className="flex justify-between gap-3 text-[11px]">
+                <span className="text-zinc-400 truncate">{f.filename}</span>
+                <span className="text-zinc-300 shrink-0">
+                  {f.ignored
+                    ? 'unknown — skipped'
+                    : `${f.kind}: ${f.imported}${f.errors ? ` (${f.errors} skipped)` : ''}`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }
@@ -656,6 +791,7 @@ export function SettingsScreen() {
   const { data: appSettings } = useAppSettings()
   const updateSettings = useUpdateAppSettings()
   const logout = useLogout()
+  const readOnly = useIsReadOnly()
 
   const [anchor, setAnchor] = useState<string>('02:30')
   const [feedsPerDay, setFeedsPerDay] = useState<string>('8')
@@ -956,6 +1092,10 @@ export function SettingsScreen() {
           Open report (last 14 days)
         </a>
       </div>
+
+      {!readOnly && <DataExportSection />}
+
+      {!readOnly && <DataImportSection />}
 
       <button
         onClick={() => logout.mutate()}

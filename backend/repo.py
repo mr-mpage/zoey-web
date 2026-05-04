@@ -83,6 +83,15 @@ def list_feeds_between(start_iso: str, end_iso: str) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def list_all_feeds() -> list[dict]:
+    with get_conn() as c:
+        rows = c.execute(
+            "SELECT id, fed_at, amount_ml, notes, is_extra, method, duration_min, feeding_day_override "
+            "FROM feeds ORDER BY fed_at ASC"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def insert_pump(pumped_at: datetime, amount_ml: float, notes: Optional[str]) -> int:
     with get_conn() as c:
         cur = c.execute(
@@ -122,6 +131,14 @@ def list_pumps_between(start_iso: str, end_iso: str) -> list[dict]:
         rows = c.execute(
             "SELECT id, pumped_at, amount_ml, notes FROM pumps WHERE pumped_at >= ? AND pumped_at < ? ORDER BY pumped_at ASC",
             (start_iso, end_iso),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def list_all_pumps() -> list[dict]:
+    with get_conn() as c:
+        rows = c.execute(
+            "SELECT id, pumped_at, amount_ml, notes FROM pumps ORDER BY pumped_at ASC"
         ).fetchall()
     return [dict(r) for r in rows]
 
@@ -260,6 +277,14 @@ def list_diapers_between(start_iso: str, end_iso: str) -> list[dict]:
         rows = c.execute(
             "SELECT id, recorded_at, kind, notes FROM diapers WHERE recorded_at >= ? AND recorded_at < ? ORDER BY recorded_at ASC",
             (start_iso, end_iso),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def list_all_diapers() -> list[dict]:
+    with get_conn() as c:
+        rows = c.execute(
+            "SELECT id, recorded_at, kind, notes FROM diapers ORDER BY recorded_at ASC"
         ).fetchall()
     return [dict(r) for r in rows]
 
@@ -579,6 +604,15 @@ def list_med_doses_between(start: datetime, end: datetime) -> list[dict]:
             "FROM med_doses WHERE given_at >= ? AND given_at < ? "
             "ORDER BY given_at ASC",
             (start.isoformat(), end.isoformat()),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def list_all_med_doses() -> list[dict]:
+    with get_conn() as c:
+        rows = c.execute(
+            "SELECT id, med_id, name, given_at, notes, is_extra, feeding_day_override "
+            "FROM med_doses ORDER BY given_at ASC"
         ).fetchall()
     return [dict(r) for r in rows]
 
