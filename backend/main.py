@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from .config import settings
 from .db import init_db
 from .owlet import start_owlet_poller, stop_owlet_poller, vitals_compaction_loop
-from .routers import auth, dashboard, data_import, diapers, export, feeds, meds, overview, pumps, push, report, settings as settings_router, vitals, weight
+from .routers import auth, dashboard, data_import, diapers, export, feeds, meds, overview, pumps, push, report, settings as settings_router, snapshot, vitals, weight
 from .scheduler import reminder_loop
 
 logging.basicConfig(level=logging.INFO)
@@ -159,6 +159,7 @@ app.include_router(vitals.router)
 app.include_router(meds.router)
 app.include_router(export.router)
 app.include_router(data_import.router)
+app.include_router(snapshot.router)
 
 
 @app.get("/api/health")

@@ -240,6 +240,109 @@ def export_settings() -> Response:
     return _csv_response(_settings_csv(), "app_settings.csv")
 
 
+def _settings_dict() -> dict[str, str]:
+    """Settings as a flat string-keyed dict for JSON snapshots. Same Owlet
+    exclusion as the CSV builder."""
+    skip_keys = {"owlet_email", "owlet_password_encrypted", "owlet_region"}
+    s = repo.get_settings()
+    return {k: v for k, v in s.items() if k not in skip_keys}
+
+
+def _snapshot_payload() -> dict[str, Any]:
+    """JSON shape consumed by the Zoey iOS app's Sync-from-PWA flow.
+    Mirrors `Zoey/Resources/zoey-snapshot.json` in the iOS bundle and
+    extends it with `meds` and `med_doses`. `vitals_daily` is kept as an
+    empty list for shape compatibility — iOS does not model vitals."""
+    feeds = [
+        {
+            "id": r["id"],
+            "fed_at": r["fed_at"],
+            "amount_ml": r["amount_ml"],
+            "method": r.get("method") or "bottle",
+            "duration_min": r.get("duration_min"),
+            "is_extra": int(r.get("is_extra") or 0),
+            "feeding_day_override": r.get("feeding_day_override"),
+            "notes": r.get("notes"),
+        }
+        for r in repo.list_all_feeds()
+    ]
+    pumps = [
+        {
+            "id": r["id"],
+            "pumped_at": r["pumped_at"],
+            "amount_ml": r["amount_ml"],
+            "notes": r.get("notes"),
+        }
+        for r in repo.list_all_pumps()
+    ]
+    weights = [
+        {
+            "id": r["id"],
+            "recorded_at": r["recorded_at"],
+            "weight_grams": r["weight_grams"],
+            "ml_per_kg_per_day": r["ml_per_kg_per_day"],
+            "is_auto": int(r.get("is_auto") or 0),
+            "notes": r.get("notes"),
+        }
+        for r in repo.list_weights()
+    ]
+    diapers = [
+        {
+            "id": r["id"],
+            "recorded_at": r["recorded_at"],
+            "kind": r["kind"],
+            "notes": r.get("notes"),
+        }
+        for r in repo.list_all_diapers()
+    ]
+    meds = [
+        {
+            "id": r["id"],
+            "name": r["name"],
+            "doses_per_day": r["doses_per_day"],
+            "sort_order": r["sort_order"],
+            "archived": int(r.get("archived") or 0),
+            "created_at": r.get("created_at"),
+        }
+        for r in repo.list_meds(include_archived=True)
+    ]
+    med_doses = [
+        {
+            "id": r["id"],
+            "med_id": r.get("med_id"),
+            "name": r.get("name"),
+            "given_at": r["given_at"],
+            "is_extra": int(r.get("is_extra") or 0),
+            "feeding_day_override": r.get("feeding_day_override"),
+            "notes": r.get("notes"),
+            "created_at": r.get("created_at"),
+        }
+        for r in repo.list_all_med_doses()
+    ]
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "exported_at": now_local().isoformat(),
+        "source": "zoey-web",
+        "feeds": feeds,
+        "pumps": pumps,
+        "weights": weights,
+        "diapers": diapers,
+        "meds": meds,
+        "med_doses": med_doses,
+        "vitals_daily": [],
+        "settings": _settings_dict(),
+    }
+
+
+@router.get("/snapshot.json")
+def export_snapshot_json() -> Response:
+    """Single JSON document with every iOS-relevant entity. Consumed by
+    Zoey iOS during the testing/cutover period for one-way pulls from
+    the PWA. Same auth as the CSV exports."""
+    body = json.dumps(_snapshot_payload(), indent=2, default=str).encode("utf-8")
+    return Response(content=body, media_type="application/json; charset=utf-8")
+
+
 @router.get("/all.zip")
 def export_all() -> Response:
     """One ZIP with every CSV + a manifest. Filename includes the baby
